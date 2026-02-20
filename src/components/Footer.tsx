@@ -7,12 +7,14 @@ const LINKS = {
   guests: [
     { label: "Properties", href: "/properties" },
     { label: "Book Direct", href: "/book" },
+    { label: "Residential", href: "/residential" },
     { label: "FAQ", href: "/faq" },
   ],
   owners: [
     { label: "How It Works", href: "/owners" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Get Estimate", href: "/owners/estimate" },
+    { label: "Pricing", href: "/owners/pricing" },
+    { label: "Free Estimate", href: "/owners/estimate" },
+    { label: "Our Standards", href: "/owners/standards" },
   ],
   company: [
     { label: "About", href: "/about" },

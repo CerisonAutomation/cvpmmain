@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
+import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble } from 'lucide-react';
+import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid } from 'lucide-react';
+import { useListings } from '@/lib/guesty';
+import { getSiteConfig } from '@/lib/site-config';
 import propertyFives from '@/assets/property-fives.jpg';
 import propertyPenthouse from '@/assets/property-penthouse.jpg';
 import propertyUrsula from '@/assets/property-ursula.jpg';
@@ -11,29 +14,80 @@ import portfolio1 from '@/assets/portfolio-1.jpg';
 import portfolio2 from '@/assets/portfolio-2.jpg';
 import portfolio3 from '@/assets/portfolio-3.jpg';
 
-// Mock property data — will be replaced by Guesty API calls via Cloud
-const PROPERTIES = [
-  { id: '1', title: 'The Fives Penthouse', location: 'Sliema', beds: 3, guests: 6, rating: 4.98, price: 185, image: propertyFives },
-  { id: '2', title: 'Harbour View Suite', location: 'Valletta', beds: 2, guests: 4, rating: 4.95, price: 145, image: propertyPenthouse },
-  { id: '3', title: 'Villa St Ursula', location: 'Mellieħa', beds: 4, guests: 8, rating: 4.97, price: 260, image: propertyUrsula },
-  { id: '4', title: 'Modern Waterfront Flat', location: 'San Ġiljan', beds: 2, guests: 4, rating: 4.92, price: 130, image: portfolio1 },
-  { id: '5', title: 'Gozo Farmhouse Retreat', location: 'Xagħra', beds: 3, guests: 6, rating: 4.99, price: 210, image: portfolio2 },
-  { id: '6', title: 'Designer Loft Msida', location: 'Msida', beds: 1, guests: 2, rating: 4.90, price: 95, image: portfolio3 },
+const config = getSiteConfig();
+
+// Static fallback properties using site config
+const STATIC_PROPERTIES = config.properties.map((p, i) => ({
+  id: p.id,
+  title: p.title,
+  location: p.location,
+  beds: p.beds,
+  baths: p.baths,
+  guests: p.guests,
+  rating: 4.97,
+  price: parseInt(p.pricePerNight.replace(/[^0-9]/g, '')) || 150,
+  image: [propertyFives, propertyUrsula, propertyPenthouse][i % 3],
+  bookingUrl: p.bookingUrl,
+  type: p.type,
+}));
+
+// Additional static properties
+const EXTRA_PROPERTIES = [
+  { id: 'extra1', title: 'Modern Waterfront Flat', location: 'San Ġiljan', beds: 2, baths: 2, guests: 4, rating: 4.92, price: 130, image: portfolio1, bookingUrl: 'https://malta.guestybookings.com/', type: 'Apartment' },
+  { id: 'extra2', title: 'Gozo Farmhouse Retreat', location: 'Xagħra', beds: 3, baths: 2, guests: 6, rating: 4.99, price: 210, image: portfolio2, bookingUrl: 'https://malta.guestybookings.com/', type: 'Farmhouse' },
+  { id: 'extra3', title: 'Designer Loft Msida', location: 'Msida', beds: 1, baths: 1, guests: 2, rating: 4.90, price: 95, image: portfolio3, bookingUrl: 'https://malta.guestybookings.com/', type: 'Loft' },
 ];
+
+const ALL_STATIC = [...STATIC_PROPERTIES, ...EXTRA_PROPERTIES];
+
+// Map locations with prices from static properties
+const MAP_LOCATIONS: MapLocation[] = MALTA_LOCALITIES_COORDS.map(loc => {
+  const match = ALL_STATIC.find(p =>
+    p.location.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
+    loc.name.toLowerCase().includes(p.location.toLowerCase().split(' ')[0])
+  );
+  return { ...loc, price: match?.price, count: match ? 1 : undefined };
+});
 
 export default function Properties() {
   const [searchParams] = useSearchParams();
   const locationFilter = searchParams.get('location') || '';
   const [activeLocation, setActiveLocation] = useState(locationFilter);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // Try Guesty live data; fall back to static
+  const { data: guestyListings, isError } = useListings();
+  const hasGuesty = !!import.meta.env.VITE_GUESTY_CLIENT_ID && guestyListings && guestyListings.length > 0;
+
+  const properties = hasGuesty
+    ? guestyListings!.map(l => ({
+        id: l._id,
+        title: l.title,
+        location: l.address.city || l.address.neighborhood || l.address.full,
+        beds: l.bedrooms,
+        baths: l.bathrooms,
+        guests: l.accommodates,
+        rating: l.rating || 4.97,
+        price: l.prices.basePrice,
+        image: l.featuredPicture?.large || l.pictures?.[0]?.large || propertyFives,
+        bookingUrl: `https://malta.guestybookings.com/en/properties/${l._id}`,
+        type: l.propertyType,
+      }))
+    : ALL_STATIC;
 
   const filtered = activeLocation
-    ? PROPERTIES.filter((p) => p.location.toLowerCase().includes(activeLocation.toLowerCase()))
-    : PROPERTIES;
+    ? properties.filter((p) => p.location.toLowerCase().includes(activeLocation.toLowerCase()))
+    : properties;
+
+  const handleMapClick = (loc: MapLocation) => {
+    setActiveLocation(loc.name === activeLocation ? '' : loc.name.split(' ')[0]);
+    setViewMode('grid');
+  };
 
   return (
     <Layout>
-      {/* Search bar section */}
-      <section className="py-10 border-b border-border/30">
+      {/* Search bar */}
+      <section className="py-8 border-b border-border/30">
         <div className="section-container">
           <BookingSearchBar
             variant="page"
@@ -42,26 +96,61 @@ export default function Properties() {
         </div>
       </section>
 
-      {/* Results */}
-      <section className="py-12">
+      <section className="py-10">
         <div className="section-container">
-          <div className="flex items-center justify-between mb-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="font-serif text-2xl font-semibold text-foreground">
                 {activeLocation ? `Properties in ${activeLocation}` : 'All Properties'}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">{filtered.length} properties available</p>
             </div>
-            {activeLocation && (
-              <button
-                onClick={() => setActiveLocation('')}
-                className="text-xs text-primary hover:underline"
-              >
-                Clear filter
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {activeLocation && (
+                <button
+                  onClick={() => setActiveLocation('')}
+                  className="text-xs text-primary hover:underline mr-2"
+                >
+                  Clear filter
+                </button>
+              )}
+              <div className="flex border border-border rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <LayoutGrid size={13} /> Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs transition-colors ${viewMode === 'map' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <Map size={13} /> Map
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* Map view */}
+          {viewMode === 'map' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-8"
+            >
+              <MaltaMap
+                locations={MAP_LOCATIONS.filter(l => l.count || l.price)}
+                onLocationClick={handleMapClick}
+                className="h-[400px]"
+              />
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Click a pin to filter properties by area
+              </p>
+            </motion.div>
+          )}
+
+          {/* Grid view */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((property, i) => (
               <motion.article
@@ -69,12 +158,12 @@ export default function Properties() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors cursor-pointer"
+                className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors"
               >
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={property.image}
+                    src={typeof property.image === 'string' ? property.image : property.image}
                     alt={property.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
@@ -82,6 +171,9 @@ export default function Properties() {
                   <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
                     <Star size={12} className="text-primary fill-primary" />
                     <span className="text-xs font-semibold text-foreground">{property.rating}</span>
+                  </div>
+                  <div className="absolute top-3 left-3 bg-background/70 backdrop-blur-sm rounded px-2 py-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {property.type}
                   </div>
                 </div>
 
@@ -91,18 +183,27 @@ export default function Properties() {
                     <MapPin size={12} className="text-primary" />
                     {property.location}
                   </div>
-                  <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+                  <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-snug">
                     {property.title}
                   </h3>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                     <span className="flex items-center gap-1"><BedDouble size={13} /> {property.beds} bed{property.beds > 1 && 's'}</span>
+                    <span className="flex items-center gap-1"><Bath size={13} /> {property.baths} bath{property.baths > 1 && 's'}</span>
                     <span className="flex items-center gap-1"><Users size={13} /> {property.guests} guests</span>
                   </div>
                   <div className="flex items-center justify-between pt-3 border-t border-border/30">
                     <p className="text-foreground font-semibold">
                       €{property.price}<span className="text-xs font-normal text-muted-foreground"> / night</span>
                     </p>
-                    <span className="text-xs font-medium text-primary">View →</span>
+                    <a
+                      href={property.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Book <ExternalLink size={11} />
+                    </a>
                   </div>
                 </div>
               </motion.article>
@@ -117,6 +218,23 @@ export default function Properties() {
               </button>
             </div>
           )}
+
+          {/* Owner CTA */}
+          <div className="mt-16 satin-surface rounded-2xl p-8 text-center satin-glow">
+            <p className="micro-type text-primary mb-3">Own a property in Malta?</p>
+            <h2 className="font-serif text-2xl font-semibold text-foreground mb-3">
+              List your property with us
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              Join our curated portfolio and maximise your rental income with full-service management.
+            </p>
+            <Link
+              to="/owners/estimate"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded font-semibold text-sm hover:opacity-90 transition-opacity"
+            >
+              Get Free Estimate
+            </Link>
+          </div>
         </div>
       </section>
     </Layout>
