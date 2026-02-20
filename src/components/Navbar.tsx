@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Logo } from "./Logo";
 
 const NAV_LINKS = [
+  { label: "Owners", href: "/owners", children: [
+    { label: "How It Works", href: "/owners" },
+    { label: "Pricing", href: "/owners/pricing" },
+    { label: "Get Free Estimate", href: "/owners/estimate" },
+    { label: "Our Standards", href: "/owners/standards" },
+  ]},
   { label: "Properties", href: "/properties" },
-  { label: "Owners", href: "/owners" },
-  { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -19,6 +23,8 @@ interface NavbarProps {
 export default function Navbar({ onOpenWizard }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [ownersOpen, setOwnersOpen] = useState(false);
+  const [mobileOwnersOpen, setMobileOwnersOpen] = useState(false);
   const location = useLocation();
 
   const handleScroll = useCallback(() => {
@@ -37,9 +43,10 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
   useEffect(() => {
     setDrawerOpen(false);
+    setOwnersOpen(false);
   }, [location.pathname]);
 
-  const isActive = (href: string) => location.pathname === href;
+  const isActive = (href: string) => location.pathname.startsWith(href) && href !== '/';
 
   return (
     <>
@@ -61,29 +68,63 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
           {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                to={link.href}
-                className={`text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
-                  isActive(link.href)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
+              link.children ? (
+                <div
+                  key={link.href}
+                  className="relative"
+                  onMouseEnter={() => setOwnersOpen(true)}
+                  onMouseLeave={() => setOwnersOpen(false)}
+                >
+                  <button
+                    className={`flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
+                      isActive(link.href) ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                    <ChevronDown size={13} className={`transition-transform ${ownersOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <AnimatePresence>
+                    {ownersOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-1 w-52 bg-card border border-border/50 rounded-xl shadow-lg overflow-hidden py-1"
+                      >
+                        {link.children.map((child) => (
+                          <Link
+                            key={child.href}
+                            to={child.href}
+                            className={`block px-4 py-2.5 text-[13px] transition-colors ${
+                              location.pathname === child.href
+                                ? 'text-primary bg-primary/5'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={`text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
+                    location.pathname === link.href
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
 
             <div className="w-px h-5 bg-border/50 mx-3" />
-
-            {onOpenWizard && (
-              <button
-                onClick={onOpenWizard}
-                className="px-4 py-2 text-[13px] font-medium text-primary hover:text-foreground transition-colors"
-              >
-                Free Estimate
-              </button>
-            )}
 
             <Link
               to="/book"
@@ -133,30 +174,54 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
               <div className="flex flex-col p-6 gap-1 overflow-y-auto flex-1">
                 {NAV_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    className={`text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
-                      isActive(link.href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
+                  link.children ? (
+                    <div key={link.href}>
+                      <button
+                        onClick={() => setMobileOwnersOpen(!mobileOwnersOpen)}
+                        className={`w-full flex items-center justify-between text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
+                          isActive(link.href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
+                        }`}
+                      >
+                        {link.label}
+                        <ChevronDown size={15} className={`transition-transform ${mobileOwnersOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      <AnimatePresence>
+                        {mobileOwnersOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden pl-3"
+                          >
+                            {link.children.map((child) => (
+                              <Link
+                                key={child.href}
+                                to={child.href}
+                                className={`block py-2.5 px-3 text-[14px] rounded-lg transition-colors ${
+                                  location.pathname === child.href ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                                }`}
+                              >
+                                {child.label}
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <Link
+                      key={link.href}
+                      to={link.href}
+                      className={`text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
+                        location.pathname === link.href ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  )
                 ))}
 
-                {onOpenWizard && (
-                  <>
-                    <div className="h-px bg-border/50 my-3" />
-                    <button
-                      onClick={() => { setDrawerOpen(false); onOpenWizard(); }}
-                      className="text-[15px] font-medium py-3 px-3 rounded-lg text-primary hover:bg-primary/5 text-left transition-colors"
-                    >
-                      Free Estimate
-                    </button>
-                  </>
-                )}
-
-                <div className="mt-auto pt-6">
+                <div className="mt-auto pt-6 space-y-3">
                   <Link
                     to="/book"
                     className="block w-full py-3.5 text-sm font-semibold bg-primary text-primary-foreground rounded-xl text-center hover:opacity-90 transition-opacity"

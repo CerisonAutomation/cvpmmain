@@ -88,16 +88,16 @@ export default function PricingSection({ onOpenWizard }: PricingSectionProps) {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={onOpenWizard}
-                className={`w-full py-3 text-sm font-semibold rounded transition-colors ${
+              <a
+                href="/owners/estimate"
+                className={`block w-full py-3 text-sm font-semibold rounded transition-colors text-center ${
                   plan.highlighted
-                    ? "bg-primary text-primary-foreground hover:bg-gold-light"
+                    ? "bg-primary text-primary-foreground hover:opacity-90"
                     : "border border-border text-foreground hover:border-primary hover:text-primary"
                 }`}
               >
                 Get Started
-              </button>
+              </a>
             </motion.div>
           ))}
         </div>
