@@ -10,9 +10,6 @@ import { getSiteConfig } from '@/lib/site-config';
 import propertyFives from '@/assets/property-fives.jpg';
 import propertyPenthouse from '@/assets/property-penthouse.jpg';
 import propertyUrsula from '@/assets/property-ursula.jpg';
-import portfolio1 from '@/assets/portfolio-1.jpg';
-import portfolio2 from '@/assets/portfolio-2.jpg';
-import portfolio3 from '@/assets/portfolio-3.jpg';
 
 const config = getSiteConfig();
 
@@ -31,18 +28,12 @@ const STATIC_PROPERTIES = config.properties.map((p, i) => ({
   type: p.type,
 }));
 
-// Additional static properties
-const EXTRA_PROPERTIES = [
-  { id: 'extra1', title: 'Modern Waterfront Flat', location: 'San Ġiljan', beds: 2, baths: 2, guests: 4, rating: 4.92, price: 130, image: portfolio1, bookingUrl: 'https://malta.guestybookings.com/', type: 'Apartment' },
-  { id: 'extra2', title: 'Gozo Farmhouse Retreat', location: 'Xagħra', beds: 3, baths: 2, guests: 6, rating: 4.99, price: 210, image: portfolio2, bookingUrl: 'https://malta.guestybookings.com/', type: 'Farmhouse' },
-  { id: 'extra3', title: 'Designer Loft Msida', location: 'Msida', beds: 1, baths: 1, guests: 2, rating: 4.90, price: 95, image: portfolio3, bookingUrl: 'https://malta.guestybookings.com/', type: 'Loft' },
-];
-
-const ALL_STATIC = [...STATIC_PROPERTIES, ...EXTRA_PROPERTIES];
+// Only show real properties from site config — no fake extras
+const ALL_PROPERTIES = STATIC_PROPERTIES;
 
 // Map locations with prices from static properties
 const MAP_LOCATIONS: MapLocation[] = MALTA_LOCALITIES_COORDS.map(loc => {
-  const match = ALL_STATIC.find(p =>
+  const match = ALL_PROPERTIES.find(p =>
     p.location.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
     loc.name.toLowerCase().includes(p.location.toLowerCase().split(' ')[0])
   );
@@ -73,7 +64,7 @@ export default function Properties() {
         bookingUrl: `https://malta.guestybookings.com/en/properties/${l._id}`,
         type: l.propertyType,
       }))
-    : ALL_STATIC;
+    : ALL_PROPERTIES;
 
   const filtered = activeLocation
     ? properties.filter((p) => p.location.toLowerCase().includes(activeLocation.toLowerCase()))
