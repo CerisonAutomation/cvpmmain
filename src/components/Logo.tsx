@@ -14,9 +14,9 @@ export const Logo: React.FC<LogoProps> = ({
   onClick
 }) => {
   const sizeClasses = {
-    sm: { main: 'text-2xl', sub: 'text-[7px] mt-0.5' },
-    md: { main: 'text-4xl', sub: 'text-[9px] mt-1' },
-    lg: { main: 'text-6xl', sub: 'text-[11px] mt-2' }
+    sm: { main: 'text-xl sm:text-2xl', sub: 'text-[6px] sm:text-[7px] mt-0.5' },
+    md: { main: 'text-3xl sm:text-4xl', sub: 'text-[8px] sm:text-[9px] mt-1' },
+    lg: { main: 'text-5xl sm:text-6xl', sub: 'text-[10px] sm:text-[11px] mt-2' }
   };
 
   const handleLogoClick = () => {
@@ -34,10 +34,26 @@ export const Logo: React.FC<LogoProps> = ({
       role="button"
       aria-label="Christiano Vincenti Home"
     >
-      <span className={`text-foreground font-script leading-none tracking-tight group-hover:text-primary transition-colors duration-500 italic ${sizeClasses[size].main}`} style={{ fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
+      <span
+        className={`text-foreground leading-none group-hover:text-primary transition-colors duration-500 ${sizeClasses[size].main}`}
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontStyle: 'italic',
+          fontWeight: 300,
+          letterSpacing: '0.015em',
+        }}
+      >
         Christiano Vincenti
       </span>
-      <span className={`uppercase tracking-[0.5em] text-primary font-black font-sans opacity-90 ${sizeClasses[size].sub}`}>
+      <span
+        className={`text-primary/70 ${sizeClasses[size].sub}`}
+        style={{
+          fontFamily: "'Raleway', sans-serif",
+          fontWeight: 200,
+          letterSpacing: '0.45em',
+          textTransform: 'uppercase',
+        }}
+      >
         {subText}
       </span>
     </div>
