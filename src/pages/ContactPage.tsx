@@ -78,8 +78,8 @@ export default function ContactPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone size={16} className="text-primary" />
-                  <a href="tel:+35679000000" className="text-sm text-foreground hover:text-primary transition-colors">
-                    +356 7900 0000
+                  <a href="tel:+35679274688" className="text-sm text-foreground hover:text-primary transition-colors">
+                    +356 7927 4688
                   </a>
                 </div>
                 <div className="flex items-center gap-3">

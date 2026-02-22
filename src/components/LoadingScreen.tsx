@@ -263,7 +263,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
                   opacity: phase >= 3 ? 1 : 0,
                 }}
               >
-                PROPERTY MANAGEMENT · MALTA · GOZO
+                P R O P E R T Y &nbsp; M A N A G E M E N T
               </div>
 
               {/* Bottom rule */}
