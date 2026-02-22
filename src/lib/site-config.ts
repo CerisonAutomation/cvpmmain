@@ -75,7 +75,7 @@ const SITE_CONFIG: SiteConfig = {
     tagline: "Malta's Premier Property Partner",
     subText: "PROPERTY MANAGEMENT",
     email: "info@christianopm.com",
-    phone: "+356 7900 0000",
+    phone: "+356 7927 4688",
     bookingUrl: "https://malta.guestybookings.com/",
   },
   navigation: [

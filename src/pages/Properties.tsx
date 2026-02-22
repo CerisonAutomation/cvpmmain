@@ -144,8 +144,8 @@ export default function Properties() {
           {/* Grid view */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((property, i) => (
+              <Link to={`/properties/${property.id}`} key={property.id}>
               <motion.article
-                key={property.id}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
@@ -186,18 +186,17 @@ export default function Properties() {
                     <p className="text-foreground font-semibold">
                       €{property.price}<span className="text-xs font-normal text-muted-foreground"> / night</span>
                     </p>
-                    <a
-                      href={property.bookingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      to={`/properties/${property.id}`}
                       className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Book <ExternalLink size={11} />
-                    </a>
+                      View Details <ExternalLink size={11} />
+                    </Link>
                   </div>
                 </div>
               </motion.article>
+              </Link>
             ))}
           </div>
 
