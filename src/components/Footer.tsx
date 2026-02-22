@@ -44,8 +44,8 @@ export default function Footer() {
               <a href="mailto:info@christianopm.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
                 <Mail size={13} /> info@christianopm.com
               </a>
-              <a href="tel:+35679000000" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-                <Phone size={13} /> +356 7900 0000
+              <a href="tel:+35679274688" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Phone size={13} /> +356 7927 4688
               </a>
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <MapPin size={13} /> Malta & Gozo

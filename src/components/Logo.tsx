@@ -14,9 +14,9 @@ export const Logo: React.FC<LogoProps> = ({
   onClick
 }) => {
   const sizeClasses = {
-    sm: { main: 'text-xl sm:text-2xl', sub: 'text-[6px] sm:text-[7px] mt-0.5' },
-    md: { main: 'text-3xl sm:text-4xl', sub: 'text-[8px] sm:text-[9px] mt-1' },
-    lg: { main: 'text-5xl sm:text-6xl', sub: 'text-[10px] sm:text-[11px] mt-2' }
+    sm: { main: 'text-[22px] sm:text-[26px]', sub: 'text-[5.5px] sm:text-[6.5px] mt-0.5' },
+    md: { main: 'text-[32px] sm:text-[38px]', sub: 'text-[7px] sm:text-[8px] mt-1' },
+    lg: { main: 'text-[48px] sm:text-[58px]', sub: 'text-[9px] sm:text-[10px] mt-1.5' }
   };
 
   const handleLogoClick = () => {
@@ -40,17 +40,17 @@ export const Logo: React.FC<LogoProps> = ({
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
           fontWeight: 300,
-          letterSpacing: '0.015em',
+          letterSpacing: '0.01em',
         }}
       >
         Christiano Vincenti
       </span>
       <span
-        className={`text-primary/70 ${sizeClasses[size].sub}`}
+        className={`text-primary/60 ${sizeClasses[size].sub}`}
         style={{
           fontFamily: "'Raleway', sans-serif",
-          fontWeight: 200,
-          letterSpacing: '0.45em',
+          fontWeight: 300,
+          letterSpacing: '0.35em',
           textTransform: 'uppercase',
         }}
       >
