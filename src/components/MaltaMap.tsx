@@ -154,7 +154,7 @@ export default function MaltaMap({ locations = MALTA_LOCALITIES_COORDS, onLocati
               {isHovered && (
                 <g transform="translate(0, -32)">
                   <rect
-                    x="-38" y="-14" width="76" height="24" rx="6"
+                    x={-(Math.max(loc.name.length * 5, 40))} y="-14" width={Math.max(loc.name.length * 10, 80)} height="24" rx="6"
                     fill="hsl(220,18%,10%)" stroke="hsl(220,15%,20%)" strokeWidth="1"
                   />
                   <text
