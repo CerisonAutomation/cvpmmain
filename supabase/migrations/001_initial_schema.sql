@@ -197,6 +197,22 @@ INSERT INTO properties (name, slug, destination, description, hero_image, max_gu
 INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
 ('Stay Steps Away From Sea', 'stay-steps-away-from-sea', 'Gzira, Malta', 'Nestled in Malta''s vibrant Gzira, our modern apartment is steps from the sea. Enjoy a restful night in the oversized bed.', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800', 4, 2, 1, 150);
 
+-- Property 21: Sea Breeze Studio
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
+('Sea Breeze Studio', 'sea-breeze-studio', 'Sliema, Malta', 'Modern studio apartment with stunning sea views in the heart of Sliema. Walking distance to restaurants and beaches.', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800', 2, 1, 1, 95);
+
+-- Property 22: Garden View Apartment
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
+('Garden View Apartment', 'garden-view-apartment', 'Bugibba, Malta', 'Peaceful apartment with private garden in a quiet residential area. Perfect for families seeking relaxation.', 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800', 4, 2, 1, 120);
+
+-- Property 23: Marina Lux Suite
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
+('Marina Lux Suite', 'marina-lux-suite', 'Qawra, Malta', 'Luxury suite overlooking the marina with modern amenities. Close to Malta''s top attractions and beaches.', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800', 6, 3, 2, 180);
+
+-- Property 24: Traditional Maltese House
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
+('Traditional Maltese House', 'traditional-maltese-house', 'Mellieha, Malta', 'Authentic Maltese townhouse with original stone walls and modern comforts. Experience true Maltese charm.', 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800', 5, 3, 2, 165);
+
 -- =============================================================================
 -- CREATE UNITS FOR ALL PROPERTIES
 -- =============================================================================
