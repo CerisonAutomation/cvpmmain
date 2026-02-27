@@ -1,9 +1,9 @@
 /**
  * Site Configuration - Central JSON config for all site content.
- * Property data sourced from properties-data.ts (ULTIMATE_COMPLETE_GUIDE.md)
+ * Now uses API for property data - no hardcoded properties.
  */
 
-import { ALL_PROPERTIES, COMPANY_INFO, type StaticProperty } from './properties-data';
+import type { Property, PropertyWithUnits } from "./api";
 
 export interface PropertyConfig {
   id: string;
@@ -34,143 +34,121 @@ export interface FAQConfig {
   answer: string;
 }
 
-export interface ProcessStepConfig {
-  step: string;
-  title: string;
-  description: string;
-  icon: string;
-}
-
 export interface SiteConfig {
-  brand: {
-    name: string;
-    tagline: string;
-    subText: string;
-    email: string;
-    phone: string;
-    bookingUrl: string;
-  };
-  navigation: Array<{ label: string; href: string }>;
-  hero: {
-    tagline: string;
-    headline: string;
-    highlightedWord: string;
-    description: string;
-    ctaText: string;
-    secondaryCtaText: string;
-  };
-  stats: Array<{ value: string; label: string }>;
-  proofPoints: Array<{ icon: string; label: string; desc: string }>;
-  process: ProcessStepConfig[];
+  company: typeof COMPANY_INFO;
+  properties: PropertyConfig[];
   plans: PlanConfig[];
   faqs: FAQConfig[];
-  properties: PropertyConfig[];
-  footer: {
-    links: Array<{ label: string; href: string }>;
-    copyright: string;
-  };
 }
 
-/** Convert guide property to config property */
-function toPropertyConfig(p: StaticProperty, index: number): PropertyConfig {
-  return {
-    id: p.id,
-    title: p.title,
-    location: p.location,
-    type: 'Apartment',
-    guests: p.guests,
-    beds: p.bedrooms,
-    baths: p.bathrooms,
-    pricePerNight: `€${p.pricePerNight}`,
-    image: '', // Images come from Guesty API
-    bookingUrl: p.bookingUrl,
-    featured: index < 3,
-    summary: p.summary,
-  };
-}
-
-const SITE_CONFIG: SiteConfig = {
-  brand: {
-    name: "Christiano Vincenti",
-    tagline: "Malta's Premier Property Partner",
-    subText: "PROPERTY MANAGEMENT",
-    email: COMPANY_INFO.email,
-    phone: COMPANY_INFO.phone,
-    bookingUrl: COMPANY_INFO.bookingUrl,
-  },
-  navigation: [
-    { label: "Process", href: "#process" },
-    { label: "Portfolio", href: "#portfolio" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
-  ],
-  hero: {
-    tagline: "Malta's Premier Property Partner",
-    headline: "Maximise your rental income,",
-    highlightedWord: "effortlessly.",
-    description: "Full-service short-let management across Malta & Gozo. We handle everything — you earn more.",
-    ctaText: "Get Your Free Assessment",
-    secondaryCtaText: "How It Works",
-  },
-  stats: [
-    { value: "€2.4M+", label: "Revenue Generated" },
-    { value: "45+", label: "Properties Managed" },
-    { value: "4.97", label: "Average Rating" },
-    { value: "94%", label: "Occupancy Rate" },
-  ],
-  proofPoints: [
-    { icon: "Shield", label: "No Hidden Markups", desc: "Maintenance at cost" },
-    { icon: "BarChart3", label: "Owner Dashboard", desc: "Monthly statements" },
-    { icon: "Clock", label: "24hr Response", desc: "Guaranteed reply" },
-    { icon: "Star", label: "5-Star Reviews", desc: "Guest satisfaction" },
-  ],
-  process: [
-    { step: "01", title: "Free Assessment", description: "Tell us about your property and goals. We'll analyse your potential income and recommend the right plan.", icon: "ClipboardCheck" },
-    { step: "02", title: "We Set You Up", description: "Professional photography, listing optimisation, pricing strategy, and MTA licensing support — all handled.", icon: "Camera" },
-    { step: "03", title: "You Earn More", description: "We manage bookings, guests, cleaning, and maintenance. You receive monthly payouts and transparent reports.", icon: "Rocket" },
-  ],
-  plans: [
-    {
-      name: "Essentials",
-      price: "15%",
-      subtitle: "of booking revenue",
-      description: "Perfect for owners who want professional listing management with hands-on involvement.",
-      features: ["Professional photography", "Multi-platform listing", "Dynamic pricing", "Guest communication", "Monthly reporting", "MTA licence guidance"],
-      highlighted: false,
-    },
-    {
-      name: "Complete",
-      price: "20%",
-      subtitle: "of booking revenue",
-      description: "Full hands-off management. We handle everything so you don't have to lift a finger.",
-      features: ["Everything in Essentials", "Cleaning coordination", "Maintenance at cost", "Linen & amenities", "Direct booking website", "Owner dashboard access", "Priority 24hr support", "Quarterly strategy review"],
-      highlighted: true,
-    },
-  ],
-  faqs: [
-    { question: "Do I need an MTA licence to rent short-term in Malta?", answer: "Yes. All short-let properties in Malta require a Malta Tourism Authority (MTA) licence. We guide you through the entire application process as part of our service." },
-    { question: "What areas do you cover?", answer: "We manage properties across all of Malta and Gozo, with particular expertise in Sliema, St Julian's, Valletta, Mdina, and Mellieħa." },
-    { question: "How quickly can my property go live?", answer: "Most properties are listed within 2–3 weeks of onboarding. This includes professional photography, listing creation, and pricing setup." },
-    { question: "What happens with maintenance issues?", answer: "We coordinate all maintenance through our trusted network. Costs are passed through at cost — no markups, ever. You approve anything above a pre-agreed threshold." },
-    { question: "Can I block dates for personal use?", answer: "Absolutely. You have full control over your calendar through our owner dashboard. Block dates anytime with no penalties." },
-    { question: "What's included in the monthly reporting?", answer: "You receive a detailed monthly statement covering revenue, occupancy, guest reviews, expenses, and a performance summary compared to market benchmarks." },
-  ],
-  properties: ALL_PROPERTIES.map(toPropertyConfig),
-  footer: {
-    links: [
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-      { label: "Contact", href: `mailto:${COMPANY_INFO.email}` },
-    ],
-    copyright: `© ${new Date().getFullYear()} Christiano Property Management. All rights reserved.`,
-  },
+// Company info - minimal config
+export const COMPANY_INFO = {
+  name: "Christiano Vincenti",
+  email: "info@christianovincenti.com",
+  phone: "+356 1234 5678",
+  address: "Malta",
+  website: "https://christianovincenti.com",
+  bookingUrl: "",
 };
 
-export function getSiteConfig(): SiteConfig {
-  return SITE_CONFIG;
+// Default FAQs
+export const DEFAULT_FAQS: FAQConfig[] = [
+  {
+    question: "What areas do you cover?",
+    answer: "We manage properties across Malta and Gozo, including St Julian's, Valletta, Sliema, Gzira, and more.",
+  },
+  {
+    question: "What are your fees?",
+    answer: "Our management fees start at 15% of booking revenue. We offer Essential (15%), Premium (25%), and Enterprise (custom) plans.",
+  },
+  {
+    question: "Do you handle cleaning?",
+    answer: "Yes, professional cleaning between guests is included in our Premium and Enterprise plans.",
+  },
+];
+
+// Default plans
+export const DEFAULT_PLANS: PlanConfig[] = [
+  {
+    name: "Essential",
+    price: "15%",
+    subtitle: "per booking",
+    description: "Perfect for property owners who want hands-off management.",
+    features: [
+      "Guest verification",
+      "24/7 support",
+      "Dynamic pricing",
+      "Listing optimization",
+    ],
+    highlighted: false,
+  },
+  {
+    name: "Premium",
+    price: "25%",
+    subtitle: "per booking",
+    description: "Full-service management for maximum returns.",
+    features: [
+      "Everything in Essential",
+      "Professional cleaning",
+      "Key handover",
+      "Maintenance team",
+      "Insurance coverage",
+    ],
+    highlighted: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    subtitle: "tailored pricing",
+    description: "For portfolio owners and property managers.",
+    features: [
+      "Everything in Premium",
+      "Dedicated account manager",
+      "Multiple properties",
+      "Revenue reporting",
+      "Legal support",
+    ],
+    highlighted: false,
+  },
+];
+
+// Site config - loads from API
+export function getSiteConfig(properties?: Property[]): SiteConfig {
+  const propertyConfigs: PropertyConfig[] = (properties || []).map((p) => ({
+    id: p.id,
+    title: p.name,
+    location: p.destination,
+    type: "Apartment",
+    guests: p.max_guests,
+    beds: p.bedrooms,
+    baths: p.bathrooms,
+    pricePerNight: `€${p.price_per_night}`,
+    image: p.hero_image || "",
+    bookingUrl: "", // Internal booking
+    featured: true,
+    summary: p.description || "",
+  }));
+
+  return {
+    company: COMPANY_INFO,
+    properties: propertyConfigs,
+    plans: DEFAULT_PLANS,
+    faqs: DEFAULT_FAQS,
+  };
 }
 
-export function updateSiteConfig(updates: Partial<SiteConfig>): SiteConfig {
-  Object.assign(SITE_CONFIG, updates);
-  return SITE_CONFIG;
+// Update site config (for admin)
+export function updateSiteConfig(config: Partial<SiteConfig>): SiteConfig {
+  const current = getSiteConfig();
+  return {
+    ...current,
+    ...config,
+    company: config.company || current.company,
+    properties: config.properties || current.properties,
+    plans: config.plans || current.plans,
+    faqs: config.faqs || current.faqs,
+  };
 }
+
+// Export all types
+export type { Property, PropertyWithUnits };

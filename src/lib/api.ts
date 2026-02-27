@@ -340,5 +340,3 @@ export type {
   Reservation,
   PropertySearchParams,
 } from "./types";
-
-export { ApiError, ErrorCodes };
