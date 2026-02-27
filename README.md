@@ -1,73 +1,87 @@
-# Welcome to your Lovable project
+# CVPM Main - Vacation Rental Booking Platform
 
-## Project info
+Production-ready booking platform with Supabase, Guesty, and Stripe integration.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Quick Deploy
 
-## How can I edit this code?
+### 1. Supabase Setup
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+# Create Supabase project and get credentials
+# Run the migration with seed data
+supabase db push --db-url $DATABASE_URL
 ```
 
-**Edit a file directly in GitHub**
+### 2. Deploy Edge Functions
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Set secrets
+supabase secrets set STRIPE_SECRET_KEY=sk_test_xxx
+supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_xxx
+supabase secrets set GUESTY_BE_CLIENT_ID=your_guesty_client_id
+supabase secrets set GUESTY_BE_CLIENT_SECRET=your_guesty_client_secret
 
-**Use GitHub Codespaces**
+# Deploy functions
+supabase functions deploy quote
+supabase functions deploy create-pending
+supabase functions deploy stripe-webhook
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 3. Configure Stripe
 
-## What technologies are used for this project?
+1. Create Stripe account
+2. Get API keys from Stripe Dashboard
+3. Set webhook URL: `https://your-project.supabase.co/functions/v1/stripe-webhook`
+4. Add webhook events: `payment_intent.succeeded`, `payment_intent.payment_failed`
 
-This project is built with:
+### 4. Deploy Frontend
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+# Deploy to Vercel
+npm run build
+vercel deploy --prod
+```
 
-## How can I deploy this project?
+## Environment Variables
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon key |
 
-## Can I connect a custom domain to my Lovable project?
+## Features
 
-Yes, you can!
+- ✅ Dynamic property data from PostgreSQL (not hardcoded)
+- ✅ Real-time availability checking
+- ✅ Dynamic pricing with weekend multipliers
+- ✅ Double-booking prevention (PostgreSQL exclusion constraints)
+- ✅ Stripe payment integration
+- ✅ Guesty API sync ready
+- ✅ PWA offline support
+- ✅ 20 Malta properties pre-seeded
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Tech Stack
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- **Frontend**: Vite + React + TypeScript + Tailwind
+- **Backend**: Supabase Edge Functions (Deno)
+- **Database**: PostgreSQL with RLS
+- **Payments**: Stripe
+- **PMS**: Guesty API
+- **Deployment**: Vercel
+
+## Database Schema
+
+- `properties` - 20 Malta vacation rentals
+- `units` - Property units
+- `rate_plans` - Pricing rules (weekend rates)
+- `reservations` - Confirmed bookings
+- `pending_reservations` - Quotes awaiting payment
+- `reservation_units` - Booking date ranges (overlap-protected)
+
+## API Endpoints
+
+| Function | Purpose |
+|----------|---------|
+| `quote` | Calculate dynamic pricing |
+| `create-pending` | Create booking + Stripe PaymentIntent |
+| `stripe-webhook` | Confirm reservation after payment |
