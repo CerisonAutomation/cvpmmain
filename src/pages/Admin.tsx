@@ -171,7 +171,7 @@ function PropertiesEditor({ config, setConfig }: { config: SiteConfig; setConfig
   const addProp = () => {
     setConfig({
       ...config,
-      properties: [...config.properties, { id: `prop-${Date.now()}`, title: "", location: "", type: "Apartment", guests: 2, beds: 1, baths: 1, pricePerNight: "€100", image: "", bookingUrl: "", featured: true }],
+      properties: [...config.properties, { id: `prop-${Date.now()}`, title: "", location: "", type: "Apartment", guests: 2, beds: 1, baths: 1, pricePerNight: "€100", image: "", bookingUrl: "", featured: true, summary: "" }],
     });
   };
   const removeProp = (i: number) => {
