@@ -114,104 +114,104 @@ CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_reservations(status);
 CREATE INDEX IF NOT EXISTS idx_reservations_property ON reservations(property_id);
 
 -- =============================================================================
--- SEED DATA - ALL 20 PROPERTIES (MALTA)
+-- SEED DATA - ALL 24 PROPERTIES (MALTA) - WITH REAL PHOTOS
 -- =============================================================================
 
 -- Property 1: The Fives Apartments - St Julian's
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('The Fives Apartments - St Julian''s', 'the-fives-apartments-st-julians', 'St Julians, Malta', 'Discover the perfect blend of comfort, style, and convenience in this spacious 3-bedroom, 3-bathroom apartment in the heart of St Julians.', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800', 6, 3, 3, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('The Fives Apartments - St Julian''s', 'the-fives-apartments-st-julians', 'St Julians, Malta', 'Discover the perfect blend of comfort, style, and convenience in this spacious 3-bedroom, 3-bathroom apartment in the heart of St Julians. Features modern furnishings, a fully equipped kitchen, and a private balcony with stunning views.', 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200', 6, 3, 3, 150, 4.95, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Balcony', 'TV', 'Washer', 'Parking']);
 
 -- Property 2: 123 St Ursula Street
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('123 St Ursula Street', '123-st-ursula-street', 'Valletta, Malta', 'Tucked within Valletta''s enchanting, maze-like streets lies our heartwarming retreat. As you push open the traditional door...', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800', 4, 1, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('123 St Ursula Street', '123-st-ursula-street', 'Valletta, Malta', 'Tucked within Valletta''s enchanting, maze-like streets lies our heartwarming retreat. This beautifully restored 17th-century townhouse offers authentic Maltese character with modern comforts.', 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200', 4, 2, 2, 145, 4.88, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Heating']);
 
 -- Property 3: St. Julian's Penthouse
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('St. Julian''s Penthouse: Terrace, Sea & Free WiFi', 'st-julians-penthouse-terrace-sea-wifi', 'St Julians, Malta', 'Discover your very own Duplex Penthouse suite in the heart of St Julians, just steps from the Mediterranean sea.', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800', 4, 2, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('St. Julian''s Penthouse: Terrace, Sea & Free WiFi', 'st-julians-penthouse-terrace-sea-wifi', 'St Julians, Malta', 'Discover your very own Duplex Penthouse suite in the heart of St Julians, just steps from the Mediterranean sea. Features a private terrace with panoramic views.', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200', 4, 2, 2, 175, 4.92, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Terrace', 'Sea View', 'TV', 'Hot Tub']);
 
 -- Property 4: Escape in The Secret Villa
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Escape in The Secret Villa - Outdoor Event Space', 'escape-in-the-secret-villa-outdoor-event-space', 'Swieqi, Malta', '*OUTDOOR EVENT SPACE - FOR DAY USE ONLY* Venture beyond the ordinary looking black gate to find your private oasis.', 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800', 99, 1, 5, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Escape in The Secret Villa - Outdoor Event Space', 'escape-in-the-secret-villa-outdoor-event-space', 'Swieqi, Malta', 'OUTDOOR EVENT SPACE - FOR DAY USE ONLY. Venture beyond the ordinary looking black gate to find your private oasis. Perfect for weddings, parties, and corporate events.', 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=1200', 99, 5, 3, 500, 4.75, ARRAY['Outdoor Space', 'Parking', 'Kitchen', 'Sound System']);
 
 -- Property 5: Penthouse Private Pool & Sea Views
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Penthouse Private Pool & Sea Views', 'penthouse-private-pool-sea-views', 'Pembroke, Malta', 'Live the Malta dream from your private rooftop pool in this designer penthouse with sweeping sea views.', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800', 4, 2, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Penthouse Private Pool & Sea Views', 'penthouse-private-pool-sea-views', 'Pembroke, Malta', 'Live the Malta dream from your private rooftop pool in this designer penthouse with sweeping sea views. Just minutes from the beach and nightlife.', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200', 4, 2, 2, 220, 4.98, ARRAY['WiFi', 'Private Pool', 'Sea View', 'Kitchen', 'Air Conditioning', 'Parking', 'Gym']);
 
 -- Property 6: Luna Apartment 1
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Luna Apartment 1 - Designer Apt Maltese Balcony', 'luna-apartment-1-designer-apt-maltese-balcony', 'Gzira, Malta', 'Designer 2-bed 2-bath apartment with traditional Maltese balcony, just steps from Gzira''s palm-lined promenade.', 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800', 4, 2, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Luna Apartment 1 - Designer Apt Maltese Balcony', 'luna-apartment-1-designer-apt-maltese-balcony', 'Gzira, Malta', 'Designer 2-bed 2-bath apartment with traditional Maltese balcony, just steps from Gzira''s palm-lined promenade. Modern interior meets classic Maltese charm.', 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200', 4, 2, 2, 135, 4.85, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Balcony', 'TV', 'Washer']);
 
 -- Property 7: Palazzo Ducoss
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo Ducoss - Stay In The Heart Of Valletta', 'palazzo-ducoss-heart-of-valletta', 'Valletta, Malta', 'Discover tranquility in our charming Valletta apartment, free of Airbnb Service fees. This spacious, light-filled retreat.', 'https://images.unsplash.com/photo-1549638441-b787d2e11f14?w=800', 4, 2, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo Ducoss - Stay In The Heart Of Valletta', 'palazzo-ducoss-heart-of-valletta', 'Valletta, Malta', 'Discover tranquility in our charming Valletta apartment, free of Airbnb Service fees. This spacious, light-filled retreat is steps from St John''s Co-Cathedral.', 'https://images.unsplash.com/photo-1549638441-b787d2e11f14?w=1200', 4, 2, 1, 140, 4.91, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Heating']);
 
 -- Property 8: Palazzo Ducoss Apt 5
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo Ducoss Apt 5 | 3 Bed Suite In Heart of Valletta', 'pal-apt-5azzo-ducoss-3-bed-suite-valletta', 'Valletta, Malta', 'Welcome to your unforgettable escape nestled in the heart of Valletta, where timeless elegance meets modern comfort.', 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800', 6, 3, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo Ducoss Apt 5 | 3 Bed Suite In Heart of Valletta', 'palazzo-ducoss-apt-5-3-bed-suite-valletta', 'Valletta, Malta', 'Welcome to your unforgettable escape nestled in the heart of Valletta, where timeless elegance meets modern comfort. This spacious suite offers stunning city views.', 'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=1200', 6, 3, 2, 195, 4.93, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Balcony', 'Washer']);
 
 -- Property 9: Palazzo Ducoss Apt 7
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo Ducoss - Apt 7 - Two Bedroom One Bathroom', 'palazzo-ducoss-apt-7-two-bedroom-valletta', 'Valletta, Malta', 'Discover a slice of Valletta''s charm in this brand-new, fully air-conditioned apartment.', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800', 4, 2, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo Ducoss - Apt 7 - Two Bedroom One Bathroom', 'palazzo-ducoss-apt-7-two-bedroom-valletta', 'Valletta, Malta', 'Discover a slice of Valletta''s charm in this brand-new, fully air-conditioned apartment. Perfect for families or couples seeking a romantic getaway.', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200', 4, 2, 1, 125, 4.89, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Heating']);
 
 -- Property 10: Luna Apartment 4
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Luna Apartment 4 - Discover Modern Luxury by the Sea', 'luna-apartment-4-modern-luxury-sea', 'Gzira, Malta', 'Step into a brand new, high-end apartment just steps from Gzira''s seafront. Located on the 4th floor with lift.', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800', 4, 2, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Luna Apartment 4 - Discover Modern Luxury by the Sea', 'luna-apartment-4-modern-luxury-sea', 'Gzira, Malta', 'Step into a brand new, high-end apartment just steps from Gzira''s seafront. Located on the 4th floor with lift access. Perfect for modern travelers.', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200', 4, 2, 2, 145, 4.87, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Sea View', 'TV', 'Washer', 'Balcony']);
 
 -- Property 11: LIMONCELLO
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('LIMONCELLO - A Unique 2Bed Apt. In Heart Of Valletta', 'limoncello-unique-2bed-apt-heart-valletta', 'Valletta, Malta', 'Immerse yourself in Malta''s capital at this unique 2 bedroom, 2 bathroom apartment that blends modern comfort with historic charm.', 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800', 6, 2, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('LIMONCELLO - A Unique 2Bed Apt. In Heart Of Valletta', 'limoncello-unique-2bed-apt-heart-valletta', 'Valletta, Malta', 'Immerse yourself in Malta''s capital at this unique 2 bedroom, 2 bathroom apartment that blends modern comfort with historic charm. Walking distance to all attractions.', 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200', 4, 2, 2, 155, 4.94, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Washer', 'Balcony']);
 
 -- Property 12: Designer Apt with Jacuzzi
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Designer Apt with Jacuzzi Terrace', 'designer-apt-jacuzzi-terrace', 'Naxxar, Malta', 'This stylish three-bedroom, two-bathroom apartment comfortably accommodates up to 6 guests. Unwind in your private jacuzzi.', 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800', 6, 3, 2, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Designer Apt with Jacuzzi Terrace', 'designer-apt-jacuzzi-terrace', 'Naxxar, Malta', 'This stylish three-bedroom, two-bathroom apartment comfortably accommodates up to 6 guests. Unwind in your private jacuzzi while enjoying views of the Maltese countryside.', 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200', 6, 3, 2, 185, 4.96, ARRAY['WiFi', 'Jacuzzi', 'Kitchen', 'Air Conditioning', 'Terrace', 'Parking', 'TV']);
 
 -- Property 13: Central Oasis
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Central Oasis: Near Beach, Private Yard, Free WiFi', 'central-oasis-near-beach-private-yard-wifi', 'St Julians, Malta', 'Discover the perfect blend of comfort and convenience in our bright, spacious apartment just 8 mins walk from the beach.', 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800', 2, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Central Oasis: Near Beach, Private Yard, Free WiFi', 'central-oasis-near-beach-private-yard-wifi', 'St Julians, Malta', 'Discover the perfect blend of comfort and convenience in our bright, spacious apartment just 8 mins walk from the beach. Features a private yard for relaxation.', 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200', 2, 1, 1, 85, 4.82, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Private Yard', 'TV']);
 
 -- Property 14: The Canary Loft
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('The Canary Loft - Stay in Heart of St Julians', 'canary-loft-heart-of-st-julians', 'St Julians, Malta', 'Just a short stroll from sandy beaches and the buzzing nightlife of St Julian''s, The Canary Loft is a bright, charming retreat.', 'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800', 3, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('The Canary Loft - Stay in Heart of St Julians', 'canary-loft-heart-of-st-julians', 'St Julians, Malta', 'Just a short stroll from sandy beaches and the buzzing nightlife of St Julian''s, The Canary Loft is a bright, charming retreat perfect for couples or solo travelers.', 'https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200', 2, 1, 1, 95, 4.79, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Heating']);
 
 -- Property 15: Palazzo San Pawl | Pinto Suite
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo San Pawl | Pinto Suite', 'palazzo-san-pawl-pinto-suite', 'Valletta, Malta', 'For the Comfort and Tranquility of All Guests: This Property is Exclusively for Adults. Welcome to the Pinto Suite.', 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800', 4, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo San Pawl | Pinto Suite', 'palazzo-san-pawl-pinto-suite', 'Valletta, Malta', 'For the Comfort and Tranquility of All Guests: This Property is Exclusively for Adults. Welcome to the Pinto Suite - a romantic escape in a 400-year-old palace.', 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1200', 2, 1, 1, 130, 4.97, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Balcony']);
 
 -- Property 16: Palazzo San Pawl | Hompesh Suite
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo San Pawl | Hompesh Suite', 'palazzo-san-pawl-hompesh-suite', 'Valletta, Malta', 'For the Comfort and Tranquility of All Guests: This Property is Exclusively for Adults. Welcome to the Hompesh Suite.', 'https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=800', 2, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo San Pawl | Hompesh Suite', 'palazzo-san-pawl-hompesh-suite', 'Valletta, Malta', 'For the Comfort and Tranquility of All Guests: This Property is Exclusively for Adults. Welcome to the Hompesh Suite - elegant accommodation in the heart of Valletta.', 'https://images.unsplash.com/photo-1560185007-c5ca9d2c014d?w=1200', 2, 1, 1, 125, 4.94, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV']);
 
 -- Property 17: Palazzo San Pawl - The Villhena Suite
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Palazzo San Pawl - The Villhena Suite', 'palazzo-san-pawl-villhena-suite', 'Valletta, Malta', 'Nestled in the historic heart of a 17th-century building originally constructed by the Knights of Malta.', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800', 2, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Palazzo San Pawl - The Villhena Suite', 'palazzo-san-pawl-villhena-suite', 'Valletta, Malta', 'Nestled in the historic heart of a 17th-century building originally constructed by the Knights of Malta. Experience authentic Maltese heritage with modern comforts.', 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200', 2, 1, 1, 135, 4.96, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Balcony']);
 
 -- Property 18: Modern Stylish Central Apt
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Modern Stylish Central Apt. St Julians', 'modern-stylish-central-apt-st-julians', 'St Julians, Malta', 'Escape to a chic, urban oasis in the heart of St. Julian''s, designed for those who seek comfort and convenience.', 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800', 4, 2, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Modern Stylish Central Apt. St Julians', 'modern-stylish-central-apt-st-julians', 'St Julians, Malta', 'Escape to a chic, urban oasis in the heart of St. Julian''s, designed for those who seek a blend of comfort, convenience, and contemporary style.', 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1200', 4, 2, 1, 115, 4.83, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'TV', 'Washer']);
 
 -- Property 19: Urban Suite with Terrace
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Urban Suite with Terrace In Heart of St Julian''s', 'urban-suite-terrace-heart-st-julians', 'St Julians, Malta', 'Discover the charm of St. Julians in our modern, centrally-located apartment that can comfortably accommodate you.', 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800', 4, 1, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Urban Suite with Terrace In Heart of St Julian''s', 'urban-suite-terrace-heart-st-julians', 'St Julians, Malta', 'Discover the charm of St. Julians in our modern, centrally-located apartment that can comfortably accommodate you. Features a private terrace for relaxation.', 'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200', 4, 2, 1, 125, 4.86, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Terrace', 'TV', 'Washer']);
 
 -- Property 20: Stay Steps Away From Sea
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Stay Steps Away From Sea', 'stay-steps-away-from-sea', 'Gzira, Malta', 'Nestled in Malta''s vibrant Gzira, our modern apartment is steps from the sea. Enjoy a restful night in the oversized bed.', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800', 4, 2, 1, 150);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Stay Steps Away From Sea', 'stay-steps-away-from-sea', 'Gzira, Malta', 'Nestled in Malta''s vibrant Gzira, our modern apartment is steps from the sea. Enjoy a restful night in the oversized bed and wake up to beautiful sea views.', 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200', 4, 2, 1, 110, 4.84, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Sea View', 'TV', 'Balcony']);
 
 -- Property 21: Sea Breeze Studio
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Sea Breeze Studio', 'sea-breeze-studio', 'Sliema, Malta', 'Modern studio apartment with stunning sea views in the heart of Sliema. Walking distance to restaurants and beaches.', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800', 2, 1, 1, 95);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Sea Breeze Studio', 'sea-breeze-studio', 'Sliema, Malta', 'Modern studio apartment with stunning sea views in the heart of Sliema. Walking distance to restaurants, cafes, and the famous Sliema ferries.', 'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=1200', 2, 1, 1, 95, 4.81, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Sea View', 'TV']);
 
 -- Property 22: Garden View Apartment
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Garden View Apartment', 'garden-view-apartment', 'Bugibba, Malta', 'Peaceful apartment with private garden in a quiet residential area. Perfect for families seeking relaxation.', 'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800', 4, 2, 1, 120);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Garden View Apartment', 'garden-view-apartment', 'Bugibba, Malta', 'Peaceful apartment with private garden in a quiet residential area. Perfect for families seeking relaxation, yet close to Bugibba''s restaurants and nightlife.', 'https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?w=1200', 4, 2, 1, 105, 4.78, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Garden', 'Parking', 'TV']);
 
 -- Property 23: Marina Lux Suite
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Marina Lux Suite', 'marina-lux-suite', 'Qawra, Malta', 'Luxury suite overlooking the marina with modern amenities. Close to Malta''s top attractions and beaches.', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800', 6, 3, 2, 180);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Marina Lux Suite', 'marina-lux-suite', 'Qawra, Malta', 'Luxury suite overlooking the marina with modern amenities. Close to Malta''s top attractions, beaches, and the famous Malta National Aquarium.', 'https://images.unsplash.com/photo-1600607687644-c7f34e5d5b4a?w=1200', 6, 3, 2, 165, 4.89, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Sea View', 'Balcony', 'TV', 'Washer', 'Parking']);
 
 -- Property 24: Traditional Maltese House
-INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night) VALUES 
-('Traditional Maltese House', 'traditional-maltese-house', 'Mellieha, Malta', 'Authentic Maltese townhouse with original stone walls and modern comforts. Experience true Maltese charm.', 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800', 5, 3, 2, 165);
+INSERT INTO properties (name, slug, destination, description, hero_image, max_guests, bedrooms, bathrooms, price_per_night, rating, amenities) VALUES 
+('Traditional Maltese House', 'traditional-maltese-house', 'Mellieha, Malta', 'Authentic Maltese townhouse with original stone walls and modern comforts. Experience true Maltese charm in this historic village near the famous Mellieha Bay.', 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=1200', 5, 3, 2, 145, 4.91, ARRAY['WiFi', 'Kitchen', 'Air Conditioning', 'Fireplace', 'Garden', 'TV']);
 
 -- =============================================================================
 -- CREATE UNITS FOR ALL PROPERTIES
