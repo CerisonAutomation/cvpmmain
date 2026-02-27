@@ -65,15 +65,6 @@ export default defineConfig(({ mode }) => {
 
     // Optimize dependencies
     optimizeDeps: {
-      include: [
-        "react",
-        "react-dom",
-        "react-router-dom",
-        "@tanstack/react-query",
-        "framer-motion",
-        "lucide-react",
-      ],
-      // Force optimization in dev
       force: true,
     },
 
