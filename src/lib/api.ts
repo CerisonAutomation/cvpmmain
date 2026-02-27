@@ -1,7 +1,6 @@
 // Enterprise-grade API client for CVPM Main
-// All data from Supabase - fully typed with validation and error handling
+// All data from Supabase Edge Functions - NOT directly from database
 
-import { supabase } from "@/integrations/supabase/client";
 import {
   // Types
   type Property,
@@ -60,16 +59,10 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 
-  /**
-   * Check if error is a network error
-   */
   isNetworkError(): boolean {
     return this.code === "NETWORK_ERROR" || !this.status;
   }
 
-  /**
-   * Check if error is retryable
-   */
   isRetryable(): boolean {
     return [
       ErrorCodes.RATE_LIMIT_EXCEEDED,
@@ -79,9 +72,6 @@ export class ApiError extends Error {
     ].includes(this.code);
   }
 
-  /**
-   * Check if error is an authentication error
-   */
   isAuthError(): boolean {
     return [ErrorCodes.UNAUTHORIZED, ErrorCodes.TOKEN_EXPIRED].includes(
       this.code as typeof ErrorCodes extends Record<string, infer U> ? U : never
@@ -101,7 +91,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
       errorData = { error: response.statusText };
     }
 
-    // Map HTTP status to error code
     const statusCodeMap: Record<number, string> = {
       400: ErrorCodes.WRONG_REQUEST_PARAMETERS,
       401: ErrorCodes.UNAUTHORIZED,
@@ -146,9 +135,7 @@ async function fetchWithRetry<T>(
 
     return await handleResponse<T>(response);
   } catch (error) {
-    // Check if we should retry
     if (retries > 0 && error instanceof ApiError && error.isRetryable()) {
-      // Exponential backoff
       const delay = API_CONFIG.RETRY_DELAY * (API_CONFIG.MAX_RETRIES - retries + 1);
       await new Promise((resolve) => setTimeout(resolve, delay));
       return fetchWithRetry(url, options, retries - 1);
@@ -171,63 +158,49 @@ async function fetchWithRetry<T>(
   }
 }
 
+// Get API URL from environment
+function getApiUrl(): string {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new ApiError("Supabase URL not configured", ErrorCodes.INTERNAL_ERROR, 500);
+  }
+  return supabaseUrl;
+}
+
 // =============================================================================
-// PROPERTIES API
+// PROPERTIES API - via Edge Function
 // =============================================================================
 
 /**
- * Fetch all properties with optional filters
- * Server-pulled data - NOT hardcoded
+ * Fetch all properties via API (NOT directly from Supabase)
  */
 export async function fetchProperties(
   params?: PropertySearchParams
 ): Promise<Property[]> {
-  // Validate params if provided
-  if (params) {
-    const validation = validate(PropertySearchParamsSchema, params);
-    if (!validation.success) {
-      throw new ApiError(
-        "Invalid search parameters",
-        ErrorCodes.WRONG_REQUEST_PARAMETERS,
-        400
-      );
-    }
-  }
-
-  let query = supabase.from("properties").select("*");
-
-  // Apply filters
+  const apiUrl = getApiUrl();
+  
+  // Build query string
+  const queryParams = new URLSearchParams();
   if (params?.destination) {
-    query = query.ilike("destination", `%${sanitizeInput(params.destination)}%`);
+    queryParams.set("destination", sanitizeInput(params.destination));
   }
-
   if (params?.minPrice) {
-    query = query.gte("price_per_night", params.minPrice);
+    queryParams.set("minPrice", String(params.minPrice));
   }
-
   if (params?.maxPrice) {
-    query = query.lte("price_per_night", params.maxPrice);
+    queryParams.set("maxPrice", String(params.maxPrice));
   }
-
   if (params?.guests) {
-    query = query.gte("max_guests", params.guests);
+    queryParams.set("guests", String(params.guests));
   }
 
-  // Order by creation date
-  query = query.order("created_at", { ascending: false });
+  const queryString = queryParams.toString();
+  const url = `${apiUrl}/functions/v1/properties${queryString ? `?${queryString}` : ""}`;
 
-  const { data, error } = await query;
-
-  if (error) {
-    throw new ApiError(
-      error.message,
-      ErrorCodes.INTERNAL_ERROR,
-      500
-    );
-  }
+  const response = await fetchWithRetry<{ data: Property[] }>(url);
 
   // Validate response data
-  const validProperties = (data || [])
+  const validProperties = (response.data || [])
     .map((p) => validate(PropertySchema, p))
     .filter((r) => r.success)
     .map((r) => r.data);
@@ -236,87 +209,35 @@ export async function fetchProperties(
 }
 
 /**
- * Fetch single property by slug with units and rate plans
+ * Fetch single property by slug via API
  */
 export async function fetchProperty(slug: string): Promise<PropertyWithUnits | null> {
-  // Sanitize input
+  const apiUrl = getApiUrl();
   const safeSlug = sanitizeInput(slug);
 
-  // First get the property
-  const { data: property, error: propertyError } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("slug", safeSlug)
-    .single();
+  const url = `${apiUrl}/functions/v1/properties?slug=${encodeURIComponent(safeSlug)}`;
 
-  if (propertyError || !property) {
+  const response = await fetchWithRetry<{ data: PropertyWithUnits[] }>(url);
+
+  if (!response.data || response.data.length === 0) {
     return null;
   }
 
-  // Validate property
-  const propertyValidation = validate(PropertySchema, property);
-  if (!propertyValidation.success) {
-    throw new ApiError(
-      "Invalid property data",
-      ErrorCodes.INTERNAL_ERROR,
-      500
-    );
+  // Validate
+  const validation = validate(PropertyWithUnitsSchema, response.data[0]);
+  if (!validation.success) {
+    throw new ApiError("Invalid property data", ErrorCodes.INTERNAL_ERROR, 500);
   }
 
-  // Then get its units
-  const { data: units, error: unitsError } = await supabase
-    .from("units")
-    .select("*")
-    .eq("property_id", property.id);
-
-  if (unitsError) {
-    throw new ApiError(unitsError.message, ErrorCodes.INTERNAL_ERROR, 500);
-  }
-
-  // Validate units
-  const validUnits = (units || [])
-    .map((u) => validate(UnitSchema, u))
-    .filter((r) => r.success)
-    .map((r) => r.data);
-
-  // Get rate plans for each unit
-  const unitIds = validUnits.map((u) => u.id);
-  let ratePlans: RatePlan[] = [];
-
-  if (unitIds.length > 0) {
-    const { data: plans } = await supabase
-      .from("rate_plans")
-      .select("*")
-      .in("unit_id", unitIds);
-
-    ratePlans = (plans || [])
-      .map((p) => validate(RatePlanSchema, p))
-      .filter((r) => r.success)
-      .map((r) => r.data);
-  }
-
-  return {
-    ...propertyValidation.data,
-    units: validUnits,
-    rate_plans: ratePlans,
-  };
+  return validation.data;
 }
 
 /**
- * Fetch all destinations for search autocomplete
+ * Fetch all destinations for search autocomplete via API
  */
 export async function fetchDestinations(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("properties")
-    .select("destination")
-    .order("destination");
-
-  if (error) {
-    throw new ApiError(error.message, ErrorCodes.INTERNAL_ERROR, 500);
-  }
-
-  // Return unique destinations
-  const destinations = (data || []).map((p) => p.destination);
+  const properties = await fetchProperties();
+  const destinations = properties.map((p) => p.destination);
   return [...new Set(destinations)];
 }
 
@@ -328,7 +249,6 @@ export async function fetchDestinations(): Promise<string[]> {
  * Create a quote - calls Edge Function for dynamic pricing
  */
 export async function createQuote(request: QuoteRequest): Promise<QuoteResponse> {
-  // Validate request
   const validation = validate(QuoteRequestSchema, request);
   if (!validation.success) {
     throw new ApiError(
@@ -339,9 +259,9 @@ export async function createQuote(request: QuoteRequest): Promise<QuoteResponse>
     );
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const apiUrl = getApiUrl();
 
-  return fetchWithRetry<QuoteResponse>(`${supabaseUrl}/functions/v1/quote`, {
+  return fetchWithRetry<QuoteResponse>(`${apiUrl}/functions/v1/quote`, {
     method: "POST",
     body: JSON.stringify(request),
   });
@@ -358,7 +278,6 @@ export async function createPendingBooking(
   quoteId: string,
   guest: GuestInfo
 ): Promise<BookingResponse> {
-  // Validate inputs
   const guestValidation = validate(GuestInfoSchema, guest);
   if (!guestValidation.success) {
     throw new ApiError(
@@ -377,44 +296,15 @@ export async function createPendingBooking(
     );
   }
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const apiUrl = getApiUrl();
 
   return fetchWithRetry<BookingResponse>(
-    `${supabaseUrl}/functions/v1/create-pending`,
+    `${apiUrl}/functions/v1/create-pending`,
     {
       method: "POST",
       body: JSON.stringify({ quoteId, guest: guestValidation.data }),
     }
   );
-}
-
-// =============================================================================
-// RESERVATIONS API
-// =============================================================================
-
-/**
- * Fetch user's reservations (requires auth)
- */
-export async function fetchReservations(): Promise<Reservation[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new ApiError("Must be logged in", ErrorCodes.UNAUTHORIZED, 401);
-  }
-
-  const { data, error } = await supabase
-    .from("reservations")
-    .select("*, property:properties(name, destination)")
-    .eq("guest_email", user.email)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new ApiError(error.message, ErrorCodes.INTERNAL_ERROR, 500);
-  }
-
-  return (data || []) as Reservation[];
 }
 
 // =============================================================================
@@ -426,8 +316,9 @@ export async function fetchReservations(): Promise<Reservation[]> {
  */
 export async function checkApiHealth(): Promise<boolean> {
   try {
-    const { data, error } = await supabase.from("properties").select("id").limit(1);
-    return !error;
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/functions/v1/properties?limit=1`);
+    return response.ok;
   } catch {
     return false;
   }
@@ -437,7 +328,6 @@ export async function checkApiHealth(): Promise<boolean> {
 // EXPORTS
 // =============================================================================
 
-// Re-export types for convenience
 export type {
   Property,
   PropertyWithUnits,
@@ -451,5 +341,4 @@ export type {
   PropertySearchParams,
 } from "./types";
 
-// Export error class
 export { ApiError, ErrorCodes };
