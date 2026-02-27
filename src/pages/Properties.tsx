@@ -1,55 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid } from 'lucide-react';
-import { useListings } from '@/lib/guesty';
-import { ALL_PROPERTIES, PROPERTY_LOCATIONS } from '@/lib/properties-data';
+import { fetchProperties } from '@/lib/api';
 
-/** Normalize properties from either Guesty API or static data */
+/** Fetch properties from server (Supabase) - NOT hardcoded */
 function useProperties() {
-  const { data: guestyListings, isError } = useListings();
-  const hasGuesty = !!import.meta.env.VITE_GUESTY_CLIENT_ID && guestyListings && guestyListings.length > 0;
+  const [properties, setProperties] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (hasGuesty) {
-    return guestyListings!.map(l => ({
-      id: l._id,
-      title: l.title,
-      location: l.address.city || l.address.neighborhood || l.address.full,
-      beds: l.bedrooms,
-      baths: l.bathrooms,
-      guests: l.accommodates,
-      rating: l.rating || 4.97,
-      price: l.prices.basePrice,
-      image: l.featuredPicture?.large || l.pictures?.[0]?.large || '',
-      type: l.propertyType,
-    }));
-  }
+  useEffect(() => {
+    fetchProperties()
+      .then(setProperties)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-  return ALL_PROPERTIES.map(p => ({
-    id: p.id,
-    title: p.title,
-    location: p.location,
-    beds: p.bedrooms,
-    baths: p.bathrooms,
-    guests: p.guests,
-    rating: 4.97,
-    price: p.pricePerNight,
-    image: '', // No hardcoded images — will show placeholder
-    type: 'APARTMENT',
-  }));
+  return { properties, loading, error };
 }
 
 // Map locations with prices
-function buildMapLocations(properties: ReturnType<typeof useProperties>) {
+function buildMapLocations(properties: any[]) {
   return MALTA_LOCALITIES_COORDS.map(loc => {
     const matches = properties.filter(p =>
-      p.location.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
-      loc.name.toLowerCase().includes(p.location.toLowerCase().split(',')[0].trim().toLowerCase())
+      p.destination?.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
+      loc.name.toLowerCase().includes(p.destination?.toLowerCase().split(',')[0].trim().toLowerCase())
     );
-    return { ...loc, price: matches[0]?.price, count: matches.length || undefined };
+    return { ...loc, price: matches[0]?.price_per_night, count: matches.length || undefined };
   });
 }
 
@@ -59,17 +40,37 @@ export default function Properties() {
   const [activeLocation, setActiveLocation] = useState(locationFilter);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  const properties = useProperties();
+  const { properties, loading, error } = useProperties();
   const mapLocations = buildMapLocations(properties);
 
   const filtered = activeLocation
-    ? properties.filter((p) => p.location.toLowerCase().includes(activeLocation.toLowerCase()))
+    ? properties.filter((p) => p.destination?.toLowerCase().includes(activeLocation.toLowerCase()))
     : properties;
 
   const handleMapClick = (loc: MapLocation) => {
     setActiveLocation(loc.name === activeLocation ? '' : loc.name.split(' ')[0]);
     setViewMode('grid');
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="text-center py-20">
+          <p className="text-red-500">Error loading properties: {error}</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -112,7 +113,7 @@ export default function Properties() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((property, i) => (
-              <Link to={`/properties/${property.id}`} key={property.id}>
+              <Link to={`/properties/${property.slug}`} key={property.id}>
                 <motion.article
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -120,8 +121,8 @@ export default function Properties() {
                   className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-                    {property.image ? (
-                      <img src={property.image} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    {property.hero_image ? (
+                      <img src={property.hero_image} alt={property.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
                         <MapPin size={40} />
@@ -129,26 +130,23 @@ export default function Properties() {
                     )}
                     <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
                       <Star size={12} className="text-primary fill-primary" />
-                      <span className="text-xs font-semibold text-foreground">{property.rating}</span>
-                    </div>
-                    <div className="absolute top-3 left-3 bg-background/70 backdrop-blur-sm rounded px-2 py-0.5 text-[10px] text-muted-foreground uppercase tracking-wider">
-                      {property.type}
+                      <span className="text-xs font-semibold text-foreground">{property.rating || 4.97}</span>
                     </div>
                   </div>
                   <div className="p-5">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <MapPin size={12} className="text-primary" /> {property.location}
+                      <MapPin size={12} className="text-primary" /> {property.destination}
                     </div>
                     <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-snug">
-                      {property.title}
+                      {property.name}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1"><BedDouble size={13} /> {property.beds}</span>
-                      <span className="flex items-center gap-1"><Bath size={13} /> {property.baths}</span>
-                      <span className="flex items-center gap-1"><Users size={13} /> {property.guests}</span>
+                      <span className="flex items-center gap-1"><BedDouble size={13} /> {property.bedrooms}</span>
+                      <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
+                      <span className="flex items-center gap-1"><Users size={13} /> {property.max_guests}</span>
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                      <p className="text-foreground font-semibold">€{property.price}<span className="text-xs font-normal text-muted-foreground"> / night</span></p>
+                      <p className="text-foreground font-semibold">€{property.price_per_night}<span className="text-xs font-normal text-muted-foreground"> / night</span></p>
                       <span className="flex items-center gap-1 text-xs font-semibold text-primary">View <ExternalLink size={11} /></span>
                     </div>
                   </div>

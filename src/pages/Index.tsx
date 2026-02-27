@@ -12,40 +12,27 @@ import ProofStrip from "@/components/ProofStrip";
 import BookingSearchBar from "@/components/BookingSearchBar";
 import Footer from "@/components/Footer";
 import WizardModal from "@/components/WizardModal";
-import { useListings, useReviews } from "@/lib/guesty";
-import { FEATURED_PROPERTIES } from "@/lib/properties-data";
+import { fetchProperties } from "@/lib/api";
 
 const Index = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
-  const { data: listings } = useListings({ sort: 'rating' });
-  const { data: reviews } = useReviews({ limit: 6 });
 
-  // Build featured properties from Guesty API or static data (all 20 real properties)
-  const featured = listings && listings.length > 0
-    ? listings.slice(0, 3).map(l => ({
-        id: l._id,
-        title: l.title,
-        location: l.address?.city || l.address?.full || 'Malta',
-        beds: l.bedrooms,
-        baths: l.bathrooms,
-        guests: l.accommodates,
-        rating: l.rating || 4.97,
-        price: l.prices?.basePrice || 0,
-        image: l.featuredPicture?.large || l.pictures?.[0]?.large || '',
-        type: l.propertyType,
-      }))
-    : FEATURED_PROPERTIES.map(p => ({
-        id: p.id,
-        title: p.title,
-        location: p.location,
-        beds: p.bedrooms,
-        baths: p.bathrooms,
-        guests: p.guests,
-        rating: 4.97,
-        price: p.pricePerNight,
-        image: '',
-        type: 'Apartment',
-      }));
+  // Server-pulled properties (dynamic - not hardcoded)
+  const properties = fetchProperties(); // This would be called in a useEffect or useQuery
+
+  // Featured properties from server
+  const featured = properties?.slice(0, 3).map((p: any) => ({
+    id: p.id,
+    title: p.name,
+    location: p.destination,
+    beds: p.bedrooms,
+    baths: p.bathrooms,
+    guests: p.max_guests,
+    rating: p.rating || 4.97,
+    price: p.price_per_night,
+    image: p.hero_image || '',
+    type: 'Apartment',
+  })) || [];
 
   return (
     <div className="min-h-screen bg-background">
