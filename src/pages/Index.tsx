@@ -12,16 +12,21 @@ import ProofStrip from "@/components/ProofStrip";
 import BookingSearchBar from "@/components/BookingSearchBar";
 import Footer from "@/components/Footer";
 import WizardModal from "@/components/WizardModal";
+import { useQuery } from "@tanstack/react-query";
 import { fetchProperties } from "@/lib/api";
 
 const Index = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Server-pulled properties (dynamic - not hardcoded)
-  const properties = fetchProperties(); // This would be called in a useEffect or useQuery
+  // Server-pulled properties using React Query
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ["properties", "featured"],
+    queryFn: () => fetchProperties(),
+    staleTime: 5 * 60 * 1000, // 5 min cache
+  });
 
   // Featured properties from server
-  const featured = properties?.slice(0, 3).map((p: any) => ({
+  const featured = properties.slice(0, 3).map((p) => ({
     id: p.id,
     title: p.name,
     location: p.destination,
@@ -31,8 +36,8 @@ const Index = () => {
     rating: p.rating || 4.97,
     price: p.price_per_night,
     image: p.hero_image || '',
-    type: 'Apartment',
-  })) || [];
+    slug: p.slug,
+  }));
 
   return (
     <div className="min-h-screen bg-background">

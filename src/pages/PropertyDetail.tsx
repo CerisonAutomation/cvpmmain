@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble, Bath, ChevronLeft, ChevronRight, Wifi, Car, Waves, Wind, Coffee, Tv, Utensils, Flame, Shirt, Snowflake, Check, ExternalLink, Calendar, Home } from 'lucide-react';
+import { MapPin, Star, Users, BedDouble, Bath, ChevronLeft, ChevronRight, Wifi, Car, Waves, Wind, Coffee, Tv, Utensils, Flame, Shirt, Snowflake, Check, ExternalLink, Calendar, Home, AlertCircle, Loader2 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { fetchProperty, createQuote } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchProperty, createQuote, ApiError } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
   WIRELESS_INTERNET: <Wifi size={16} />, INTERNET: <Wifi size={16} />,
@@ -33,74 +35,83 @@ const AMENITY_LABELS: Record<string, string> = {
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
-  const [property, setProperty] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
   const [quoteResult, setQuoteResult] = useState<any>(null);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
-  const [quoteLoading, setQuoteLoading] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    
-    fetchProperty(id)
-      .then(data => {
-        if (data) {
-          setProperty(data);
-        } else {
-          setError('Property not found');
-        }
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [id]);
+  // Fetch property using React Query
+  const { data: property, isLoading, error } = useQuery({
+    queryKey: ['property', id],
+    queryFn: () => fetchProperty(id!),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 min cache
+    retry: 3,
+  });
 
-  const handleGetQuote = async () => {
-    if (!property || !checkIn || !checkOut) return;
-    
-    setQuoteLoading(true);
-    try {
+  // Quote mutation with retry logic
+  const quoteMutation = useMutation({
+    mutationFn: () => {
+      if (!property || !checkIn || !checkOut) throw new Error('Missing required fields');
       const unitId = property.units?.[0]?.id;
-      if (!unitId) {
-        setError('No units available');
-        return;
-      }
-      
-      const quote = await createQuote({
+      if (!unitId) throw new Error('No units available');
+      return createQuote({
         propertyId: property.id,
         unitId,
         checkIn,
         checkOut,
         adults: guests,
       });
-      setQuoteResult(quote);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setQuoteLoading(false);
-    }
+    },
+    onSuccess: (data) => {
+      setQuoteResult(data);
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    },
+  });
+
+  const handleGetQuote = () => {
+    if (!property || !checkIn || !checkOut) return;
+    quoteMutation.mutate();
   };
 
-  if (loading) {
+  // Loading state
+  if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="h-[50vh] bg-secondary animate-pulse" />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <div className="lg:col-span-1">
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
         </div>
       </Layout>
     );
   }
 
+  // Error state
   if (error || !property) {
     return (
       <Layout>
         <div className="text-center py-20">
-          <p className="text-red-500">{error || 'Property not found'}</p>
-          <Link to="/properties" className="text-primary hover:underline mt-4 inline-block">Back to Properties</Link>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Failed to load property</h2>
+          <p className="text-muted-foreground mb-6">
+            {error instanceof ApiError ? error.message : 'Property not found'}
+          </p>
+          <Link to="/properties" className="text-primary hover:underline">Back to Properties</Link>
         </div>
       </Layout>
     );
@@ -216,11 +227,22 @@ export default function PropertyDetail() {
 
               <button 
                 onClick={handleGetQuote}
-                disabled={!checkIn || !checkOut || quoteLoading}
-                className="w-full py-3 bg-primary text-primary-foreground rounded font-semibold hover:opacity-90 disabled:opacity-50"
+                disabled={!checkIn || !checkOut || quoteMutation.isPending}
+                className="w-full py-3 bg-primary text-primary-foreground rounded font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {quoteLoading ? 'Calculating...' : quoteResult ? 'Update Quote' : 'Get Quote'}
+                {quoteMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Calculating...
+                  </>
+                ) : quoteResult ? 'Update Quote' : 'Get Quote'}
               </button>
+
+              {quoteMutation.error && (
+                <p className="text-sm text-red-500">
+                  {quoteMutation.error instanceof ApiError ? quoteMutation.error.message : 'Failed to get quote'}
+                </p>
+              )}
             </div>
 
             {quoteResult && (

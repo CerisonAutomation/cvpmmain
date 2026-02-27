@@ -1,26 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid } from 'lucide-react';
-import { fetchProperties } from '@/lib/api';
+import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchProperties, ApiError } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
-/** Fetch properties from server (Supabase) - NOT hardcoded */
+/** Fetch properties from server using React Query - NOT hardcoded */
 function useProperties() {
-  const [properties, setProperties] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchProperties()
-      .then(setProperties)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return { properties, loading, error };
+  return useQuery({
+    queryKey: ['properties'],
+    queryFn: fetchProperties,
+    // Enterprise caching: 5 minutes stale time
+    staleTime: 5 * 60 * 1000,
+    // Retry 3 times on failure
+    retry: 3,
+    // Don't refetch on window focus in production
+    refetchOnWindowFocus: import.meta.env.DEV,
+  });
 }
 
 // Map locations with prices
@@ -40,8 +40,8 @@ export default function Properties() {
   const [activeLocation, setActiveLocation] = useState(locationFilter);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  const { properties, loading, error } = useProperties();
-  const mapLocations = buildMapLocations(properties);
+  const { data: properties = [], isLoading, error, refetch } = useProperties();
+  const mapLocations = useMemo(() => buildMapLocations(properties), [properties]);
 
   const filtered = activeLocation
     ? properties.filter((p) => p.destination?.toLowerCase().includes(activeLocation.toLowerCase()))
@@ -52,22 +52,67 @@ export default function Properties() {
     setViewMode('grid');
   };
 
-  if (loading) {
+  // Loading state with skeletons
+  if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <section className="py-8 border-b border-border/30">
+          <div className="section-container">
+            <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
+          </div>
+        </section>
+        <section className="py-10">
+          <div className="section-container">
+            <div className="flex items-center justify-between mb-6">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border/50 overflow-hidden">
+                  <Skeleton className="aspect-[4/3] w-full" />
+                  <div className="p-5 space-y-3">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </Layout>
     );
   }
 
+  // Error state
   if (error) {
     return (
       <Layout>
-        <div className="text-center py-20">
-          <p className="text-red-500">Error loading properties: {error}</p>
-        </div>
+        <section className="py-8 border-b border-border/30">
+          <div className="section-container">
+            <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
+          </div>
+        </section>
+        <section className="py-10">
+          <div className="section-container">
+            <div className="text-center py-20">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Failed to load properties</h2>
+              <p className="text-muted-foreground mb-6">
+                {error instanceof ApiError ? error.message : 'An unexpected error occurred'}
+              </p>
+              <button 
+                onClick={() => refetch()} 
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </section>
       </Layout>
     );
   }
