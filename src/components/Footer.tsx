@@ -41,11 +41,11 @@ export default function Footer() {
               Full-service short-let management across Malta & Gozo. MTA licensed operator.
             </p>
             <div className="mt-6 flex flex-col gap-2.5">
-              <a href="mailto:info@christianopm.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-                <Mail size={13} /> info@christianopm.com
+              <a href="mailto:info@christianopropertymanagement.com" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Mail size={13} /> info@christianopropertymanagement.com
               </a>
-              <a href="tel:+35679274688" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-                <Phone size={13} /> +356 7927 4688
+              <a href="tel:+35679790202" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Phone size={13} /> +356 7979 0202
               </a>
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 <MapPin size={13} /> Malta & Gozo

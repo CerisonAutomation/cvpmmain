@@ -1,8 +1,9 @@
 /**
  * Site Configuration - Central JSON config for all site content.
- * Edit this file to update any content on the site.
- * Future: connect to Google Sheets API for live editing.
+ * Property data sourced from properties-data.ts (ULTIMATE_COMPLETE_GUIDE.md)
  */
+
+import { ALL_PROPERTIES, COMPANY_INFO, type StaticProperty } from './properties-data';
 
 export interface PropertyConfig {
   id: string;
@@ -16,6 +17,7 @@ export interface PropertyConfig {
   image: string;
   bookingUrl: string;
   featured: boolean;
+  summary: string;
 }
 
 export interface PlanConfig {
@@ -69,14 +71,32 @@ export interface SiteConfig {
   };
 }
 
+/** Convert guide property to config property */
+function toPropertyConfig(p: StaticProperty, index: number): PropertyConfig {
+  return {
+    id: p.id,
+    title: p.title,
+    location: p.location,
+    type: 'Apartment',
+    guests: p.guests,
+    beds: p.bedrooms,
+    baths: p.bathrooms,
+    pricePerNight: `€${p.pricePerNight}`,
+    image: '', // Images come from Guesty API
+    bookingUrl: p.bookingUrl,
+    featured: index < 3,
+    summary: p.summary,
+  };
+}
+
 const SITE_CONFIG: SiteConfig = {
   brand: {
     name: "Christiano Vincenti",
     tagline: "Malta's Premier Property Partner",
     subText: "PROPERTY MANAGEMENT",
-    email: "info@christianopm.com",
-    phone: "+356 7927 4688",
-    bookingUrl: "https://malta.guestybookings.com/",
+    email: COMPANY_INFO.email,
+    phone: COMPANY_INFO.phone,
+    bookingUrl: COMPANY_INFO.bookingUrl,
   },
   navigation: [
     { label: "Process", href: "#process" },
@@ -135,52 +155,12 @@ const SITE_CONFIG: SiteConfig = {
     { question: "Can I block dates for personal use?", answer: "Absolutely. You have full control over your calendar through our owner dashboard. Block dates anytime with no penalties." },
     { question: "What's included in the monthly reporting?", answer: "You receive a detailed monthly statement covering revenue, occupancy, guest reviews, expenses, and a performance summary compared to market benchmarks." },
   ],
-  properties: [
-    {
-      id: "fives",
-      title: "The Fives Apartments",
-      location: "St Julian's, Malta",
-      type: "Apartment",
-      guests: 6,
-      beds: 3,
-      baths: 3,
-      pricePerNight: "€180",
-      image: "/assets/property-fives.jpg",
-      bookingUrl: "https://malta.guestybookings.com/en/properties/6878a53283f1c400114b71e8",
-      featured: true,
-    },
-    {
-      id: "ursula",
-      title: "123 St Ursula Street",
-      location: "Valletta, Malta",
-      type: "Apartment",
-      guests: 4,
-      beds: 1,
-      baths: 2,
-      pricePerNight: "€150",
-      image: "/assets/property-ursula.jpg",
-      bookingUrl: "https://malta.guestybookings.com/en/properties/6878a5365a563c0013969391",
-      featured: true,
-    },
-    {
-      id: "penthouse",
-      title: "St. Julian's Penthouse",
-      location: "San Ġiljan, Malta",
-      type: "Penthouse",
-      guests: 4,
-      beds: 2,
-      baths: 2,
-      pricePerNight: "€155",
-      image: "/assets/property-penthouse.jpg",
-      bookingUrl: "https://malta.guestybookings.com/en/properties/6878a53de8249000105817f8",
-      featured: true,
-    },
-  ],
+  properties: ALL_PROPERTIES.map(toPropertyConfig),
   footer: {
     links: [
-      { label: "Privacy", href: "#" },
-      { label: "Terms", href: "#" },
-      { label: "Contact", href: "mailto:info@christianopm.com" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Contact", href: `mailto:${COMPANY_INFO.email}` },
     ],
     copyright: `© ${new Date().getFullYear()} Christiano Property Management. All rights reserved.`,
   },

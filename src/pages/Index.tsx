@@ -13,20 +13,14 @@ import BookingSearchBar from "@/components/BookingSearchBar";
 import Footer from "@/components/Footer";
 import WizardModal from "@/components/WizardModal";
 import { useListings, useReviews } from "@/lib/guesty";
-import { getSiteConfig } from "@/lib/site-config";
-import propertyFives from "@/assets/property-fives.jpg";
-import propertyUrsula from "@/assets/property-ursula.jpg";
-import propertyPenthouse from "@/assets/property-penthouse.jpg";
-
-const config = getSiteConfig();
-const STATIC_IMAGES = [propertyFives, propertyUrsula, propertyPenthouse];
+import { FEATURED_PROPERTIES } from "@/lib/properties-data";
 
 const Index = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
   const { data: listings } = useListings({ sort: 'rating' });
   const { data: reviews } = useReviews({ limit: 6 });
 
-  // Build featured properties from Guesty or static
+  // Build featured properties from Guesty API or static data (all 20 real properties)
   const featured = listings && listings.length > 0
     ? listings.slice(0, 3).map(l => ({
         id: l._id,
@@ -37,20 +31,20 @@ const Index = () => {
         guests: l.accommodates,
         rating: l.rating || 4.97,
         price: l.prices?.basePrice || 0,
-        image: l.featuredPicture?.large || l.pictures?.[0]?.large || propertyFives,
+        image: l.featuredPicture?.large || l.pictures?.[0]?.large || '',
         type: l.propertyType,
       }))
-    : config.properties.slice(0, 3).map((p, i) => ({
+    : FEATURED_PROPERTIES.map(p => ({
         id: p.id,
         title: p.title,
         location: p.location,
-        beds: p.beds,
-        baths: p.baths,
+        beds: p.bedrooms,
+        baths: p.bathrooms,
         guests: p.guests,
         rating: 4.97,
-        price: parseInt(p.pricePerNight.replace(/[^0-9]/g, '')) || 0,
-        image: STATIC_IMAGES[i % 3],
-        type: p.type,
+        price: p.pricePerNight,
+        image: '',
+        type: 'Apartment',
       }));
 
   return (
@@ -59,14 +53,12 @@ const Index = () => {
       <main id="main">
         <Hero onOpenWizard={() => setWizardOpen(true)} />
 
-        {/* Search bar section */}
         <section className="relative z-10 -mt-8 pb-12">
           <div className="section-container">
             <BookingSearchBar variant="hero" />
           </div>
         </section>
 
-        {/* Proof strip */}
         <ProofStrip />
 
         {/* Featured properties */}
@@ -92,8 +84,14 @@ const Index = () => {
                     transition={{ delay: i * 0.1 }}
                     className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <img src={prop.image} alt={prop.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
+                      {prop.image ? (
+                        <img src={prop.image} alt={prop.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
+                          <MapPin size={40} />
+                        </div>
+                      )}
                       <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
                         <Star size={12} className="text-primary fill-primary" />
                         <span className="text-xs font-semibold text-foreground">{prop.rating}</span>
@@ -133,7 +131,6 @@ const Index = () => {
         <PortfolioSection />
         <PricingSection onOpenWizard={() => setWizardOpen(true)} />
 
-        {/* Reviews */}
         {reviews && reviews.length > 0 && (
           <section className="py-20 border-t border-border/30">
             <div className="section-container">

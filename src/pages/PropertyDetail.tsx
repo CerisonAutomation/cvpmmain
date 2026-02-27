@@ -4,27 +4,14 @@ import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ChevronLeft, ChevronRight, Wifi, Car, Waves, Wind, Coffee, Tv, Utensils, Flame, Shirt, Snowflake, Check, ExternalLink, Calendar, Home } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useListing, useCreateQuote, useReviews } from '@/lib/guesty';
-import { getSiteConfig } from '@/lib/site-config';
-import { formatCurrency } from '@/lib/content';
-import propertyFives from '@/assets/property-fives.jpg';
-import propertyUrsula from '@/assets/property-ursula.jpg';
-import propertyPenthouse from '@/assets/property-penthouse.jpg';
-
-const config = getSiteConfig();
+import { ALL_PROPERTIES } from '@/lib/properties-data';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
-  WIRELESS_INTERNET: <Wifi size={16} />,
-  INTERNET: <Wifi size={16} />,
-  FREE_PARKING_ON_PREMISES: <Car size={16} />,
-  HOT_TUB: <Waves size={16} />,
-  AIR_CONDITIONING: <Snowflake size={16} />,
-  HEATING: <Flame size={16} />,
-  COFFEE_MAKER: <Coffee size={16} />,
-  TV: <Tv size={16} />,
-  CABLE_TV: <Tv size={16} />,
-  KITCHEN: <Utensils size={16} />,
-  WASHER: <Shirt size={16} />,
-  DRYER: <Wind size={16} />,
+  WIRELESS_INTERNET: <Wifi size={16} />, INTERNET: <Wifi size={16} />,
+  FREE_PARKING_ON_PREMISES: <Car size={16} />, HOT_TUB: <Waves size={16} />,
+  AIR_CONDITIONING: <Snowflake size={16} />, HEATING: <Flame size={16} />,
+  COFFEE_MAKER: <Coffee size={16} />, TV: <Tv size={16} />, CABLE_TV: <Tv size={16} />,
+  KITCHEN: <Utensils size={16} />, WASHER: <Shirt size={16} />, DRYER: <Wind size={16} />,
 };
 
 const AMENITY_LABELS: Record<string, string> = {
@@ -45,10 +32,6 @@ const AMENITY_LABELS: Record<string, string> = {
   PETS_ALLOWED: 'Pets Allowed',
 };
 
-const STATIC_IMAGES: Record<string, string> = {
-  fives: propertyFives, ursula: propertyUrsula, penthouse: propertyPenthouse,
-};
-
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
@@ -62,8 +45,8 @@ export default function PropertyDetail() {
   const { data: reviews } = useReviews(id ? { listingId: id, limit: 5 } : {});
   const createQuote = useCreateQuote();
 
-  const staticProp = config.properties.find(p => p.id === id);
-  const today = new Date().toISOString().split('T')[0];
+  // Look up static data from the guide as fallback
+  const staticProp = ALL_PROPERTIES.find(p => p.id === id);
 
   const property = useMemo(() => {
     if (listing) {
@@ -100,18 +83,18 @@ export default function PropertyDetail() {
     if (staticProp) {
       return {
         title: staticProp.title, location: staticProp.location,
-        beds: staticProp.beds, baths: staticProp.baths, guests: staticProp.guests,
+        beds: staticProp.bedrooms, baths: staticProp.bathrooms, guests: staticProp.guests,
         rating: 4.97, reviewsCount: 0,
-        price: parseInt(staticProp.pricePerNight.replace(/[^0-9]/g, '')) || 0,
+        price: staticProp.pricePerNight,
         currency: 'EUR',
-        images: [STATIC_IMAGES[staticProp.id] || propertyFives],
+        images: [] as string[],
         amenities: ['WIRELESS_INTERNET', 'AIR_CONDITIONING', 'KITCHEN', 'WASHER', 'TV', 'ESSENTIALS', 'BED_LINENS', 'HOT_WATER'],
-        description: `Beautiful ${staticProp.type.toLowerCase()} in ${staticProp.location}. Professionally managed by Christiano Vincenti Property Management.`,
+        description: staticProp.summary,
         space: '', neighborhood: '', transit: '', houseRules: '', notes: '', access: '',
         checkInTime: '15:00', checkOutTime: '11:00',
-        propertyType: staticProp.type.toUpperCase(),
+        propertyType: 'APARTMENT',
         cleaningFee: undefined, bedArrangements: undefined,
-        bookingUrl: staticProp.bookingUrl, lat: undefined, lng: undefined, tags: [],
+        bookingUrl: staticProp.bookingUrl, lat: undefined, lng: undefined, tags: [] as string[],
       };
     }
     return null;
@@ -158,9 +141,10 @@ export default function PropertyDetail() {
     );
   }
 
-  const images = property.images.length > 0 ? property.images : [propertyFives];
+  const images = property.images.length > 0 ? property.images : [];
   const visibleAmenities = property.amenities.filter(a => AMENITY_LABELS[a]);
   const displayAmenities = showAllAmenities ? visibleAmenities : visibleAmenities.slice(0, 12);
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <Layout>
@@ -169,43 +153,46 @@ export default function PropertyDetail() {
           <ChevronLeft size={16} /> Back to Properties
         </Link>
 
-        {/* Image gallery — masonry style for desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 rounded-2xl overflow-hidden mb-8">
-          <div className="md:col-span-2 md:row-span-2 relative aspect-[4/3] md:aspect-auto cursor-pointer" onClick={() => setCurrentImageIdx(0)}>
-            <img src={images[0]} alt={property.title} className="w-full h-full object-cover" />
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background/80 to-transparent p-4 md:p-6">
-              <span className="px-2 py-0.5 bg-background/60 backdrop-blur-sm rounded text-[10px] text-muted-foreground uppercase tracking-wider">
-                {property.propertyType}
-              </span>
+        {/* Image gallery */}
+        {images.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 rounded-2xl overflow-hidden mb-8">
+              <div className="md:col-span-2 md:row-span-2 relative aspect-[4/3] md:aspect-auto cursor-pointer" onClick={() => setCurrentImageIdx(0)}>
+                <img src={images[0]} alt={property.title} className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background/80 to-transparent p-4 md:p-6">
+                  <span className="px-2 py-0.5 bg-background/60 backdrop-blur-sm rounded text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {property.propertyType}
+                  </span>
+                </div>
+              </div>
+              {images.slice(1, 5).map((img, i) => (
+                <div key={i} className="hidden md:block aspect-[4/3] cursor-pointer relative group" onClick={() => setCurrentImageIdx(i + 1)}>
+                  <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                </div>
+              ))}
             </div>
-          </div>
-          {images.slice(1, 5).map((img, i) => (
-            <div key={i} className="hidden md:block aspect-[4/3] cursor-pointer relative group" onClick={() => setCurrentImageIdx(i + 1)}>
-              <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            </div>
-          ))}
-          {images.length > 5 && (
-            <button
-              onClick={() => setCurrentImageIdx(4)}
-              className="hidden md:flex absolute bottom-4 right-4 items-center gap-1.5 px-3 py-1.5 bg-background/80 backdrop-blur-sm rounded-lg text-xs font-semibold text-foreground"
-            >
-              Show all {images.length} photos
-            </button>
-          )}
-        </div>
 
-        {/* Mobile image carousel */}
-        {images.length > 1 && (
-          <div className="md:hidden relative mb-6">
-            <div className="aspect-[16/9] relative rounded-xl overflow-hidden">
-              <motion.img key={currentImageIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={images[currentImageIdx]} alt="" className="w-full h-full object-cover" />
-              <button onClick={() => setCurrentImageIdx(i => (i - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => setCurrentImageIdx(i => (i + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
-                <ChevronRight size={16} />
-              </button>
-              <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-background/60 backdrop-blur-sm rounded-full text-xs">{currentImageIdx + 1} / {images.length}</div>
+            {/* Mobile carousel */}
+            {images.length > 1 && (
+              <div className="md:hidden relative mb-6">
+                <div className="aspect-[16/9] relative rounded-xl overflow-hidden">
+                  <motion.img key={currentImageIdx} initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={images[currentImageIdx]} alt="" className="w-full h-full object-cover" />
+                  <button onClick={() => setCurrentImageIdx(i => (i - 1 + images.length) % images.length)} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button onClick={() => setCurrentImageIdx(i => (i + 1) % images.length)} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center">
+                    <ChevronRight size={16} />
+                  </button>
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-background/60 backdrop-blur-sm rounded-full text-xs">{currentImageIdx + 1} / {images.length}</div>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="aspect-[21/9] rounded-2xl bg-secondary flex items-center justify-center mb-8">
+            <div className="text-center text-muted-foreground/40">
+              <Home size={48} className="mx-auto mb-2" />
+              <p className="text-sm">Photos available on booking page</p>
             </div>
           </div>
         )}
@@ -213,7 +200,6 @@ export default function PropertyDetail() {
         {/* Content grid */}
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-10">
-            {/* Title block */}
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                 <MapPin size={14} className="text-primary" /> {property.location}
@@ -225,16 +211,8 @@ export default function PropertyDetail() {
                 <span className="flex items-center gap-1.5"><Users size={15} /> Up to {property.guests} guests</span>
                 <span className="flex items-center gap-1.5"><Star size={15} className="text-primary fill-primary" /> {property.rating} {property.reviewsCount > 0 && `(${property.reviewsCount} reviews)`}</span>
               </div>
-              {property.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {property.tags.map(tag => (
-                    <span key={tag} className="px-2.5 py-1 bg-secondary rounded text-[11px] text-muted-foreground">{tag}</span>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Description */}
             {property.description && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-3">About this property</h2>
@@ -256,7 +234,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* Bed arrangements */}
             {property.bedArrangements?.details && property.bedArrangements.details.length > 0 && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-3">Sleeping arrangements</h2>
@@ -274,7 +251,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* Amenities */}
             {visibleAmenities.length > 0 && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-3">Amenities</h2>
@@ -294,7 +270,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* House rules */}
             <div>
               <h2 className="font-serif text-xl font-semibold text-foreground mb-3">House rules</h2>
               <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
@@ -304,7 +279,6 @@ export default function PropertyDetail() {
               {property.houseRules && <p className="mt-3 text-sm text-muted-foreground whitespace-pre-line">{property.houseRules}</p>}
             </div>
 
-            {/* Neighborhood */}
             {property.neighborhood && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-3">The neighbourhood</h2>
@@ -319,7 +293,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* Reviews */}
             {reviews && reviews.length > 0 && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-4">Guest Reviews</h2>
@@ -341,7 +314,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* Map */}
             {property.lat && property.lng && (
               <div>
                 <h2 className="font-serif text-xl font-semibold text-foreground mb-3">Location</h2>
@@ -349,7 +321,9 @@ export default function PropertyDetail() {
                   <iframe
                     title="Property location"
                     src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${property.lat},${property.lng}&zoom=15`}
-                    width="100%" height="300" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+                    className="w-full h-[300px]"
+                    loading="lazy"
+                    allowFullScreen
                   />
                 </div>
               </div>
@@ -358,45 +332,24 @@ export default function PropertyDetail() {
 
           {/* Booking sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 satin-surface rounded-2xl p-6 space-y-5">
-              <div className="flex items-baseline justify-between">
-                <p className="font-serif text-2xl font-semibold text-foreground">
-                  {formatCurrency(property.price)}
-                  <span className="text-sm font-normal text-muted-foreground"> / night</span>
-                </p>
-                <span className="flex items-center gap-1 text-sm">
-                  <Star size={13} className="text-primary fill-primary" /> {property.rating}
-                </span>
+            <div className="sticky top-24 satin-surface rounded-2xl p-6 satin-glow">
+              <div className="mb-5">
+                <p className="text-2xl font-bold text-foreground">€{property.price}<span className="text-sm font-normal text-muted-foreground"> / night</span></p>
+                {property.cleaningFee && <p className="text-xs text-muted-foreground mt-1">+ €{property.cleaningFee} cleaning fee</p>}
               </div>
 
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Check-in</label>
-                    <input type="date" value={checkIn} min={today}
-                      onChange={e => {
-                        setCheckIn(e.target.value);
-                        setQuoteResult(null);
-                        if (!checkOut || e.target.value >= checkOut) {
-                          const d = new Date(e.target.value); d.setDate(d.getDate() + 3);
-                          setCheckOut(d.toISOString().split('T')[0]);
-                        }
-                      }}
-                      className="form-input text-xs [color-scheme:dark]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Check-out</label>
-                    <input type="date" value={checkOut} min={checkIn || today}
-                      onChange={e => { setCheckOut(e.target.value); setQuoteResult(null); }}
-                      className="form-input text-xs [color-scheme:dark]"
-                    />
-                  </div>
-                </div>
-
+              <div className="space-y-3 mb-5">
                 <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground block mb-1">Guests</label>
-                  <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="form-input text-xs">
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Check-in</label>
+                  <input type="date" value={checkIn} min={today} onChange={e => setCheckIn(e.target.value)} className="form-input [color-scheme:dark]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Check-out</label>
+                  <input type="date" value={checkOut} min={checkIn || today} onChange={e => setCheckOut(e.target.value)} className="form-input [color-scheme:dark]" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Guests</label>
+                  <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="form-input">
                     {Array.from({ length: property.guests }, (_, i) => i + 1).map(n => (
                       <option key={n} value={n}>{n} guest{n > 1 ? 's' : ''}</option>
                     ))}
@@ -404,65 +357,40 @@ export default function PropertyDetail() {
                 </div>
               </div>
 
-              {/* Price breakdown */}
-              {quoteResult ? (
-                <div className="text-xs text-muted-foreground space-y-1.5 pt-3 border-t border-border/30">
+              {quoteResult && (
+                <div className="mb-5 p-4 rounded-lg bg-secondary text-sm space-y-2">
+                  <p className="font-semibold text-foreground">Price Breakdown</p>
                   {quoteResult.priceBreakdown?.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between">
-                      <span>{item.description || item.type}</span>
-                      <span>{formatCurrency(item.value)}</span>
+                    <div key={i} className="flex justify-between text-muted-foreground">
+                      <span>{item.description}</span>
+                      <span>€{item.value}</span>
                     </div>
                   ))}
-                  <div className="flex justify-between font-semibold text-foreground pt-2 border-t border-border/30">
+                  <div className="flex justify-between font-bold text-foreground pt-2 border-t border-border">
                     <span>Total</span>
-                    <span>{formatCurrency(quoteResult.totalPrice)}</span>
+                    <span>€{quoteResult.totalPrice}</span>
                   </div>
                 </div>
-              ) : checkIn && checkOut ? (
-                <div className="text-xs text-muted-foreground space-y-1.5 pt-3 border-t border-border/30">
-                  {(() => {
-                    const nights = Math.max(1, Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000));
-                    return (
-                      <>
-                        <div className="flex justify-between">
-                          <span>{formatCurrency(property.price)} × {nights} night{nights !== 1 ? 's' : ''}</span>
-                          <span>{formatCurrency(property.price * nights)}</span>
-                        </div>
-                        {property.cleaningFee && (
-                          <div className="flex justify-between"><span>Cleaning fee</span><span>{formatCurrency(property.cleaningFee)}</span></div>
-                        )}
-                        <div className="flex justify-between font-semibold text-foreground pt-2 border-t border-border/30">
-                          <span>Estimated total</span>
-                          <span>{formatCurrency(property.price * nights + (property.cleaningFee || 0))}</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground/60 italic">Click "Get Quote" for exact pricing with taxes</p>
-                      </>
-                    );
-                  })()}
-                </div>
-              ) : null}
+              )}
 
               <button
                 onClick={handleQuote}
                 disabled={createQuote.isPending}
-                className="w-full py-3.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {createQuote.isPending ? 'Getting quote...' : checkIn && checkOut ? 'Get Quote & Reserve' : 'Check Availability'}
+                {createQuote.isPending ? 'Getting price...' : checkIn && checkOut ? 'Get Price Quote' : 'Check Availability'}
               </button>
 
               <a
                 href={property.bookingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 w-full py-2.5 border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 rounded-lg transition-colors"
+                className="mt-3 w-full py-2.5 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
               >
-                View on Booking Engine <ExternalLink size={12} />
+                Book on Guesty <ExternalLink size={12} />
               </a>
 
-              <div className="flex items-center gap-2 pt-2 border-t border-border/30">
-                <Home size={14} className="text-primary" />
-                <p className="text-[10px] text-muted-foreground">Managed by Christiano Vincenti Property Management</p>
-              </div>
+              <p className="text-[10px] text-muted-foreground/60 text-center mt-3">No charge until booking is confirmed</p>
             </div>
           </div>
         </div>
