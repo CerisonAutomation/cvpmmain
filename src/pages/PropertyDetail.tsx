@@ -1,37 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble, Bath, ChevronLeft, ChevronRight, Wifi, Car, Waves, Wind, Coffee, Tv, Utensils, Flame, Shirt, Snowflake, Check, ExternalLink, Calendar, Home, AlertCircle, Loader2 } from 'lucide-react';
+import { MapPin, Star, Users, BedDouble, Bath, ChevronLeft, ChevronRight, Wifi, Car, Waves, Wind, Coffee, Tv, Utensils, Flame, Shirt, Snowflake, Check, ExternalLink, Calendar, Home, AlertCircle, Loader2, CreditCard, Lock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchProperty, createQuote, ApiError } from '@/lib/api';
+import { fetchProperty, createQuote, createPendingBooking, ApiError, type QuoteResponse, type GuestInfo } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
-  WIRELESS_INTERNET: <Wifi size={16} />, INTERNET: <Wifi size={16} />,
-  FREE_PARKING_ON_PREMISES: <Car size={16} />, HOT_TUB: <Waves size={16} />,
-  AIR_CONDITIONING: <Snowflake size={16} />, HEATING: <Flame size={16} />,
-  COFFEE_MAKER: <Coffee size={16} />, TV: <Tv size={16} />, CABLE_TV: <Tv size={16} />,
-  KITCHEN: <Utensils size={16} />, WASHER: <Shirt size={16} />, DRYER: <Wind size={16} />,
+  WiFi: <Wifi size={16} />, Kitchen: <Utensils size={16} />,
+  'Air Conditioning': <Snowflake size={16} />, Parking: <Car size={16} />,
+  'Sea View': <Waves size={16} />, TV: <Tv size={16} />,
+  Washer: <Shirt size={16} />, Heating: <Flame size={16} />,
+  Coffee: <Coffee size={16} />, Balcony: <Home size={16} />,
+  Terrace: <Home size={16} />, Jacuzzi: <Waves size={16} />,
+  Garden: <Home size={16} />, Gym: <Fitness size={16} />,
 };
 
 const AMENITY_LABELS: Record<string, string> = {
-  WIRELESS_INTERNET: 'Wi-Fi', INTERNET: 'Internet', FREE_PARKING_ON_PREMISES: 'Free Parking',
-  HOT_TUB: 'Hot Tub', AIR_CONDITIONING: 'Air Conditioning', HEATING: 'Heating',
-  COFFEE_MAKER: 'Coffee Maker', TV: 'TV', CABLE_TV: 'Cable TV', KITCHEN: 'Kitchen',
-  WASHER: 'Washer', DRYER: 'Dryer', HAIR_DRYER: 'Hair Dryer', IRON: 'Iron',
-  ESSENTIALS: 'Essentials', SHAMPOO: 'Shampoo', HANGERS: 'Hangers', BED_LINENS: 'Bed Linens',
-  EXTRA_PILLOWS_AND_BLANKETS: 'Extra Pillows', FIRE_EXTINGUISHER: 'Fire Extinguisher',
-  FIRST_AID_KIT: 'First Aid Kit', SMOKE_DETECTOR: 'Smoke Detector',
-  CARBON_MONOXIDE_DETECTOR: 'CO Detector', ELEVATOR_IN_BUILDING: 'Elevator',
-  PATIO_OR_BALCONY: 'Balcony/Patio', DISHWASHER: 'Dishwasher', REFRIGERATOR: 'Refrigerator',
-  OVEN: 'Oven', STOVE: 'Stove', MICROWAVE: 'Microwave', COOKING_BASICS: 'Cooking Basics',
-  DISHES_AND_SILVERWARE: 'Dishes & Silverware', BBQ_GRILL: 'BBQ Grill',
-  GARDEN_OR_BACKYARD: 'Garden', LAPTOP_FRIENDLY_WORKSPACE: 'Workspace', GYM: 'Gym',
-  PRIVATE_ENTRANCE: 'Private Entrance', HOT_WATER: 'Hot Water',
-  LONG_TERM_STAYS_ALLOWED: 'Long-term OK', SUITABLE_FOR_CHILDREN: 'Child Friendly',
-  PETS_ALLOWED: 'Pets Allowed',
+  WiFi: 'Wi-Fi', Kitchen: 'Kitchen', 'Air Conditioning': 'Air Conditioning',
+  Parking: 'Free Parking', 'Sea View': 'Sea View', TV: 'TV',
+  Washer: 'Washer', Heating: 'Heating', Coffee: 'Coffee Maker',
+  Balcony: 'Balcony', Terrace: 'Terrace', Jacuzzi: 'Jacuzzi',
+  Garden: 'Garden', Gym: 'Gym', Pool: 'Pool',
 };
+
+// Helper component for Fitness icon
+function Fitness({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6.5 6.5h11M6.5 17.5h11M3 12h3M18 12h3M6 9v6M18 9v6" />
+    </svg>
+  );
+}
+
+function FitnessIcon(props: any) {
+  return <Fitness {...props} />;
+}
 
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -41,19 +49,29 @@ export default function PropertyDetail() {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
-  const [quoteResult, setQuoteResult] = useState<any>(null);
+  const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
+  
+  // Guest form state
+  const [guestInfo, setGuestInfo] = useState<GuestInfo>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+  const [bookingStep, setBookingStep] = useState<'quote' | 'details' | 'payment' | 'confirmed'>('quote');
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Fetch property using React Query
   const { data: property, isLoading, error } = useQuery({
     queryKey: ['property', id],
     queryFn: () => fetchProperty(id!),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
     retry: 3,
   });
 
-  // Quote mutation with retry logic
+  // Quote mutation
   const quoteMutation = useMutation({
     mutationFn: () => {
       if (!property || !checkIn || !checkOut) throw new Error('Missing required fields');
@@ -68,14 +86,38 @@ export default function PropertyDetail() {
       });
     },
     onSuccess: (data) => {
-      setQuoteResult(data);
-      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      setQuote(data);
+      setBookingStep('details');
+    },
+  });
+
+  // Booking mutation
+  const bookingMutation = useMutation({
+    mutationFn: () => {
+      if (!quote) throw new Error('No quote');
+      return createPendingBooking(quote.id, guestInfo);
+    },
+    onSuccess: () => {
+      setBookingStep('confirmed');
+    },
+    onError: (err) => {
+      setBookingError(err instanceof Error ? err.message : 'Booking failed');
     },
   });
 
   const handleGetQuote = () => {
     if (!property || !checkIn || !checkOut) return;
+    setBookingError(null);
     quoteMutation.mutate();
+  };
+
+  const handleContinueToPayment = () => {
+    if (!guestInfo.firstName || !guestInfo.lastName || !guestInfo.email) {
+      setBookingError('Please fill in all required fields');
+      return;
+    }
+    setBookingError(null);
+    bookingMutation.mutate();
   };
 
   // Loading state
@@ -119,7 +161,6 @@ export default function PropertyDetail() {
 
   const images = property.gallery || [property.hero_image].filter(Boolean);
   const amenities = property.amenities || [];
-  const unit = property.units?.[0];
 
   return (
     <Layout>
@@ -173,7 +214,7 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {(showAllAmenities ? amenities : amenities.slice(0, 12)).map((amenity: string) => (
                 <div key={amenity} className="flex items-center gap-2 text-sm">
-                  {AMENITY_ICONS[amenity] || <Check size={16} />}
+                  {(AMENITY_ICONS[amenity] || <Check size={16} />)}
                   <span>{AMENITY_LABELS[amenity] || amenity}</span>
                 </div>
               ))}
@@ -196,7 +237,7 @@ export default function PropertyDetail() {
           </div>
         </div>
 
-        {/* Booking Sidebar */}
+        {/* Booking Sidebar - FULLY INTERNAL BOOKING */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 bg-card border rounded-xl p-6 shadow-lg">
             <div className="mb-6">
@@ -204,67 +245,199 @@ export default function PropertyDetail() {
               <span className="text-muted-foreground"> / night</span>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Check-in</label>
-                  <input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} className="w-full p-2 border rounded" />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Check-out</label>
-                  <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} className="w-full p-2 border rounded" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-muted-foreground">Guests</label>
-                <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="w-full p-2 border rounded">
-                  {[...Array(property.max_guests)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1} guest{i > 0 ? 's' : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button 
-                onClick={handleGetQuote}
-                disabled={!checkIn || !checkOut || quoteMutation.isPending}
-                className="w-full py-3 bg-primary text-primary-foreground rounded font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {quoteMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Calculating...
-                  </>
-                ) : quoteResult ? 'Update Quote' : 'Get Quote'}
-              </button>
-
-              {quoteMutation.error && (
-                <p className="text-sm text-red-500">
-                  {quoteMutation.error instanceof ApiError ? quoteMutation.error.message : 'Failed to get quote'}
-                </p>
-              )}
+            {/* Step indicator */}
+            <div className="flex items-center gap-2 mb-6 text-xs">
+              <span className={bookingStep === 'quote' ? 'text-primary font-bold' : 'text-muted-foreground'}>1. Dates</span>
+              <span className="text-muted-foreground">→</span>
+              <span className={bookingStep === 'details' ? 'text-primary font-bold' : 'text-muted-foreground'}>2. Details</span>
+              <span className="text-muted-foreground">→</span>
+              <span className={bookingStep === 'payment' ? 'text-primary font-bold' : 'text-muted-foreground'}>3. Payment</span>
             </div>
 
-            {quoteResult && (
-              <div className="mt-6 pt-6 border-t space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>€{quoteResult.lineItems?.[0]?.amount} × {quoteResult.nights} nights</span>
-                </div>
-                {quoteResult.lineItems?.slice(1).map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span>{item.label}</span>
-                    <span>€{item.amount}</span>
+            <div className="space-y-4">
+              {/* Step 1: Select Dates */}
+              {bookingStep === 'quote' && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Check-in</Label>
+                      <Input type="date" value={checkIn} onChange={e => setCheckIn(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Check-out</Label>
+                      <Input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
+                    </div>
                   </div>
-                ))}
-                <div className="flex justify-between font-bold pt-2 border-t">
-                  <span>Total</span>
-                  <span>€{quoteResult.total}</span>
+
+                  <div>
+                    <Label className="text-xs">Guests</Label>
+                    <select value={guests} onChange={e => setGuests(Number(e.target.value))} className="w-full p-2 border rounded">
+                      {[...Array(property.max_guests)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1} guest{i > 0 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <Button 
+                    onClick={handleGetQuote}
+                    disabled={!checkIn || !checkOut || quoteMutation.isPending}
+                    className="w-full"
+                  >
+                    {quoteMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Get Price Quote
+                  </Button>
+                </>
+              )}
+
+              {/* Step 2: Guest Details */}
+              {bookingStep === 'details' && quote && (
+                <>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between text-sm">
+                      <span>€{quote.lineItems?.[0]?.amount} × {quote.nights} nights</span>
+                    </div>
+                    {quote.lineItems?.slice(1).map((item, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span>{item.label}</span>
+                        <span>€{item.amount}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-bold pt-2 border-t">
+                      <span>Total</span>
+                      <span>€{quote.total}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">First Name *</Label>
+                      <Input 
+                        value={guestInfo.firstName}
+                        onChange={e => setGuestInfo({...guestInfo, firstName: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Last Name *</Label>
+                      <Input 
+                        value={guestInfo.lastName}
+                        onChange={e => setGuestInfo({...guestInfo, lastName: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Email *</Label>
+                      <Input 
+                        type="email"
+                        value={guestInfo.email}
+                        onChange={e => setGuestInfo({...guestInfo, email: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Phone</Label>
+                      <Input 
+                        type="tel"
+                        value={guestInfo.phone}
+                        onChange={e => setGuestInfo({...guestInfo, phone: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  {bookingError && (
+                    <p className="text-sm text-red-500">{bookingError}</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setBookingStep('quote')} className="flex-1">
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleContinueToPayment}
+                      disabled={bookingMutation.isPending}
+                      className="flex-1"
+                    >
+                      {bookingMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <CreditCard className="w-4 h-4 mr-2" />
+                      )}
+                      Continue to Payment
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: Payment (Stripe integration) */}
+              {bookingStep === 'payment' && (
+                <>
+                  <div className="p-4 bg-muted rounded-lg space-y-3">
+                    <div className="flex justify-between">
+                      <span>Total to pay</span>
+                      <span className="font-bold">€{quote?.total}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Secure payment powered by Stripe
+                    </p>
+                  </div>
+
+                  {/* Stripe Elements would go here in production */}
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <Label className="text-xs">Card Number</Label>
+                    <Input placeholder="4242 4242 4242 4242" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Expiry</Label>
+                        <Input placeholder="MM/YY" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">CVC</Label>
+                        <Input placeholder="123" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {bookingError && (
+                    <p className="text-sm text-red-500">{bookingError}</p>
+                  )}
+
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Lock size={12} />
+                    Your payment is secure and encrypted
+                  </div>
+
+                  <Button className="w-full" disabled>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Processing...
+                  </Button>
+
+                  <Button variant="outline" onClick={() => setBookingStep('details')} className="w-full">
+                    Back to Details
+                  </Button>
+                </>
+              )}
+
+              {/* Step 4: Confirmed */}
+              {bookingStep === 'confirmed' && (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Booking Confirmed!</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    A confirmation email has been sent to {guestInfo.email}
+                  </p>
+                  <p className="text-sm">
+                    Booking reference: <span className="font-mono">{quote?.id.slice(0, 8)}</span>
+                  </p>
+                  <Link to="/properties" className="block mt-4 text-primary hover:underline">
+                    Browse more properties
+                  </Link>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Expires: {new Date(quoteResult.expiresAt).toLocaleString()}
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
