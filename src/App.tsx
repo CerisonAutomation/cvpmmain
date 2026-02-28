@@ -71,7 +71,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         <p className="text-muted-foreground mb-6">
           {isProduction 
             ? "We're working on fixing this issue. Please try again."
-            : error?.message || "An unexpected error occurred"}
+            : (error as Error)?.message || "An unexpected error occurred"}
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -89,11 +89,11 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
             Go Home
           </a>
         </div>
-        {!isProduction && error?.stack && (
+        {!isProduction && (error as Error)?.stack && (
           <details className="mt-6 text-left">
             <summary className="text-xs text-muted-foreground cursor-pointer">Error Details</summary>
             <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-40">
-              {error.stack}
+              {(error as Error).stack}
             </pre>
           </details>
         )}
