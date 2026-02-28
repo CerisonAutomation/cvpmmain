@@ -5,34 +5,9 @@ import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchProperties, ApiError } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
-
-/** Fetch properties from server using React Query - NOT hardcoded */
-function useProperties() {
-  return useQuery({
-    queryKey: ['properties'],
-    queryFn: fetchProperties,
-    // Enterprise caching: 5 minutes stale time
-    staleTime: 5 * 60 * 1000,
-    // Retry 3 times on failure
-    retry: 3,
-    // Don't refetch on window focus in production
-    refetchOnWindowFocus: import.meta.env.DEV,
-  });
-}
-
-// Map locations with prices
-function buildMapLocations(properties: any[]) {
-  return MALTA_LOCALITIES_COORDS.map(loc => {
-    const matches = properties.filter(p =>
-      p.destination?.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
-      loc.name.toLowerCase().includes(p.destination?.toLowerCase().split(',')[0].trim().toLowerCase())
-    );
-    return { ...loc, price: matches[0]?.price_per_night, count: matches.length || undefined };
-  });
-}
+import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
+import type { NormalizedListingSummary } from '@/lib/guesty/normalizer';
 
 export default function Properties() {
   const [searchParams] = useSearchParams();
@@ -40,11 +15,28 @@ export default function Properties() {
   const [activeLocation, setActiveLocation] = useState(locationFilter);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  const { data: properties = [], isLoading, error, refetch } = useProperties();
-  const mapLocations = useMemo(() => buildMapLocations(properties), [properties]);
+  // Live data from Guesty BE API
+  const { data: rawListings, isLoading, error, refetch } = useListings();
+
+  // Normalize all listings
+  const properties: NormalizedListingSummary[] = useMemo(() => {
+    const list = Array.isArray(rawListings) ? rawListings : (rawListings as any)?.results || (rawListings as any)?.listings || [];
+    return list.map((l: any) => normalizeListingSummary(l));
+  }, [rawListings]);
+
+  // Map locations
+  const mapLocations = useMemo(() => {
+    return MALTA_LOCALITIES_COORDS.map(loc => {
+      const matches = properties.filter(p =>
+        p.city?.toLowerCase().includes(loc.name.toLowerCase().split(' ')[0]) ||
+        loc.name.toLowerCase().includes(p.city?.toLowerCase().split(',')[0].trim().toLowerCase())
+      );
+      return { ...loc, price: matches[0]?.basePrice, count: matches.length || undefined };
+    });
+  }, [properties]);
 
   const filtered = activeLocation
-    ? properties.filter((p) => p.destination?.toLowerCase().includes(activeLocation.toLowerCase()))
+    ? properties.filter((p) => p.city?.toLowerCase().includes(activeLocation.toLowerCase()))
     : properties;
 
   const handleMapClick = (loc: MapLocation) => {
@@ -52,7 +44,6 @@ export default function Properties() {
     setViewMode('grid');
   };
 
-  // Loading state with skeletons
   if (isLoading) {
     return (
       <Layout>
@@ -63,10 +54,6 @@ export default function Properties() {
         </section>
         <section className="py-10">
           <div className="section-container">
-            <div className="flex items-center justify-between mb-6">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-8 w-24" />
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="rounded-2xl border border-border/50 overflow-hidden">
@@ -74,7 +61,6 @@ export default function Properties() {
                   <div className="p-5 space-y-3">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-4 w-full" />
                   </div>
                 </div>
               ))}
@@ -85,7 +71,6 @@ export default function Properties() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Layout>
@@ -102,12 +87,9 @@ export default function Properties() {
               </div>
               <h2 className="text-xl font-bold mb-2">Failed to load properties</h2>
               <p className="text-muted-foreground mb-6">
-                {error instanceof ApiError ? error.message : 'An unexpected error occurred'}
+                {error instanceof Error ? error.message : 'An unexpected error occurred'}
               </p>
-              <button 
-                onClick={() => refetch()} 
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90"
-              >
+              <button onClick={() => refetch()} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90">
                 Try Again
               </button>
             </div>
@@ -158,7 +140,7 @@ export default function Properties() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((property, i) => (
-              <Link to={`/properties/${property.slug}`} key={property.id}>
+              <Link to={`/properties/${property.id}`} key={property.id || i}>
                 <motion.article
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -166,8 +148,8 @@ export default function Properties() {
                   className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-                    {property.hero_image ? (
-                      <img src={property.hero_image} alt={property.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    {property.heroImage ? (
+                      <img src={property.heroImage} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
                         <MapPin size={40} />
@@ -180,18 +162,18 @@ export default function Properties() {
                   </div>
                   <div className="p-5">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <MapPin size={12} className="text-primary" /> {property.destination}
+                      <MapPin size={12} className="text-primary" /> {property.city}
                     </div>
                     <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-snug">
-                      {property.name}
+                      {property.title}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                       <span className="flex items-center gap-1"><BedDouble size={13} /> {property.bedrooms}</span>
                       <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
-                      <span className="flex items-center gap-1"><Users size={13} /> {property.max_guests}</span>
+                      <span className="flex items-center gap-1"><Users size={13} /> {property.accommodates}</span>
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                      <p className="text-foreground font-semibold">€{property.price_per_night}<span className="text-xs font-normal text-muted-foreground"> / night</span></p>
+                      <p className="text-foreground font-semibold">€{property.basePrice}<span className="text-xs font-normal text-muted-foreground"> / night</span></p>
                       <span className="flex items-center gap-1 text-xs font-semibold text-primary">View <ExternalLink size={11} /></span>
                     </div>
                   </div>
@@ -200,10 +182,10 @@ export default function Properties() {
             ))}
           </div>
 
-          {filtered.length === 0 && (
+          {filtered.length === 0 && !isLoading && (
             <div className="text-center py-20">
-              <p className="text-muted-foreground">No properties found for "{activeLocation}"</p>
-              <button onClick={() => setActiveLocation('')} className="mt-3 text-sm text-primary hover:underline">Show all properties</button>
+              <p className="text-muted-foreground">No properties found{activeLocation ? ` for "${activeLocation}"` : ''}</p>
+              {activeLocation && <button onClick={() => setActiveLocation('')} className="mt-3 text-sm text-primary hover:underline">Show all properties</button>}
             </div>
           )}
 
