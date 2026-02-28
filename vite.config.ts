@@ -96,14 +96,7 @@ export default defineConfig(({ mode }) => {
 
     // Plugins
     plugins: [
-      react({
-        // Use automatic JSX runtime
-        jsxRuntime: "automatic",
-        // Enable fast refresh in development
-        fastRefresh: true,
-        // Enable React 19 features
-        jsxImportSource: mode === "development" ? "@emotion/react" : "react",
-      }),
+      react(),
       // Component tagging in development
       mode === "development" && componentTagger(),
     ].filter(Boolean),

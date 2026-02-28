@@ -3,7 +3,7 @@
  * Now uses API for property data - no hardcoded properties.
  */
 
-import type { Property, PropertyWithUnits } from "./api";
+// Property types now come from Guesty hooks
 
 export interface PropertyConfig {
   id: string;
@@ -113,7 +113,7 @@ export const DEFAULT_PLANS: PlanConfig[] = [
 ];
 
 // Site config - loads from API
-export function getSiteConfig(properties?: Property[]): SiteConfig {
+export function getSiteConfig(properties?: any[]): SiteConfig {
   const propertyConfigs: PropertyConfig[] = (properties || []).map((p) => ({
     id: p.id,
     title: p.name,
@@ -150,5 +150,3 @@ export function updateSiteConfig(config: Partial<SiteConfig>): SiteConfig {
   };
 }
 
-// Export all types
-export type { Property, PropertyWithUnits };
