@@ -1,17 +1,6 @@
 /**
- * Guesty Booking Engine API Proxy
- * 
- * Proxies requests to the Guesty BE API (https://booking.guesty.com/api)
- * using OAuth2 client credentials for authentication.
- * 
- * Endpoints proxied:
- *   GET  /listings          → List all published listings
- *   GET  /listings/:id      → Get single listing detail
- *   GET  /listings/:id/calendar → Get availability calendar
- *   POST /reservations/quotes   → Create a reservation quote
- *   GET  /reservations/quotes/:id → Retrieve a quote
- *   POST /reservations/quotes/:id/instant → Create instant booking
- *   GET  /cities            → List cities with listings
+ * Guesty Open API Proxy
+ * Proxies requests to https://open-api.guesty.com/v1
  */
 
 const corsHeaders = {
@@ -20,7 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
-// ── Token cache ──
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0;
 
@@ -36,12 +24,14 @@ async function getAccessToken(): Promise<string> {
     throw new Error("Guesty API credentials not configured");
   }
 
-  const res = await fetch("https://booking.guesty.com/oauth2/token", {
+  console.log("Fetching new Guesty OAuth token...");
+
+  const res = await fetch("https://open-api.guesty.com/oauth2/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope: "booking_engine:api",
+      scope: "open-api",
       client_id: clientId,
       client_secret: clientSecret,
     }),
@@ -56,12 +46,13 @@ async function getAccessToken(): Promise<string> {
   const data = await res.json();
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+  console.log("Guesty OAuth token obtained successfully");
   return cachedToken!;
 }
 
 async function guestyFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
-  const baseUrl = Deno.env.get("VITE_GUESTY_BASE_URL") || "https://booking.guesty.com/api";
+  const baseUrl = Deno.env.get("VITE_GUESTY_BASE_URL") || "https://open-api.guesty.com/v1";
 
   return fetch(`${baseUrl}${path}`, {
     ...options,
@@ -69,7 +60,7 @@ async function guestyFetch(path: string, options: RequestInit = {}): Promise<Res
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...options.headers,
+      ...(options.headers || {}),
     },
   });
 }
@@ -83,9 +74,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
 
-    // ── Route by action ──
     switch (action) {
-      // ── LISTINGS ──
       case "listings": {
         const params = url.searchParams.get("params") || "";
         const res = await guestyFetch(`/listings?${params}`);
@@ -101,7 +90,6 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── CALENDAR ──
       case "calendar": {
         const id = url.searchParams.get("id");
         const from = url.searchParams.get("from");
@@ -112,29 +100,20 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── CITIES ──
       case "cities": {
         const res = await guestyFetch("/cities");
         const data = await res.json();
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── QUOTE (Create) ──
       case "quote": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
         const body = await req.json();
-        const res = await guestyFetch("/reservations/quotes", {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
+        const res = await guestyFetch("/reservations/quotes", { method: "POST", body: JSON.stringify(body) });
         const data = await res.json();
-        if (!res.ok) {
-          return Response.json(data, { status: res.status, headers: corsHeaders });
-        }
-        return Response.json(data, { headers: corsHeaders });
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
       }
 
-      // ── QUOTE (Retrieve) ──
       case "quote-get": {
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return Response.json({ error: "Missing quoteId" }, { status: 400, headers: corsHeaders });
@@ -143,49 +122,33 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── QUOTE (Apply coupon) ──
       case "quote-coupon": {
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return Response.json({ error: "Missing quoteId" }, { status: 400, headers: corsHeaders });
         const body = await req.json();
-        const res = await guestyFetch(`/reservations/quotes/${quoteId}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        });
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}`, { method: "PUT", body: JSON.stringify(body) });
         const data = await res.json();
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── INSTANT BOOKING ──
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return Response.json({ error: "Missing quoteId" }, { status: 400, headers: corsHeaders });
         const body = await req.json();
-        const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant`, {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant`, { method: "POST", body: JSON.stringify(body) });
         const data = await res.json();
-        if (!res.ok) {
-          return Response.json(data, { status: res.status, headers: corsHeaders });
-        }
-        return Response.json(data, { headers: corsHeaders });
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
       }
 
-      // ── INQUIRY ──
       case "inquiry": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
         const body = await req.json();
-        const res = await guestyFetch("/reservations", {
-          method: "POST",
-          body: JSON.stringify({ ...body, status: "inquiry" }),
-        });
+        const res = await guestyFetch("/reservations", { method: "POST", body: JSON.stringify({ ...body, status: "inquiry" }) });
         const data = await res.json();
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── REVIEWS ──
       case "reviews": {
         const params = url.searchParams.get("params") || "";
         const res = await guestyFetch(`/reviews?${params}`);
@@ -193,7 +156,6 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── RATE PLANS ──
       case "rate-plans": {
         const id = url.searchParams.get("id");
         if (!id) return Response.json({ error: "Missing listing id" }, { status: 400, headers: corsHeaders });
@@ -202,7 +164,6 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── PAYMENT PROVIDER ──
       case "payment-provider": {
         const id = url.searchParams.get("id");
         if (!id) return Response.json({ error: "Missing listing id" }, { status: 400, headers: corsHeaders });
@@ -211,7 +172,6 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── UPSELL FEES ──
       case "upsell-fees": {
         const id = url.searchParams.get("id");
         if (!id) return Response.json({ error: "Missing listing id" }, { status: 400, headers: corsHeaders });
@@ -222,7 +182,7 @@ Deno.serve(async (req) => {
 
       default:
         return Response.json(
-          { error: `Unknown action: ${action}`, available: ["listings", "listing", "calendar", "cities", "quote", "quote-get", "instant-booking", "inquiry", "reviews", "rate-plans", "payment-provider", "upsell-fees"] },
+          { error: `Unknown action: ${action}` },
           { status: 400, headers: corsHeaders }
         );
     }
