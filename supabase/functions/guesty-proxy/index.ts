@@ -1,12 +1,7 @@
-/**
- * Guesty Open API Proxy
- * Proxies requests to https://open-api.guesty.com/v1
- */
-
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
 let cachedToken: string | null = null;
@@ -24,14 +19,12 @@ async function getAccessToken(): Promise<string> {
     throw new Error("Guesty API credentials not configured");
   }
 
-  console.log("Fetching new Guesty OAuth token...");
-
-  const res = await fetch("https://open-api.guesty.com/oauth2/token", {
+  const res = await fetch("https://booking.guesty.com/oauth2/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope: "open-api",
+      scope: "booking_engine:api",
       client_id: clientId,
       client_secret: clientSecret,
     }),
@@ -46,13 +39,12 @@ async function getAccessToken(): Promise<string> {
   const data = await res.json();
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
-  console.log("Guesty OAuth token obtained successfully");
   return cachedToken!;
 }
 
 async function guestyFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const token = await getAccessToken();
-  const baseUrl = Deno.env.get("VITE_GUESTY_BASE_URL") || "https://open-api.guesty.com/v1";
+  const baseUrl = "https://booking.guesty.com/api";
 
   return fetch(`${baseUrl}${path}`, {
     ...options,
@@ -66,8 +58,8 @@ async function guestyFetch(path: string, options: RequestInit = {}): Promise<Res
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -122,15 +114,6 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      case "quote-coupon": {
-        const quoteId = url.searchParams.get("quoteId");
-        if (!quoteId) return Response.json({ error: "Missing quoteId" }, { status: 400, headers: corsHeaders });
-        const body = await req.json();
-        const res = await guestyFetch(`/reservations/quotes/${quoteId}`, { method: "PUT", body: JSON.stringify(body) });
-        const data = await res.json();
-        return Response.json(data, { headers: corsHeaders });
-      }
-
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
         const quoteId = url.searchParams.get("quoteId");
@@ -139,14 +122,6 @@ Deno.serve(async (req) => {
         const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant`, { method: "POST", body: JSON.stringify(body) });
         const data = await res.json();
         return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
-      }
-
-      case "inquiry": {
-        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
-        const body = await req.json();
-        const res = await guestyFetch("/reservations", { method: "POST", body: JSON.stringify({ ...body, status: "inquiry" }) });
-        const data = await res.json();
-        return Response.json(data, { headers: corsHeaders });
       }
 
       case "reviews": {
@@ -168,14 +143,6 @@ Deno.serve(async (req) => {
         const id = url.searchParams.get("id");
         if (!id) return Response.json({ error: "Missing listing id" }, { status: 400, headers: corsHeaders });
         const res = await guestyFetch(`/payments/provider?listingId=${id}`);
-        const data = await res.json();
-        return Response.json(data, { headers: corsHeaders });
-      }
-
-      case "upsell-fees": {
-        const id = url.searchParams.get("id");
-        if (!id) return Response.json({ error: "Missing listing id" }, { status: 400, headers: corsHeaders });
-        const res = await guestyFetch(`/listings/${id}/upsell-fees`);
         const data = await res.json();
         return Response.json(data, { headers: corsHeaders });
       }
