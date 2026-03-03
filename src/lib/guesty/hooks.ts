@@ -32,8 +32,12 @@ export const useListings = (params: {
     queryFn: () => guestyClient.getListings(params),
     staleTime: CACHE.LISTINGS,
     refetchOnWindowFocus: false,
-    retry: 3,
-    retryDelay: (i) => Math.min(1000 * 2 ** i, 30000),
+    retry: (failureCount, error: any) => {
+      // Don't retry auth errors (401/403)
+      if (error?.error_code === 'UNAUTHORIZED' || error?.message?.includes('401') || error?.message?.includes('403')) return false;
+      return failureCount < 2;
+    },
+    retryDelay: (i) => Math.min(2000 * 2 ** i, 15000),
   });
 };
 
