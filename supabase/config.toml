@@ -1,1 +1,16 @@
 project_id = "wpqjatlygdostqailnxv"
+
+[functions.guesty-proxy]
+verify_jwt = false
+
+[functions.properties]
+verify_jwt = false
+
+[functions.quote]
+verify_jwt = false
+
+[functions.create-pending]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
