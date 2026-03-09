@@ -6,12 +6,12 @@ import type { QuoteRequest, PropertyType, Amenity, Listing, Quote } from './type
 
 // ── Cache Configuration ──
 const CACHE = {
-  LISTINGS: 10 * 60 * 1000,
-  LISTING: 5 * 60 * 1000,
+  LISTINGS: 15 * 60 * 1000,
+  LISTING: 10 * 60 * 1000,
   QUOTE: 2 * 60 * 1000,
   CITIES: 24 * 60 * 60 * 1000,
-  REVIEWS: 30 * 60 * 1000,
-  CALENDAR: 60 * 60 * 1000,
+  REVIEWS: 60 * 60 * 1000,
+  CALENDAR: 5 * 60 * 1000,
 };
 
 /** Fetch all listings with optional filters */
