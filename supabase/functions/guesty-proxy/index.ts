@@ -65,6 +65,12 @@ async function getAccessToken(): Promise<string> {
   if (!clientId || !clientSecret) throw new Error("Guesty API credentials not configured");
 
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      const backoff = Math.min(5000 * 2 ** attempt, 30000);
+      console.warn(`OAuth retry ${attempt + 1}/3 – waiting ${backoff}ms`);
+      await sleep(backoff);
+    }
+
     const res = await fetch("https://booking.guesty.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
