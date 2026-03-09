@@ -38,8 +38,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SkipLink />
+      <SEOHead
+        title="Premium Holiday Rentals in Malta"
+        description="Discover luxury holiday apartments and villas in Malta. Book directly for the best rates on premium short-stay rentals across Valletta, St Julian's, Sliema and more."
+        keywords={['Malta holiday rentals', 'luxury apartments Malta', 'short stay Malta', 'Valletta accommodation']}
+        structuredData={createOrganizationSchema()}
+      />
       <Navbar onOpenWizard={() => setWizardOpen(true)} />
-      <main id="main">
+      <main id="main-content">
         <Hero onOpenWizard={() => setWizardOpen(true)} />
 
         <section className="relative z-10 -mt-4 pb-6">
