@@ -14,15 +14,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// TTL in seconds per action
+// Increased TTL to reduce API pressure during rate limits
 const TTL: Record<string, number> = {
-  listings: 15 * 60,
-  listing: 10 * 60,
-  calendar: 5 * 60,
-  cities: 24 * 60 * 60,
-  reviews: 60 * 60,
-  "rate-plans": 30 * 60,
-  "payment-provider": 60 * 60,
+  listings: 20 * 60,      // 20 min (was 15)
+  listing: 15 * 60,       // 15 min (was 10)
+  calendar: 8 * 60,       // 8 min (was 5)
+  cities: 48 * 60 * 60,   // 48h (was 24h)
+  reviews: 2 * 60 * 60,   // 2h (was 1h)
+  "rate-plans": 45 * 60,  // 45 min (was 30)
+  "payment-provider": 2 * 60 * 60, // 2h (was 1h)
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -53,8 +53,10 @@ async function getAccessToken(): Promise<string> {
     throw new Error("Guesty API credentials not configured");
   }
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Increased retry attempts for better rate limit resilience
+  for (let attempt = 0; attempt < 5; attempt++) {
     if (attempt > 0) {
+      // More generous backoff: 2s, 5s, 10s, 20s
       await sleep(jitter(2000 * Math.pow(2, attempt)));
     }
 
@@ -89,11 +91,17 @@ async function getAccessToken(): Promise<string> {
       const retryAfter = res.headers.get("Retry-After");
       if (retryAfter) {
         const waitSec = parseInt(retryAfter, 10);
-        if (!isNaN(waitSec) && waitSec > 0 && waitSec < 120) {
+        if (!isNaN(waitSec) && waitSec > 0 && waitSec < 180) {
+          console.warn(`OAuth 429 — respecting Retry-After: ${waitSec}s`);
           await sleep(waitSec * 1000);
         }
       }
-      console.warn(`OAuth 429 (attempt ${attempt + 1})`);
+      console.warn(`OAuth 429 (attempt ${attempt + 1}/5)`);
+      // If we have a token that's still valid, use it immediately
+      if (memToken && now < memExpiresAt) {
+        console.warn("Using cached token due to rate limit");
+        return memToken;
+      }
       continue;
     }
 
@@ -105,13 +113,13 @@ async function getAccessToken(): Promise<string> {
     console.error(`OAuth error ${res.status}:`, errText.slice(0, 200));
   }
 
-  // Fallback: use existing token even if near expiry
+  // Final fallback: use existing token even if near expiry
   if (memToken && now < memExpiresAt) {
-    console.warn("OAuth rate-limited — using cached token");
+    console.warn("OAuth exhausted retries — using cached token");
     return memToken;
   }
 
-  throw new Error("Guesty OAuth: rate limited after retries");
+  throw new Error("Guesty API temporarily unavailable (rate limited)");
 }
 
 // ══════════════════════════════════════════════════════════
