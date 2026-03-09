@@ -35,9 +35,9 @@ export const useListings = (params: {
     retry: (failureCount, error: any) => {
       if (error?.error_code === 'UNAUTHORIZED' || error?.message?.includes('401') || error?.message?.includes('403')) return false;
       if (error?.message?.includes('429') || error?.retryable) return failureCount < 1;
-      return failureCount < 2;
+      return failureCount < 1;
     },
-    retryDelay: (i) => Math.min(5000 * 2 ** i, 30000),
+    retryDelay: (i) => Math.min(15000 * 2 ** i, 60000),
   });
 };
 
