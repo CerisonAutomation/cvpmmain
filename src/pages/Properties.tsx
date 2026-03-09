@@ -4,9 +4,13 @@ import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import PropertyCard from '@/components/PropertyCard';
+import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
+import { ErrorState } from '@/components/ui/error-states';
+import { SEOHead } from '@/components/SEOHead';
+import { FadeInView, StaggerContainer, StaggerItem } from '@/components/PageTransition';
+import { LiveRegion } from '@/components/ui/accessibility';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
 import type { NormalizedListingSummary } from '@/lib/guesty/normalizer';
 
