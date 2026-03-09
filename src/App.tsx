@@ -176,6 +176,7 @@ function App() {
             </Routes>
           </SuspenseWrapper>
         </BrowserRouter>
+        <AiConcierge />
         <CookieConsentBanner />
       </TooltipProvider>
     </QueryClientProvider>
