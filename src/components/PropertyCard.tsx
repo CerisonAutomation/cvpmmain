@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Star, BedDouble, Bath, Users, ExternalLink } from 'lucide-react';
+import { MapPin, Star, BedDouble, Bath, Users } from 'lucide-react';
 import { usePrefetchListing } from '@/lib/guesty/hooks';
 import ProgressiveImage from './ProgressiveImage';
 import { useRef, useCallback } from 'react';
@@ -19,10 +19,10 @@ interface Props {
 }
 
 /**
- * Enterprise property card with:
- * - Hover prefetching (Airbnb pattern)
- * - Progressive image loading
- * - Staggered entrance animation
+ * Premium property card
+ * - Image-first, sharp edges
+ * - Dense information display
+ * - Hover prefetching
  */
 export default function PropertyCard({
   id, title, city, bedrooms, bathrooms, accommodates,
@@ -32,7 +32,6 @@ export default function PropertyCard({
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const onPointerEnter = useCallback(() => {
-    // Prefetch after 100ms hover (Airbnb/Google pattern)
     hoverTimer.current = setTimeout(() => prefetch(id), 100);
   }, [id, prefetch]);
 
@@ -47,49 +46,55 @@ export default function PropertyCard({
       onPointerLeave={onPointerLeave}
     >
       <motion.article
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-40px' }}
-        transition={{ delay: index * 0.04, duration: 0.3 }}
-        className="group satin-surface rounded-md overflow-hidden"
+        viewport={{ once: true, margin: '-32px' }}
+        transition={{ delay: index * 0.03, duration: 0.25 }}
+        className="group border border-border/40 bg-card overflow-hidden"
       >
+        {/* Image */}
         <div className="relative overflow-hidden">
           {heroImage ? (
             <ProgressiveImage
               src={heroImage}
               alt={title}
               width={600}
-              className="group-hover:scale-[1.03] transition-transform duration-500"
+              className="group-hover:scale-[1.02] transition-transform duration-400"
             />
           ) : (
             <div className="aspect-[4/3] bg-secondary flex items-center justify-center text-muted-foreground/20">
-              <MapPin size={36} />
+              <MapPin size={28} />
             </div>
           )}
-          <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
-            <Star size={11} className="text-primary fill-primary" />
-            <span className="text-[11px] font-semibold text-foreground">{rating}</span>
+          {/* Rating badge */}
+          <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-background/85 backdrop-blur-sm px-1.5 py-0.5">
+            <Star size={9} className="text-primary fill-primary" />
+            <span className="text-[10px] font-semibold text-foreground">{rating}</span>
           </div>
         </div>
 
-        <div className="p-5">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
-            <MapPin size={11} className="text-primary" /> {city}
+        {/* Content - compact */}
+        <div className="p-3.5">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
+            <MapPin size={9} className="text-primary" /> {city}
           </div>
-          <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-tight">
+          
+          <h3 className="font-serif text-base font-semibold text-foreground mb-2 group-hover:text-primary transition-colors leading-tight line-clamp-1">
             {title}
           </h3>
-          <div className="flex items-center gap-4 text-[11px] text-muted-foreground mb-4">
-            <span className="flex items-center gap-1"><BedDouble size={12} /> {bedrooms}</span>
-            <span className="flex items-center gap-1"><Bath size={12} /> {bathrooms}</span>
-            <span className="flex items-center gap-1"><Users size={12} /> {accommodates}</span>
+          
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-3">
+            <span className="flex items-center gap-0.5"><BedDouble size={10} /> {bedrooms}</span>
+            <span className="flex items-center gap-0.5"><Bath size={10} /> {bathrooms}</span>
+            <span className="flex items-center gap-0.5"><Users size={10} /> {accommodates}</span>
           </div>
-          <div className="flex items-center justify-between pt-3 border-t border-border/20">
-            <p className="text-foreground font-semibold">
-              €{basePrice}<span className="text-[11px] font-normal text-muted-foreground"> / night</span>
+          
+          <div className="flex items-center justify-between pt-2.5 border-t border-border/20">
+            <p className="text-foreground font-semibold numeric">
+              €{basePrice}<span className="text-[10px] font-normal text-muted-foreground"> / night</span>
             </p>
-            <span className="flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-              View <ExternalLink size={11} />
+            <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              View →
             </span>
           </div>
         </div>
