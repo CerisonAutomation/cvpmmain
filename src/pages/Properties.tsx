@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
+import PropertyCard from '@/components/PropertyCard';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -140,45 +141,19 @@ export default function Properties() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((property, i) => (
-              <Link to={`/properties/${property.id}`} key={property.id || i}>
-                <motion.article
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="group rounded-2xl border border-border/50 overflow-hidden bg-card hover:border-primary/30 transition-colors"
-                >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-                    {property.heroImage ? (
-                      <img src={property.heroImage} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
-                        <MapPin size={40} />
-                      </div>
-                    )}
-                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-full px-2.5 py-1">
-                      <Star size={12} className="text-primary fill-primary" />
-                      <span className="text-xs font-semibold text-foreground">{property.rating || 4.97}</span>
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                      <MapPin size={12} className="text-primary" /> {property.city}
-                    </div>
-                    <h3 className="font-serif text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors leading-snug">
-                      {property.title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1"><BedDouble size={13} /> {property.bedrooms}</span>
-                      <span className="flex items-center gap-1"><Bath size={13} /> {property.bathrooms}</span>
-                      <span className="flex items-center gap-1"><Users size={13} /> {property.accommodates}</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                      <p className="text-foreground font-semibold">€{property.basePrice}<span className="text-xs font-normal text-muted-foreground"> / night</span></p>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-primary">View <ExternalLink size={11} /></span>
-                    </div>
-                  </div>
-                </motion.article>
-              </Link>
+              <PropertyCard
+                key={property.id || i}
+                id={property.id}
+                title={property.title}
+                city={property.city}
+                bedrooms={property.bedrooms}
+                bathrooms={property.bathrooms}
+                accommodates={property.accommodates}
+                rating={property.rating || 4.97}
+                basePrice={property.basePrice}
+                heroImage={property.heroImage}
+                index={i}
+              />
             ))}
           </div>
 
