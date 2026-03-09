@@ -39,24 +39,32 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let memToken: string | null = null;
 let memExpiresAt = 0;
 
-async function getAccessToken(): Promise<string> {
-  // 1. In-memory
-  if (memToken && Date.now() < memExpiresAt - 120_000) return memToken;
-
-  // 2. DB cache
+async function getTokenFromDb(): Promise<{ token: string; expiresAt: number } | null> {
   try {
     const { data } = await sb()
       .from("guesty_token_cache")
       .select("access_token, expires_at")
       .eq("id", "singleton")
       .maybeSingle();
-    if (data && Date.now() < Number(data.expires_at) - 120_000) {
-      memToken = data.access_token;
-      memExpiresAt = Number(data.expires_at);
-      return data.access_token;
+    if (data) {
+      return { token: data.access_token, expiresAt: Number(data.expires_at) };
     }
   } catch (e) {
     console.warn("Token cache read failed:", e);
+  }
+  return null;
+}
+
+async function getAccessToken(): Promise<string> {
+  // 1. In-memory (with 2-min buffer before expiry)
+  if (memToken && Date.now() < memExpiresAt - 120_000) return memToken;
+
+  // 2. DB cache
+  const cached = await getTokenFromDb();
+  if (cached && Date.now() < cached.expiresAt - 120_000) {
+    memToken = cached.token;
+    memExpiresAt = cached.expiresAt;
+    return cached.token;
   }
 
   // 3. Fetch new token with retry
@@ -66,21 +74,28 @@ async function getAccessToken(): Promise<string> {
 
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) {
-      const backoff = Math.min(5000 * 2 ** attempt, 30000);
+      // Shorter initial backoff: 2s, 4s, 8s
+      const backoff = Math.min(2000 * 2 ** attempt, 8000);
       console.warn(`OAuth retry ${attempt + 1}/3 – waiting ${backoff}ms`);
       await sleep(backoff);
     }
 
-    const res = await fetch("https://booking.guesty.com/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        scope: "booking_engine:api",
-        client_id: clientId,
-        client_secret: clientSecret,
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("https://booking.guesty.com/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          scope: "booking_engine:api",
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      });
+    } catch (fetchErr) {
+      console.error("OAuth fetch network error:", fetchErr);
+      continue;
+    }
 
     if (res.ok) {
       const d = await res.json();
@@ -95,15 +110,26 @@ async function getAccessToken(): Promise<string> {
       return d.access_token;
     }
 
+    // CRITICAL: Always consume response body to prevent resource leaks
+    const errText = await res.text();
+
     if (res.status === 429) {
-      console.warn(`OAuth 429 on attempt ${attempt + 1}`);
-      continue; // backoff handled at loop top
+      console.warn(`OAuth 429 on attempt ${attempt + 1}: ${errText}`);
+      continue;
     }
 
-    const errText = await res.text();
     console.error("OAuth error:", res.status, errText);
     throw new Error(`Guesty OAuth failed: ${res.status}`);
   }
+
+  // FALLBACK: If rate-limited but we have a cached token (even if close to expiry), use it
+  if (cached && cached.token && Date.now() < cached.expiresAt) {
+    console.warn("OAuth rate-limited — using cached token as fallback (may be close to expiry)");
+    memToken = cached.token;
+    memExpiresAt = cached.expiresAt;
+    return cached.token;
+  }
+
   throw new Error("Guesty OAuth: rate limited after 3 retries");
 }
 
@@ -122,10 +148,9 @@ async function getCached(key: string): Promise<unknown | null> {
     if (age > data.ttl_seconds) return null;
 
     // Bump hit count (fire-and-forget)
-    sb().rpc("", {}).catch(() => {}); // no-op, just increment below
     sb()
       .from("guesty_api_cache")
-      .update({ hit_count: (data as any).hit_count ? (data as any).hit_count + 1 : 1 })
+      .update({ hit_count: ((data as any).hit_count || 0) + 1 })
       .eq("cache_key", key)
       .then(() => {});
 
