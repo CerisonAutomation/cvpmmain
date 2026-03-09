@@ -78,13 +78,7 @@ const Index = () => {
             {listingsLoading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="border border-border/30 overflow-hidden">
-                    <div className="aspect-[4/3] bg-secondary animate-pulse" />
-                    <div className="p-3.5 space-y-2">
-                      <div className="h-3 w-3/4 bg-secondary animate-pulse" />
-                      <div className="h-3 w-1/2 bg-secondary animate-pulse" />
-                    </div>
-                  </div>
+                  <PropertyCardSkeleton key={i} />
                 ))}
               </div>
             ) : listingsError || (featured.length === 0 && !listingsLoading) ? (
