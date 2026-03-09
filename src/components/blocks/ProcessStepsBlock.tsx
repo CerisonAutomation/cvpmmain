@@ -3,7 +3,7 @@ import { ClipboardCheck, Camera, Rocket } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 import type { ProcessStepsData } from '@/lib/cms/types';
 
-const ICON_MAP: Record<string, React.FC<{ size?: number; className?: string }>> = {
+const ICON_MAP: Record<string, any> = {
   ClipboardCheck, Camera, Rocket,
 };
 
