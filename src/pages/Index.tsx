@@ -19,7 +19,7 @@ const Index = () => {
   const { page, isLoading: pageLoading } = useCmsPage('home');
 
   // Live data from Guesty BE API
-  const { data: rawListings, isLoading: listingsLoading } = useListings();
+  const { data: rawListings, isLoading: listingsLoading, error: listingsError, refetch } = useListings();
 
   // Normalize listings
   const featured = useMemo(() => {
