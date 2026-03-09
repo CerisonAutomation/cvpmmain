@@ -8,6 +8,10 @@ import Footer from '@/components/Footer';
 import WizardModal from '@/components/WizardModal';
 import PropertyCard from '@/components/PropertyCard';
 import BlockRenderer from '@/components/blocks/BlockRenderer';
+import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
+import { SEOHead, createOrganizationSchema } from '@/components/SEOHead';
+import { SkipLink } from '@/components/ui/accessibility';
+import { FadeInView } from '@/components/PageTransition';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
 import { useCmsPage, getBlockByType } from '@/hooks/use-cms-page';
 import type { ContentBlock } from '@/lib/cms/types';
@@ -34,8 +38,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SkipLink />
+      <SEOHead
+        title="Premium Holiday Rentals in Malta"
+        description="Discover luxury holiday apartments and villas in Malta. Book directly for the best rates on premium short-stay rentals across Valletta, St Julian's, Sliema and more."
+        keywords={['Malta holiday rentals', 'luxury apartments Malta', 'short stay Malta', 'Valletta accommodation']}
+        structuredData={createOrganizationSchema()}
+      />
       <Navbar onOpenWizard={() => setWizardOpen(true)} />
-      <main id="main">
+      <main id="main-content">
         <Hero onOpenWizard={() => setWizardOpen(true)} />
 
         <section className="relative z-10 -mt-4 pb-6">
@@ -67,13 +78,7 @@ const Index = () => {
             {listingsLoading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="border border-border/30 overflow-hidden">
-                    <div className="aspect-[4/3] bg-secondary animate-pulse" />
-                    <div className="p-3.5 space-y-2">
-                      <div className="h-3 w-3/4 bg-secondary animate-pulse" />
-                      <div className="h-3 w-1/2 bg-secondary animate-pulse" />
-                    </div>
-                  </div>
+                  <PropertyCardSkeleton key={i} />
                 ))}
               </div>
             ) : listingsError || (featured.length === 0 && !listingsLoading) ? (

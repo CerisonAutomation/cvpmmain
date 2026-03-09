@@ -4,9 +4,13 @@ import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
 import PropertyCard from '@/components/PropertyCard';
+import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
+import { ErrorState } from '@/components/ui/error-states';
+import { SEOHead } from '@/components/SEOHead';
+import { FadeInView, StaggerContainer, StaggerItem } from '@/components/PageTransition';
+import { LiveRegion } from '@/components/ui/accessibility';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
 import type { NormalizedListingSummary } from '@/lib/guesty/normalizer';
 
@@ -48,6 +52,7 @@ export default function Properties() {
   if (isLoading) {
     return (
       <Layout>
+        <SEOHead title="Properties" description="Browse our collection of luxury holiday rentals across Malta." />
         <section className="py-8 border-b border-border/30">
           <div className="section-container">
             <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
@@ -57,13 +62,7 @@ export default function Properties() {
           <div className="section-container">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="rounded-2xl border border-border/50 overflow-hidden">
-                  <Skeleton className="aspect-[4/3] w-full" />
-                  <div className="p-5 space-y-3">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </div>
+                <PropertyCardSkeleton key={i} />
               ))}
             </div>
           </div>
@@ -75,6 +74,7 @@ export default function Properties() {
   if (error) {
     return (
       <Layout>
+        <SEOHead title="Properties" description="Browse our collection of luxury holiday rentals across Malta." />
         <section className="py-6 border-b border-border/20">
           <div className="section-container">
             <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
@@ -82,21 +82,12 @@ export default function Properties() {
         </section>
         <section className="py-12">
           <div className="section-container">
-            <div className="text-center py-16">
-              <div className="w-12 h-12 mx-auto mb-3 border border-destructive/30 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-destructive" />
-              </div>
-              <h2 className="font-serif text-xl font-semibold mb-2">Unable to load properties</h2>
-              <p className="text-muted-foreground text-[13px] mb-4 max-w-sm mx-auto">
-                Our booking system is experiencing high demand. Please try again.
-              </p>
-              <button 
-                onClick={() => refetch()} 
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
-              >
-                Try Again
-              </button>
-            </div>
+            <ErrorState
+              type="ratelimit"
+              title="Unable to load properties"
+              message="Our booking system is experiencing high demand. Please try again."
+              onRetry={() => refetch()}
+            />
           </div>
         </section>
       </Layout>
@@ -105,6 +96,14 @@ export default function Properties() {
 
   return (
     <Layout>
+      <SEOHead
+        title={activeLocation ? `Properties in ${activeLocation}` : 'All Properties'}
+        description={`Browse ${filtered.length} luxury holiday rentals${activeLocation ? ` in ${activeLocation}` : ''} across Malta.`}
+        keywords={['Malta properties', 'holiday rentals', activeLocation || 'Malta'].filter(Boolean)}
+      />
+      <LiveRegion>
+        {filtered.length} properties {activeLocation ? `in ${activeLocation}` : 'available'}
+      </LiveRegion>
       <section className="py-8 border-b border-border/30">
         <div className="section-container">
           <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
