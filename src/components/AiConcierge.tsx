@@ -119,8 +119,13 @@ export default function AiConcierge() {
                         : 'bg-muted text-foreground rounded-bl-md'
                     )}
                   >
-                    {msg.content}
-                  </div>
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-headings:my-2 max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
                   {msg.role === 'user' && (
                     <div className="w-6 h-6 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center mt-0.5">
                       <User size={12} className="text-muted-foreground" />
