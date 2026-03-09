@@ -1,12 +1,30 @@
+/**
+ * FAQ Page — CMS-Driven with Realtime DB Sync
+ */
+
 import Layout from '@/components/Layout';
-import FAQSection from '@/components/FAQSection';
+import { useCmsPage } from '@/hooks/use-cms-page';
+import BlockRenderer from '@/components/blocks/BlockRenderer';
+import type { ContentBlock } from '@/lib/cms/types';
 
 export default function FAQPage() {
+  const { page } = useCmsPage('faq');
+
+  if (!page) {
+    return (
+      <Layout>
+        <div className="py-20 text-center">
+          <p className="text-muted-foreground">Page content not found</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <section className="py-8">
-        <FAQSection />
-      </section>
+      {page.blocks.map((block: ContentBlock) => (
+        <BlockRenderer key={block.id} block={block} />
+      ))}
     </Layout>
   );
 }
