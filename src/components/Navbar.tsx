@@ -28,7 +28,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
   const location = useLocation();
 
   const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 40);
+    setScrolled(window.scrollY > 32);
   }, []);
 
   useEffect(() => {
@@ -50,23 +50,23 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
   return (
     <>
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-1.5 focus:bg-primary focus:text-primary-foreground focus:text-xs">
         Skip to content
       </a>
 
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm" : "bg-transparent"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+          scrolled ? "bg-background/95 backdrop-blur-lg border-b border-border/40" : "bg-transparent"
         }`}
       >
-        <nav className="section-container flex items-center justify-between h-16 sm:h-20">
+        <nav className="section-container flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <Link to="/" aria-label="Home">
             <Logo size="sm" />
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          {/* Desktop nav - compact */}
+          <div className="hidden lg:flex items-center gap-0.5">
             {NAV_LINKS.map((link) => (
               link.children ? (
                 <div
@@ -76,27 +76,27 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                   onMouseLeave={() => setOwnersOpen(false)}
                 >
                   <button
-                    className={`flex items-center gap-1 text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
+                    className={`flex items-center gap-1 text-[12px] font-medium px-3 py-1.5 transition-colors ${
                       isActive(link.href) ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {link.label}
-                    <ChevronDown size={13} className={`transition-transform ${ownersOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={11} className={`transition-transform ${ownersOpen ? 'rotate-180' : ''}`} />
                   </button>
                   <AnimatePresence>
                     {ownersOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: 6 }}
+                        initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 6 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-1 w-52 bg-card border border-border/50 rounded-xl shadow-lg overflow-hidden py-1"
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute top-full left-0 mt-0.5 w-44 bg-card border border-border/50 overflow-hidden py-1"
                       >
                         {link.children.map((child) => (
                           <Link
                             key={child.href}
                             to={child.href}
-                            className={`block px-4 py-2.5 text-[13px] transition-colors ${
+                            className={`block px-3 py-2 text-[12px] transition-colors ${
                               location.pathname === child.href
                                 ? 'text-primary bg-primary/5'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -113,7 +113,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                 <Link
                   key={link.href}
                   to={link.href}
-                  className={`text-[13px] font-medium px-4 py-2 rounded-full transition-colors ${
+                  className={`text-[12px] font-medium px-3 py-1.5 transition-colors ${
                     location.pathname === link.href
                       ? "text-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -124,11 +124,11 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
               )
             ))}
 
-            <div className="w-px h-5 bg-border/50 mx-3" />
+            <div className="w-px h-4 bg-border/40 mx-2" />
 
             <Link
               to="/book"
-              className="ml-1 px-6 py-2.5 text-[13px] font-semibold bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+              className="ml-1 px-4 py-1.5 text-[12px] font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
             >
               Book Now
             </Link>
@@ -136,16 +136,16 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
 
           {/* Mobile toggle */}
           <button
-            className="lg:hidden p-2 text-foreground"
+            className="lg:hidden p-1.5 text-foreground"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
         </nav>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer - compact */}
       <AnimatePresence>
         {drawerOpen && (
           <>
@@ -153,37 +153,37 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm"
               onClick={() => setDrawerOpen(false)}
             />
             <motion.aside
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-80 bg-background border-l border-border flex flex-col"
+              transition={{ type: "spring", damping: 32, stiffness: 350 }}
+              className="fixed top-0 right-0 bottom-0 z-50 w-72 bg-background border-l border-border flex flex-col"
               role="dialog"
               aria-label="Navigation menu"
             >
-              <div className="flex items-center justify-between p-5 border-b border-border/50">
+              <div className="flex items-center justify-between p-4 border-b border-border/40">
                 <Logo size="sm" />
                 <button onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="p-1 text-muted-foreground hover:text-foreground">
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              <div className="flex flex-col p-6 gap-1 overflow-y-auto flex-1">
+              <div className="flex flex-col p-4 gap-0.5 overflow-y-auto flex-1">
                 {NAV_LINKS.map((link) => (
                   link.children ? (
                     <div key={link.href}>
                       <button
                         onClick={() => setMobileOwnersOpen(!mobileOwnersOpen)}
-                        className={`w-full flex items-center justify-between text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
+                        className={`w-full flex items-center justify-between text-[13px] font-medium py-2.5 px-2 transition-colors ${
                           isActive(link.href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
                         }`}
                       >
                         {link.label}
-                        <ChevronDown size={15} className={`transition-transform ${mobileOwnersOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={13} className={`transition-transform ${mobileOwnersOpen ? 'rotate-180' : ''}`} />
                       </button>
                       <AnimatePresence>
                         {mobileOwnersOpen && (
@@ -191,13 +191,13 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden pl-3"
+                            className="overflow-hidden pl-2"
                           >
                             {link.children.map((child) => (
                               <Link
                                 key={child.href}
                                 to={child.href}
-                                className={`block py-2.5 px-3 text-[14px] rounded-lg transition-colors ${
+                                className={`block py-2 px-2 text-[12px] transition-colors ${
                                   location.pathname === child.href ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                                 }`}
                               >
@@ -212,7 +212,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                     <Link
                       key={link.href}
                       to={link.href}
-                      className={`text-[15px] font-medium py-3 px-3 rounded-lg transition-colors ${
+                      className={`text-[13px] font-medium py-2.5 px-2 transition-colors ${
                         location.pathname === link.href ? "text-primary bg-primary/5" : "text-foreground hover:bg-accent/50"
                       }`}
                     >
@@ -221,10 +221,10 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                   )
                 ))}
 
-                <div className="mt-auto pt-6 space-y-3">
+                <div className="mt-auto pt-4">
                   <Link
                     to="/book"
-                    className="block w-full py-3.5 text-sm font-semibold bg-primary text-primary-foreground rounded-xl text-center hover:opacity-90 transition-opacity"
+                    className="block w-full py-2.5 text-[13px] font-semibold bg-primary text-primary-foreground text-center hover:opacity-90 transition-opacity"
                   >
                     Book Now
                   </Link>

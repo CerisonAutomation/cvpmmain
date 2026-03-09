@@ -38,13 +38,13 @@ const Index = () => {
       <main id="main">
         <Hero onOpenWizard={() => setWizardOpen(true)} />
 
-        <section className="relative z-10 -mt-6 pb-8">
+        <section className="relative z-10 -mt-4 pb-6">
           <div className="section-container">
             <BookingSearchBar variant="hero" />
           </div>
         </section>
 
-        {/* Render CMS blocks that come before featured properties */}
+        {/* CMS blocks: proof strip */}
         {page?.blocks
           .filter((b: ContentBlock) => b.type === 'proof_strip')
           .map((block: ContentBlock) => (
@@ -52,32 +52,32 @@ const Index = () => {
           ))}
 
         {/* Featured properties — LIVE from Guesty */}
-        <section className="py-16 sm:py-20 border-t border-border/20">
+        <section className="py-10 sm:py-12 border-t border-border/15">
           <div className="section-container">
-            <div className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-6">
               <div>
-                <p className="micro-type text-primary mb-3">Featured Properties</p>
+                <p className="micro-type text-primary mb-2">Featured Properties</p>
                 <h2 className="section-heading">Our Collection</h2>
               </div>
-              <Link to="/properties" className="hidden sm:flex items-center gap-2 text-sm text-primary hover:underline underline-offset-4">
-                View all <ArrowRight size={14} />
+              <Link to="/properties" className="hidden sm:flex items-center gap-1.5 text-[12px] text-primary hover:underline underline-offset-4">
+                View all <ArrowRight size={12} />
               </Link>
             </div>
 
             {listingsLoading ? (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[0, 1, 2].map(i => (
-                  <div key={i} className="rounded-md border border-border/30 overflow-hidden">
+                  <div key={i} className="border border-border/30 overflow-hidden">
                     <div className="aspect-[4/3] bg-secondary animate-pulse" />
-                    <div className="p-5 space-y-3">
-                      <div className="h-4 w-3/4 bg-secondary animate-pulse rounded" />
-                      <div className="h-4 w-1/2 bg-secondary animate-pulse rounded" />
+                    <div className="p-3.5 space-y-2">
+                      <div className="h-3 w-3/4 bg-secondary animate-pulse" />
+                      <div className="h-3 w-1/2 bg-secondary animate-pulse" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {featured.map((p, i) => (
                   <PropertyCard
                     key={p.id || i}
@@ -96,9 +96,9 @@ const Index = () => {
               </div>
             )}
 
-            <div className="sm:hidden mt-6 text-center">
-              <Link to="/properties" className="inline-flex items-center gap-2 text-sm text-primary hover:underline underline-offset-4">
-                View all properties <ArrowRight size={14} />
+            <div className="sm:hidden mt-4 text-center">
+              <Link to="/properties" className="inline-flex items-center gap-1.5 text-[12px] text-primary hover:underline underline-offset-4">
+                View all properties <ArrowRight size={12} />
               </Link>
             </div>
           </div>
