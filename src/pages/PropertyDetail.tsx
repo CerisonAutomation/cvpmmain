@@ -8,7 +8,9 @@ import {
   ArrowLeft, ChevronDown, Shield
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PropertyDetailSkeleton } from '@/components/ui/skeleton-variants';
+import { SEOHead, createPropertySchema, createBreadcrumbSchema } from '@/components/SEOHead';
+import { ErrorState } from '@/components/ui/error-states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
