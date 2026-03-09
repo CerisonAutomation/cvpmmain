@@ -41,24 +41,125 @@ async function getAccessToken(): Promise<string> {
   // Fast path: valid in-memory token
   if (memToken && now < memExpiresAt - BUFFER) return memToken;
 
+  // Try Redis for token
+  const redisUrl = Deno.env.get("REDIS_URL");
+  if (redisUrl) {
+    try {
+      const token = await fetchTokenFromRedis(redisUrl);
+      if (token) return token;
+    } catch (err) {
+      console.error("Redis token fetch failed:", err);
+    }
+  }
+
+  // Fallback: use cached token even if near expiry
+  if (memToken && now < memExpiresAt) {
+    console.warn("Using cached in-memory token as fallback");
+    return memToken;
+  }
+
+  // Final fallback: try OAuth credentials
+  return fetchTokenViaOAuth();
+}
+
+async function fetchTokenFromRedis(redisUrl: string): Promise<string | null> {
+  // Parse Redis URL
+  const url = new URL(redisUrl);
+  const hostname = url.hostname;
+  const port = parseInt(url.port || "6379");
+  const password = url.password || undefined;
+
+  let conn: Deno.TcpConn | undefined;
+  try {
+    conn = await Deno.connect({ hostname, port });
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    // Helper to send command and read response
+    async function sendCommand(cmd: string): Promise<string> {
+      await conn!.write(encoder.encode(cmd + "\r\n"));
+      const buf = new Uint8Array(8192);
+      const n = await conn!.read(buf);
+      return decoder.decode(buf.subarray(0, n || 0));
+    }
+
+    // Authenticate if password present
+    if (password) {
+      const authResp = await sendCommand(`AUTH ${password}`);
+      if (!authResp.startsWith("+OK")) {
+        console.error("Redis AUTH failed:", authResp.trim());
+        return null;
+      }
+    }
+
+    // Try guesty:access_token first (JSON string with accessToken, expiresAt)
+    const resp1 = await sendCommand("GET guesty:access_token");
+    const parsed1 = parseRedisString(resp1);
+    if (parsed1) {
+      try {
+        const json = JSON.parse(parsed1);
+        const accessToken = json.accessToken || json.access_token;
+        const expiresAt = json.expiresAt || json.expires_at;
+        if (accessToken) {
+          memToken = accessToken;
+          memExpiresAt = typeof expiresAt === "number"
+            ? (expiresAt > 1e12 ? expiresAt : expiresAt * 1000)
+            : Date.now() + 3600_000;
+          console.log("Token loaded from Redis (guesty:access_token)");
+          return accessToken;
+        }
+      } catch { /* not valid JSON, try next key */ }
+    }
+
+    // Try guesty:beapi:token (Redis hash with token, expires_at)
+    const resp2 = await sendCommand("HGET guesty:beapi:token token");
+    const token = parseRedisString(resp2);
+    if (token) {
+      const resp3 = await sendCommand("HGET guesty:beapi:token expires_at");
+      const expiresAtStr = parseRedisString(resp3);
+      memToken = token;
+      memExpiresAt = expiresAtStr
+        ? (Number(expiresAtStr) > 1e12 ? Number(expiresAtStr) : Number(expiresAtStr) * 1000)
+        : Date.now() + 3600_000;
+      console.log("Token loaded from Redis (guesty:beapi:token)");
+      return token;
+    }
+
+    console.warn("No Guesty token found in Redis");
+    return null;
+  } finally {
+    try { conn?.close(); } catch { /* ignore */ }
+  }
+}
+
+function parseRedisString(resp: string): string | null {
+  if (!resp || resp.startsWith("-") || resp.startsWith("$-1")) return null;
+  // Bulk string: $<len>\r\n<data>\r\n
+  const match = resp.match(/^\$(\d+)\r\n([\s\S]*)/);
+  if (match) {
+    const len = parseInt(match[1]);
+    return match[2].substring(0, len);
+  }
+  // Simple string
+  if (resp.startsWith("+")) return resp.slice(1).trim();
+  return null;
+}
+
+async function fetchTokenViaOAuth(): Promise<string> {
+  const now = Date.now();
   const clientId = Deno.env.get("VITE_GUESTY_ADMIN_CLIENT_ID");
   const clientSecret = Deno.env.get("VITE_GUESTY_CLIENT_SECRET");
 
   if (!clientId || !clientSecret) {
-    // Use existing token even if close to expiry
     if (memToken && now < memExpiresAt) {
       console.warn("No OAuth credentials — using existing in-memory token");
       return memToken;
     }
-    throw new Error("Guesty API credentials not configured");
+    throw new Error("Guesty API credentials not configured and no Redis token available");
   }
 
-  // Increased retry attempts for better rate limit resilience
   for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) {
-      // More generous backoff: 2s, 5s, 10s, 20s
-      await sleep(jitter(2000 * Math.pow(2, attempt)));
-    }
+    if (attempt > 0) await sleep(jitter(2000 * Math.pow(2, attempt)));
 
     let res: Response;
     try {
@@ -81,45 +182,27 @@ async function getAccessToken(): Promise<string> {
       const d = await res.json();
       memToken = d.access_token;
       memExpiresAt = now + (d.expires_in || 3600) * 1000;
-      console.log("OAuth token refreshed");
       return d.access_token;
     }
 
-    const errText = await res.text(); // always consume body
-
+    const errText = await res.text();
     if (res.status === 429) {
       const retryAfter = res.headers.get("Retry-After");
       if (retryAfter) {
         const waitSec = parseInt(retryAfter, 10);
-        if (!isNaN(waitSec) && waitSec > 0 && waitSec < 180) {
-          console.warn(`OAuth 429 — respecting Retry-After: ${waitSec}s`);
-          await sleep(waitSec * 1000);
-        }
+        if (!isNaN(waitSec) && waitSec > 0 && waitSec < 180) await sleep(waitSec * 1000);
       }
-      console.warn(`OAuth 429 (attempt ${attempt + 1}/5)`);
-      // If we have a token that's still valid, use it immediately
-      if (memToken && now < memExpiresAt) {
-        console.warn("Using cached token due to rate limit");
-        return memToken;
-      }
+      if (memToken && now < memExpiresAt) return memToken;
       continue;
     }
-
-    // Fail fast on auth errors
     if (res.status === 401 || res.status === 403) {
       throw new Error(`Guesty OAuth: invalid credentials (${res.status})`);
     }
-
     console.error(`OAuth error ${res.status}:`, errText.slice(0, 200));
   }
 
-  // Final fallback: use existing token even if near expiry
-  if (memToken && now < memExpiresAt) {
-    console.warn("OAuth exhausted retries — using cached token");
-    return memToken;
-  }
-
-  throw new Error("Guesty API temporarily unavailable (rate limited)");
+  if (memToken && now < memExpiresAt) return memToken;
+  throw new Error("Guesty API temporarily unavailable");
 }
 
 // ══════════════════════════════════════════════════════════
