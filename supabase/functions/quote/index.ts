@@ -1,6 +1,5 @@
 /**
- * Quote Edge Function — Get pricing quote from Guesty Booking Engine
- * Proxies through guesty-proxy for consistent auth/caching
+ * Quote Edge Function — Delegates to guesty-proxy
  */
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,44 +18,26 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { listingId, checkIn, checkOut, guests } = body;
-
-    if (!listingId || !checkIn || !checkOut) {
-      return Response.json(
-        { error: "Missing required fields: listingId, checkIn, checkOut" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    // Proxy to guesty-proxy for quote
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const proxyUrl = `${supabaseUrl}/functions/v1/guesty-proxy?action=quote`;
-    const proxyRes = await fetch(proxyUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        listingId,
-        checkIn,
-        checkOut,
-        guestsCount: guests || 1,
-      }),
+    const proxyRes = await fetch(
+      `${supabaseUrl}/functions/v1/guesty-proxy?action=quote`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const responseBody = await proxyRes.text();
+    return new Response(responseBody, {
+      status: proxyRes.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    const data = await proxyRes.json();
-
-    if (!proxyRes.ok) {
-      return Response.json(
-        { error: data.error || "Quote failed", details: data },
-        { status: proxyRes.status, headers: corsHeaders }
-      );
-    }
-
-    return Response.json(data, { headers: corsHeaders });
   } catch (err) {
     console.error("Quote error:", err);
     return Response.json(
