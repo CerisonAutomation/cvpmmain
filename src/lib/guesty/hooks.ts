@@ -33,11 +33,11 @@ export const useListings = (params: {
     staleTime: CACHE.LISTINGS,
     refetchOnWindowFocus: false,
     retry: (failureCount, error: any) => {
-      // Don't retry auth errors (401/403)
       if (error?.error_code === 'UNAUTHORIZED' || error?.message?.includes('401') || error?.message?.includes('403')) return false;
+      if (error?.message?.includes('429') || error?.retryable) return failureCount < 1;
       return failureCount < 2;
     },
-    retryDelay: (i) => Math.min(2000 * 2 ** i, 15000),
+    retryDelay: (i) => Math.min(5000 * 2 ** i, 30000),
   });
 };
 
