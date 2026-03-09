@@ -127,6 +127,7 @@ export default function AiConcierge() {
                       msg.content
                     )}
                   </div>
+                  {msg.role === 'user' && (
                     <div className="w-6 h-6 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center mt-0.5">
                       <User size={12} className="text-muted-foreground" />
                     </div>
