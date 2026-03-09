@@ -96,10 +96,8 @@ async function getAccessToken(): Promise<string> {
     }
 
     if (res.status === 429) {
-      const backoff = Math.min(3000 * 2 ** attempt, 20000);
-      console.warn(`OAuth 429 – retry ${attempt + 1}/3 in ${backoff}ms`);
-      await sleep(backoff);
-      continue;
+      console.warn(`OAuth 429 on attempt ${attempt + 1}`);
+      continue; // backoff handled at loop top
     }
 
     const errText = await res.text();
