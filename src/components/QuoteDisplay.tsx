@@ -33,14 +33,12 @@ export default function QuoteDisplay({
   className,
 }: QuoteDisplayProps) {
   // Extract pricing from quote
-  const money = quote?.money;
-  const accommodationTotal = money?.hostPayout || (nights * basePrice);
-  const cleaningFee = money?.fareAccommodationAdjusted
-    ? (money.invoiceItems?.find((i: any) => i.type === 'CLEANING_FEE')?.amount || 0)
-    : 0;
-  const serviceFee = money?.invoiceItems?.find((i: any) => i.type === 'SERVICE_FEE')?.amount || 0;
-  const taxes = money?.invoiceItems?.find((i: any) => i.type === 'TAX')?.amount || 0;
-  const totalPrice = money?.hostPayout || accommodationTotal + cleaningFee + serviceFee + taxes;
+  const breakdown = quote?.priceBreakdown;
+  const accommodationTotal = breakdown?.accommodation || (nights * basePrice);
+  const cleaningFee = breakdown?.cleaningFee || 0;
+  const serviceFee = breakdown?.fees || 0;
+  const taxes = breakdown?.taxes || 0;
+  const totalPrice = breakdown?.total || accommodationTotal + cleaningFee + serviceFee + taxes;
 
   if (error) {
     return (
