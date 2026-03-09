@@ -8,7 +8,9 @@ import {
   ArrowLeft, ChevronDown, Shield
 } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { Skeleton } from '@/components/ui/skeleton';
+import { PropertyDetailSkeleton } from '@/components/ui/skeleton-variants';
+import { SEOHead, createPropertySchema, createBreadcrumbSchema } from '@/components/SEOHead';
+import { ErrorState } from '@/components/ui/error-states';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,19 +137,7 @@ export default function PropertyDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="h-[50vh] bg-secondary animate-pulse" />
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-            <div className="lg:col-span-1">
-              <Skeleton className="h-64 w-full" />
-            </div>
-          </div>
-        </div>
+        <PropertyDetailSkeleton />
       </Layout>
     );
   }
@@ -155,16 +145,12 @@ export default function PropertyDetail() {
   if (error || !property) {
     return (
       <Layout>
-        <div className="text-center py-20">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-destructive" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Property not found</h2>
-          <p className="text-muted-foreground mb-6">
-            {error instanceof Error ? error.message : 'Unable to load this property'}
-          </p>
-          <Link to="/properties" className="text-primary hover:underline">Back to Properties</Link>
-        </div>
+        <ErrorState
+          type="notfound"
+          title="Property not found"
+          message={error instanceof Error ? error.message : 'Unable to load this property'}
+          onRetry={() => window.location.reload()}
+        />
       </Layout>
     );
   }
@@ -179,6 +165,20 @@ export default function PropertyDetail() {
 
   return (
     <Layout>
+      <SEOHead
+        title={property.title}
+        description={`${property.title} — ${property.bedrooms} bed, ${property.bathrooms} bath luxury rental in ${property.city}. From €${property.basePrice}/night.`}
+        image={images[0]?.large || images[0]?.original}
+        keywords={['Malta rental', property.city, property.title]}
+        structuredData={createPropertySchema({
+          name: property.title,
+          description: property.description || '',
+          image: images[0]?.original || '',
+          address: { city: property.city, country: property.country || 'Malta' },
+          price: property.basePrice,
+          rating: property.rating,
+        })}
+      />
       {/* Back nav */}
       <div className="section-container py-3">
         <Link to="/properties" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
