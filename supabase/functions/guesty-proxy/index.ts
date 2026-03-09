@@ -1,31 +1,73 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-let cachedToken: string | null = null;
-let tokenExpiresAt = 0;
-let lastTokenAttempt = 0;
-const TOKEN_COOLDOWN = 10_000; // 10s cooldown between OAuth attempts
+// In-memory fallback (works within same instance)
+let memToken: string | null = null;
+let memExpiresAt = 0;
+
+function getServiceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function getAccessToken(): Promise<string> {
-  // Return cached token if still valid (with 2min buffer)
-  if (cachedToken && Date.now() < tokenExpiresAt - 120_000) {
-    return cachedToken;
+async function getCachedToken(): Promise<{ token: string; expiresAt: number } | null> {
+  // Check in-memory first
+  if (memToken && Date.now() < memExpiresAt - 120_000) {
+    return { token: memToken, expiresAt: memExpiresAt };
   }
 
-  // Enforce cooldown to prevent rapid OAuth requests
-  const now = Date.now();
-  const timeSinceLastAttempt = now - lastTokenAttempt;
-  if (timeSinceLastAttempt < TOKEN_COOLDOWN) {
-    if (cachedToken) return cachedToken; // Use stale token rather than hammering OAuth
-    await sleep(TOKEN_COOLDOWN - timeSinceLastAttempt);
+  // Check database
+  try {
+    const sb = getServiceClient();
+    const { data } = await sb
+      .from("guesty_token_cache")
+      .select("access_token, expires_at")
+      .eq("id", "singleton")
+      .maybeSingle();
+
+    if (data && Date.now() < Number(data.expires_at) - 120_000) {
+      memToken = data.access_token;
+      memExpiresAt = Number(data.expires_at);
+      return { token: data.access_token, expiresAt: Number(data.expires_at) };
+    }
+  } catch (e) {
+    console.warn("Token cache read failed:", e);
   }
+
+  return null;
+}
+
+async function saveToken(token: string, expiresAt: number) {
+  memToken = token;
+  memExpiresAt = expiresAt;
+
+  try {
+    const sb = getServiceClient();
+    await sb.from("guesty_token_cache").upsert({
+      id: "singleton",
+      access_token: token,
+      expires_at: expiresAt,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn("Token cache write failed:", e);
+  }
+}
+
+async function getAccessToken(): Promise<string> {
+  const cached = await getCachedToken();
+  if (cached) return cached.token;
 
   const clientId = Deno.env.get("VITE_GUESTY_ADMIN_CLIENT_ID");
   const clientSecret = Deno.env.get("VITE_GUESTY_CLIENT_SECRET");
@@ -34,10 +76,7 @@ async function getAccessToken(): Promise<string> {
     throw new Error("Guesty API credentials not configured");
   }
 
-  // Retry with exponential backoff (max 3 attempts)
   for (let attempt = 0; attempt < 3; attempt++) {
-    lastTokenAttempt = Date.now();
-
     const res = await fetch("https://booking.guesty.com/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -51,16 +90,16 @@ async function getAccessToken(): Promise<string> {
 
     if (res.ok) {
       const data = await res.json();
-      cachedToken = data.access_token;
-      tokenExpiresAt = Date.now() + (data.expires_in || 3600) * 1000;
-      return cachedToken!;
+      const expiresAt = Date.now() + (data.expires_in || 3600) * 1000;
+      await saveToken(data.access_token, expiresAt);
+      return data.access_token;
     }
 
     const errText = await res.text();
 
     if (res.status === 429) {
-      const backoff = Math.min(2000 * Math.pow(2, attempt), 15000);
-      console.warn(`OAuth 429 - retrying in ${backoff}ms (attempt ${attempt + 1}/3)`);
+      const backoff = Math.min(3000 * Math.pow(2, attempt), 20000);
+      console.warn(`OAuth 429 - retry in ${backoff}ms (attempt ${attempt + 1}/3)`);
       await sleep(backoff);
       continue;
     }
@@ -69,7 +108,7 @@ async function getAccessToken(): Promise<string> {
     throw new Error(`Guesty OAuth failed: ${res.status}`);
   }
 
-  throw new Error("Guesty OAuth failed: exceeded retry attempts (429)");
+  throw new Error("Guesty OAuth: rate limited after 3 retries");
 }
 
 async function guestyFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -86,9 +125,8 @@ async function guestyFetch(path: string, options: RequestInit = {}): Promise<Res
     },
   });
 
-  // If API itself returns 429, back off and retry once
   if (res.status === 429) {
-    await res.text(); // consume body
+    await res.text();
     console.warn("Guesty API 429 - backing off 5s");
     await sleep(5000);
     const retryToken = await getAccessToken();
@@ -206,7 +244,7 @@ Deno.serve(async (req) => {
     console.error("Guesty proxy error:", err);
     const isRateLimit = err instanceof Error && err.message.includes('429');
     return Response.json(
-      { 
+      {
         error: err instanceof Error ? err.message : "Internal server error",
         retryable: isRateLimit,
       },
