@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import { streamAiChat } from '@/lib/dal';
 import { cn } from '@/lib/utils';
@@ -117,7 +119,13 @@ export default function AiConcierge() {
                         : 'bg-muted text-foreground rounded-bl-md'
                     )}
                   >
-                    {msg.content}
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-headings:my-2 max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
                   </div>
                   {msg.role === 'user' && (
                     <div className="w-6 h-6 rounded-full bg-secondary flex-shrink-0 flex items-center justify-center mt-0.5">
