@@ -1,6 +1,5 @@
 /**
- * Contact Page — CMS-Driven with Interactive Form
- * Combines CMS blocks with functional contact form.
+ * Contact Page — CMS-Driven with Interactive Form + Realtime Sync
  */
 
 import { useState } from 'react';
@@ -10,7 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
-import { getPage, getBlockByType, SITE_CONFIG } from '@/lib/cms/content';
+import { useCmsPage, getBlockByType } from '@/hooks/use-cms-page';
+import { SITE_CONFIG } from '@/lib/cms/content';
 import { FAQAccordionBlock } from '@/components/blocks';
 import type { HeroCenteredData, FAQAccordionData } from '@/lib/cms/types';
 
@@ -32,9 +32,9 @@ const CONTACT_INFO = [
 ];
 
 export default function ContactPage() {
-  const page = getPage('contact');
-  const heroData = page ? getBlockByType<HeroCenteredData>(page, 'hero_centered')?.data : null;
-  const faqBlock = page ? getBlockByType<FAQAccordionData>(page, 'faq_accordion') : null;
+  const { page } = useCmsPage('contact');
+  const heroData = getBlockByType<HeroCenteredData>(page, 'hero_centered')?.data;
+  const faqBlock = getBlockByType<FAQAccordionData>(page, 'faq_accordion');
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -68,18 +68,16 @@ export default function ContactPage() {
 
   return (
     <Layout>
-      {/* Hero Section */}
       <section className="py-20 satin-glow">
         <div className="section-container">
           <div className="grid md:grid-cols-2 gap-16 max-w-5xl mx-auto">
-            {/* Info side */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <p className="micro-type text-primary mb-4">{heroData?.tagline || 'Get in Touch'}</p>
               <h1 className="font-serif text-4xl font-bold text-foreground mb-4">
                 Let's <span className="gold-text">talk</span>
               </h1>
               <p className="text-muted-foreground mb-10 leading-relaxed">
-                {heroData?.body || 'Whether you\'re an owner looking to maximise your property\'s potential or a guest with a question, we\'re here to help.'}
+                {heroData?.body || "Whether you're an owner looking to maximise your property's potential or a guest with a question, we're here to help."}
               </p>
 
               <div className="space-y-5">
@@ -100,7 +98,6 @@ export default function ContactPage() {
                 ))}
               </div>
 
-              {/* Map embed */}
               <div className="mt-10 rounded-xl overflow-hidden border border-border/50">
                 <iframe
                   title="Office location"
@@ -110,7 +107,6 @@ export default function ContactPage() {
               </div>
             </motion.div>
 
-            {/* Form side */}
             <motion.form
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -152,7 +148,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
       {faqBlock && <FAQAccordionBlock data={faqBlock.data} />}
     </Layout>
   );
