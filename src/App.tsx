@@ -8,6 +8,7 @@ import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import LoadingScreen from "@/components/LoadingScreen";
+import AiConcierge from "@/components/AiConcierge";
 
 // Lazy load pages for better code splitting
 const Index = lazy(() => import("./pages/Index"));
