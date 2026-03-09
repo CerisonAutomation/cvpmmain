@@ -148,10 +148,9 @@ async function getCached(key: string): Promise<unknown | null> {
     if (age > data.ttl_seconds) return null;
 
     // Bump hit count (fire-and-forget)
-    sb().rpc("", {}).catch(() => {}); // no-op, just increment below
     sb()
       .from("guesty_api_cache")
-      .update({ hit_count: (data as any).hit_count ? (data as any).hit_count + 1 : 1 })
+      .update({ hit_count: ((data as any).hit_count || 0) + 1 })
       .eq("cache_key", key)
       .then(() => {});
 
