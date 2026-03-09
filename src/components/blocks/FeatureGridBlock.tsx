@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { 
   Shield, Sparkles, Clock, Lightbulb, Star, BarChart3, TrendingUp, 
   Gift, MessageCircle, Camera, Bed, ShieldCheck, Wrench, FileText, 
-  Calendar, Mail, Phone, MapPin, ClipboardCheck, Rocket, Key
+  Calendar, Mail, Phone, MapPin, ClipboardCheck, Rocket, Key,
+  type LucideIcon
 } from 'lucide-react';
 import type { FeatureGridData } from '@/lib/cms/types';
 import SectionHeading from './SectionHeading';
@@ -12,13 +13,13 @@ interface Props {
   className?: string;
 }
 
-const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Shield, Sparkles, Clock, Lightbulb, Star, BarChart3, TrendingUp,
   Gift, MessageCircle, Camera, Bed, ShieldCheck, Wrench, FileText,
   Calendar, Mail, Phone, MapPin, ClipboardCheck, Rocket, Key
 };
 
-function getIcon(name: string) {
+function getIcon(name: string): LucideIcon {
   return ICON_MAP[name] || Star;
 }
 
