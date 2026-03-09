@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import BookingSearchBar from '@/components/BookingSearchBar';
 import MaltaMap, { MALTA_LOCALITIES_COORDS, type MapLocation } from '@/components/MaltaMap';
+import PropertyCard from '@/components/PropertyCard';
 import { motion } from 'framer-motion';
 import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
