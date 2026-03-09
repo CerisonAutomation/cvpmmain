@@ -1,16 +1,15 @@
 /**
- * Owners Page — Fully CMS-Driven
- * All content loaded from centralized CMS blocks.
+ * Owners Page — CMS-Driven with Realtime DB Sync
  */
 
 import Layout from '@/components/Layout';
-import { getPage } from '@/lib/cms/content';
+import { useCmsPage } from '@/hooks/use-cms-page';
 import BlockRenderer from '@/components/blocks/BlockRenderer';
 import type { ContentBlock } from '@/lib/cms/types';
 
 export default function Owners() {
-  const page = getPage('owners');
-  
+  const { page, isLoading } = useCmsPage('owners');
+
   if (!page) {
     return (
       <Layout>
