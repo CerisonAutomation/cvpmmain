@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import { streamAiChat } from '@/lib/dal';
 import { cn } from '@/lib/utils';
