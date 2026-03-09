@@ -145,16 +145,12 @@ export default function PropertyDetail() {
   if (error || !property) {
     return (
       <Layout>
-        <div className="text-center py-20">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-destructive" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Property not found</h2>
-          <p className="text-muted-foreground mb-6">
-            {error instanceof Error ? error.message : 'Unable to load this property'}
-          </p>
-          <Link to="/properties" className="text-primary hover:underline">Back to Properties</Link>
-        </div>
+        <ErrorState
+          type="notfound"
+          title="Property not found"
+          message={error instanceof Error ? error.message : 'Unable to load this property'}
+          onRetry={() => window.location.reload()}
+        />
       </Layout>
     );
   }
