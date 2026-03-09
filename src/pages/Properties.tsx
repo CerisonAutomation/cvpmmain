@@ -19,9 +19,9 @@ export default function Properties() {
   // Live data from Guesty BE API
   const { data: rawListings, isLoading, error, refetch } = useListings();
 
-  // Normalize all listings
+  // Normalize all listings (hook already returns array)
   const properties: NormalizedListingSummary[] = useMemo(() => {
-    const list = Array.isArray(rawListings) ? rawListings : (rawListings as any)?.results || (rawListings as any)?.listings || [];
+    const list = Array.isArray(rawListings) ? rawListings : [];
     return list.map((l: any) => normalizeListingSummary(l));
   }, [rawListings]);
 
