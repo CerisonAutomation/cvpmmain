@@ -96,6 +96,14 @@ export default function Properties() {
 
   return (
     <Layout>
+      <SEOHead
+        title={activeLocation ? `Properties in ${activeLocation}` : 'All Properties'}
+        description={`Browse ${filtered.length} luxury holiday rentals${activeLocation ? ` in ${activeLocation}` : ''} across Malta.`}
+        keywords={['Malta properties', 'holiday rentals', activeLocation || 'Malta'].filter(Boolean)}
+      />
+      <LiveRegion>
+        {filtered.length} properties {activeLocation ? `in ${activeLocation}` : 'available'}
+      </LiveRegion>
       <section className="py-8 border-b border-border/30">
         <div className="section-container">
           <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
