@@ -137,19 +137,7 @@ export default function PropertyDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="h-[50vh] bg-secondary animate-pulse" />
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-            <div className="lg:col-span-1">
-              <Skeleton className="h-64 w-full" />
-            </div>
-          </div>
-        </div>
+        <PropertyDetailSkeleton />
       </Layout>
     );
   }
