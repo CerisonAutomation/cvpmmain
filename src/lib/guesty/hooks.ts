@@ -6,12 +6,12 @@ import type { QuoteRequest, PropertyType, Amenity, Listing, Quote } from './type
 
 // ── Cache Configuration ──
 const CACHE = {
-  LISTINGS: 10 * 60 * 1000,
-  LISTING: 5 * 60 * 1000,
+  LISTINGS: 15 * 60 * 1000,
+  LISTING: 10 * 60 * 1000,
   QUOTE: 2 * 60 * 1000,
   CITIES: 24 * 60 * 60 * 1000,
-  REVIEWS: 30 * 60 * 1000,
-  CALENDAR: 60 * 60 * 1000,
+  REVIEWS: 60 * 60 * 1000,
+  CALENDAR: 5 * 60 * 1000,
 };
 
 /** Fetch all listings with optional filters */
@@ -35,9 +35,9 @@ export const useListings = (params: {
     retry: (failureCount, error: any) => {
       if (error?.error_code === 'UNAUTHORIZED' || error?.message?.includes('401') || error?.message?.includes('403')) return false;
       if (error?.message?.includes('429') || error?.retryable) return failureCount < 1;
-      return failureCount < 2;
+      return failureCount < 1;
     },
-    retryDelay: (i) => Math.min(5000 * 2 ** i, 30000),
+    retryDelay: (i) => Math.min(15000 * 2 ** i, 60000),
   });
 };
 

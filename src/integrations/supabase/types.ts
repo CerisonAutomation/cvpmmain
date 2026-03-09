@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      guesty_api_cache: {
+        Row: {
+          cache_key: string
+          cached_at: string
+          hit_count: number
+          response_data: Json
+          ttl_seconds: number
+        }
+        Insert: {
+          cache_key: string
+          cached_at?: string
+          hit_count?: number
+          response_data: Json
+          ttl_seconds?: number
+        }
+        Update: {
+          cache_key?: string
+          cached_at?: string
+          hit_count?: number
+          response_data?: Json
+          ttl_seconds?: number
+        }
+        Relationships: []
+      }
       guesty_token_cache: {
         Row: {
           access_token: string
