@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Shield, BarChart3, Clock, Star } from 'lucide-react';
 import type { ProofStripData } from '@/lib/cms/types';
 
-const ICON_MAP: Record<string, React.FC<{ size?: number; className?: string }>> = {
+const ICON_MAP: Record<string, any> = {
   Shield, BarChart3, Clock, Star,
 };
 
