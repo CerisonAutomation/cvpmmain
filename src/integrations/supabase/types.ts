@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      cms_pages: {
+        Row: {
+          blocks: Json
+          created_at: string
+          description: string
+          meta: Json | null
+          published: boolean
+          slug: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          description?: string
+          meta?: Json | null
+          published?: boolean
+          slug: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          description?: string
+          meta?: Json | null
+          published?: boolean
+          slug?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cms_site_config: {
+        Row: {
+          config: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guesty_api_cache: {
         Row: {
           cache_key: string
