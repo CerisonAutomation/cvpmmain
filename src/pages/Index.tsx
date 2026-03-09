@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -7,39 +7,30 @@ import BookingSearchBar from '@/components/BookingSearchBar';
 import Footer from '@/components/Footer';
 import WizardModal from '@/components/WizardModal';
 import PropertyCard from '@/components/PropertyCard';
+import BlockRenderer from '@/components/blocks/BlockRenderer';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
-import { getPage, getBlockByType } from '@/lib/cms';
-import type {
-  ProofStripData,
-  StatsRowData,
-  ProcessStepsData,
-  PricingTableData,
-  FAQAccordionData,
-  CTABannerData,
-} from '@/lib/cms/types';
-import {
-  ProofStripBlock,
-  StatsRowBlock,
-  ProcessStepsBlock,
-  PricingTableBlock,
-  FAQAccordionBlock,
-  CTABannerBlock,
-} from '@/components/blocks';
+import { useCmsPage, getBlockByType } from '@/hooks/use-cms-page';
+import type { ContentBlock } from '@/lib/cms/types';
 
 const Index = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
-  const page = getPage('home')!;
+  
+  // Use CMS page from database with realtime sync
+  const { page, isLoading: pageLoading } = useCmsPage('home');
 
-  const proofData = getBlockByType<ProofStripData>(page, 'proof_strip')?.data;
-  const statsData = getBlockByType<StatsRowData>(page, 'stats_row')?.data;
-  const processData = getBlockByType<ProcessStepsData>(page, 'process_steps')?.data;
-  const pricingData = getBlockByType<PricingTableData>(page, 'pricing_table')?.data;
-  const faqData = getBlockByType<FAQAccordionData>(page, 'faq_accordion')?.data;
-  const ctaData = getBlockByType<CTABannerData>(page, 'cta_banner')?.data;
+  // Live data from Guesty BE API
+  const { data: rawListings, isLoading: listingsLoading } = useListings();
 
-  const { data: rawListings, isLoading } = useListings();
-  const listings = Array.isArray(rawListings) ? rawListings : (rawListings as any)?.results || (rawListings as any)?.listings || [];
-  const featured = listings.slice(0, 3).map((l: any) => normalizeListingSummary(l));
+  // Normalize listings
+  const featured = useMemo(() => {
+    const list = Array.isArray(rawListings) ? rawListings : [];
+    return list.slice(0, 3).map((l: any) => normalizeListingSummary(l));
+  }, [rawListings]);
+
+  // Filter blocks by type for custom rendering
+  const renderableBlocks = page?.blocks.filter(
+    (b: ContentBlock) => !['hero_split', 'property_showcase'].includes(b.type)
+  ) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,7 +44,12 @@ const Index = () => {
           </div>
         </section>
 
-        {proofData && <ProofStripBlock data={proofData} />}
+        {/* Render CMS blocks that come before featured properties */}
+        {page?.blocks
+          .filter((b: ContentBlock) => b.type === 'proof_strip')
+          .map((block: ContentBlock) => (
+            <BlockRenderer key={block.id} block={block} />
+          ))}
 
         {/* Featured properties — LIVE from Guesty */}
         <section className="py-16 sm:py-20 border-t border-border/20">
@@ -68,7 +64,7 @@ const Index = () => {
               </Link>
             </div>
 
-            {isLoading ? (
+            {listingsLoading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[0, 1, 2].map(i => (
                   <div key={i} className="rounded-md border border-border/30 overflow-hidden">
@@ -108,11 +104,12 @@ const Index = () => {
           </div>
         </section>
 
-        {statsData && <StatsRowBlock data={statsData} />}
-        {processData && <ProcessStepsBlock data={processData} />}
-        {pricingData && <PricingTableBlock data={pricingData} />}
-        {faqData && <FAQAccordionBlock data={faqData} />}
-        {ctaData && <CTABannerBlock data={ctaData} />}
+        {/* Render remaining CMS blocks */}
+        {page?.blocks
+          .filter((b: ContentBlock) => !['hero_split', 'property_showcase', 'proof_strip'].includes(b.type))
+          .map((block: ContentBlock) => (
+            <BlockRenderer key={block.id} block={block} />
+          ))}
       </main>
       <Footer />
       <WizardModal open={wizardOpen} onClose={() => setWizardOpen(false)} />
