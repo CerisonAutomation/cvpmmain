@@ -1,10 +1,41 @@
-// supabase/functions/stripe-webhook/index.ts
-// Handles Stripe webhook events to confirm reservations
+/**
+ * Stripe Webhook Handler — Processes payment events
+ * CRITICAL: Uses proper Stripe signature verification
+ */
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
+
+async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
+  // Extract timestamp and signatures
+  const parts = signature.split(",");
+  const timestamp = parts.find(p => p.startsWith("t="))?.slice(2);
+  const v1 = parts.find(p => p.startsWith("v1="))?.slice(3);
+
+  if (!timestamp || !v1) return false;
+
+  // Check timestamp freshness (5 min tolerance)
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (age > 300) return false;
+
+  // Compute expected signature
+  const payload = `${timestamp}.${body}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
+  const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  return expected === v1;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("Method not allowed", { status: 405 });
   }
 
   try {
@@ -20,59 +51,49 @@ Deno.serve(async (req) => {
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
 
     if (!signature || !webhookSecret) {
-      return new Response("Missing signature or secret", { status: 400 });
+      console.error("Missing stripe-signature header or webhook secret");
+      return new Response("Unauthorized", { status: 401 });
     }
 
     const body = await req.text();
-    
-    // Verify webhook signature (simplified - in production use stripe library)
-    const timestamp = body.match(/timestamp=(\d+)/)?.[1];
-    const eventType = req.headers.get("stripe-webhook-type") || "payment_intent.succeeded";
 
+    // Verify signature
+    const valid = await verifyStripeSignature(body, signature, webhookSecret);
+    if (!valid) {
+      console.error("Invalid Stripe webhook signature");
+      return new Response("Invalid signature", { status: 401 });
+    }
+
+    const event = JSON.parse(body);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
 
-    // Handle the event
-    if (eventType === "payment_intent.succeeded") {
-      // Extract quoteId from metadata
-      const quoteIdMatch = body.match(/"quoteId"\s*:\s*"([^"]+)"/);
-      const paymentIntentIdMatch = body.match(/"id"\s*:\s*"([^"]+)"/);
-      
-      if (!quoteIdMatch || !paymentIntentIdMatch) {
-        return new Response("Missing metadata", { status: 400 });
-      }
-
-      const quoteId = quoteIdMatch[1];
-      const paymentIntentId = paymentIntentIdMatch[1];
-
-      // Get pending reservation
-      const pendingRes = await fetch(
-        `${supabaseUrl}/rest/v1/pending_reservations?id=eq.${quoteId}&status=eq.pending`,
-        {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
+    switch (event.type) {
+      case "payment_intent.succeeded": {
+        const pi = event.data.object;
+        const quoteId = pi.metadata?.quoteId;
+        if (!quoteId) {
+          console.warn("No quoteId in payment intent metadata");
+          break;
         }
-      );
-      const pendingData = await pendingRes.json();
-      const pending = pendingData[0];
 
-      if (!pending) {
-        return new Response("Pending reservation not found", { status: 404 });
-      }
+        // Get pending reservation
+        const { data: pending } = await sb
+          .from("pending_reservations")
+          .select("*")
+          .eq("id", quoteId)
+          .eq("status", "pending")
+          .maybeSingle();
 
-      // Create confirmed reservation
-      const reservationId = crypto.randomUUID();
-      const insertRes = await fetch(`${supabaseUrl}/rest/v1/reservations`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
+        if (!pending) {
+          console.warn(`Pending reservation not found: ${quoteId}`);
+          break;
+        }
+
+        // Create confirmed reservation
+        const reservationId = crypto.randomUUID();
+        await sb.from("reservations").insert({
           id: reservationId,
           property_id: pending.property_id,
           guest_email: pending.guest_email,
@@ -83,69 +104,45 @@ Deno.serve(async (req) => {
           currency: pending.currency || "EUR",
           status: "confirmed",
           payment_status: "paid",
-          stripe_payment_intent_id: paymentIntentId,
+          stripe_payment_intent_id: pi.id,
           check_in: pending.check_in,
           check_out: pending.check_out,
-        }),
-      });
-
-      const reservation = await insertRes.json();
-
-      if (!insertRes.ok) {
-        console.error("Failed to create reservation:", reservation);
-        return new Response("Failed to create reservation", { status: 500 });
-      }
-
-      // Create reservation unit (for overlap prevention)
-      await fetch(`${supabaseUrl}/rest/v1/reservation_units`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reservation_id: reservation[0]?.id || reservationId,
-          unit_id: pending.unit_id,
-          stay: `[${pending.check_in}T15:00:00Z,${pending.check_out}T11:00:00Z)`,
-        }),
-      });
-
-      // Mark pending as converted
-      await fetch(`${supabaseUrl}/rest/v1/pending_reservations?id=eq.${quoteId}`, {
-        method: "PATCH",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "converted",
-        }),
-      });
-
-      console.log(`Reservation confirmed: ${reservationId} for quote: ${quoteId}`);
-    }
-
-    // Handle payment failure
-    if (eventType === "payment_intent.payment_failed") {
-      const quoteIdMatch = body.match(/"quoteId"\s*:\s*"([^"]+)"/);
-      
-      if (quoteIdMatch) {
-        const quoteId = quoteIdMatch[1];
-        
-        await fetch(`${supabaseUrl}/rest/v1/pending_reservations?id=eq.${quoteId}`, {
-          method: "PATCH",
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: "failed",
-          }),
         });
+
+        // Create reservation unit
+        if (pending.unit_id) {
+          await sb.from("reservation_units").insert({
+            reservation_id: reservationId,
+            unit_id: pending.unit_id,
+            stay: `[${pending.check_in}T15:00:00Z,${pending.check_out}T11:00:00Z)`,
+          });
+        }
+
+        // Mark pending as converted
+        await sb
+          .from("pending_reservations")
+          .update({ status: "converted" })
+          .eq("id", quoteId);
+
+        console.log(`✅ Reservation confirmed: ${reservationId}`);
+        break;
       }
+
+      case "payment_intent.payment_failed": {
+        const pi = event.data.object;
+        const quoteId = pi.metadata?.quoteId;
+        if (quoteId) {
+          await sb
+            .from("pending_reservations")
+            .update({ status: "failed" })
+            .eq("id", quoteId);
+          console.log(`❌ Payment failed for quote: ${quoteId}`);
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return new Response("OK", { status: 200 });
