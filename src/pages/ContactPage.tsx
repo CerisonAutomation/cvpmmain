@@ -1,3 +1,8 @@
+/**
+ * Contact Page — CMS-Driven with Interactive Form
+ * Combines CMS blocks with functional contact form.
+ */
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -5,6 +10,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
+import { getPage, getBlockByType, SITE_CONFIG } from '@/lib/cms/content';
+import { FAQAccordionBlock } from '@/components/blocks';
+import type { HeroCenteredData, FAQAccordionData } from '@/lib/cms/types';
 
 const schema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
@@ -16,7 +24,18 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+const CONTACT_INFO = [
+  { icon: Mail, label: 'Email', value: 'info@christianopm.com', href: 'mailto:info@christianopm.com' },
+  { icon: Phone, label: 'Phone', value: '+356 7927 4688', href: 'tel:+35679274688' },
+  { icon: MapPin, label: 'Location', value: 'Malta & Gozo' },
+  { icon: Clock, label: 'Response Time', value: 'Within 24 hours' },
+];
+
 export default function ContactPage() {
+  const page = getPage('contact');
+  const heroData = page ? getBlockByType<HeroCenteredData>(page, 'hero_centered')?.data : null;
+  const faqBlock = page ? getBlockByType<FAQAccordionData>(page, 'faq_accordion') : null;
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { enquiryType: 'general' },
@@ -49,56 +68,36 @@ export default function ContactPage() {
 
   return (
     <Layout>
-      <section className="py-20">
+      {/* Hero Section */}
+      <section className="py-20 satin-glow">
         <div className="section-container">
           <div className="grid md:grid-cols-2 gap-16 max-w-5xl mx-auto">
             {/* Info side */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <p className="micro-type text-primary mb-4">Get in Touch</p>
+              <p className="micro-type text-primary mb-4">{heroData?.tagline || 'Get in Touch'}</p>
               <h1 className="font-serif text-4xl font-bold text-foreground mb-4">
                 Let's <span className="gold-text">talk</span>
               </h1>
               <p className="text-muted-foreground mb-10 leading-relaxed">
-                Whether you're an owner looking to maximise your property's potential or a guest with a question, we're here to help.
+                {heroData?.body || 'Whether you\'re an owner looking to maximise your property\'s potential or a guest with a question, we\'re here to help.'}
               </p>
 
               <div className="space-y-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Mail size={16} className="text-primary" />
+                {CONTACT_INFO.map((item) => (
+                  <div key={item.label} className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <item.icon size={16} className="text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
+                      {item.href ? (
+                        <a href={item.href} className="text-sm text-foreground hover:text-primary transition-colors">{item.value}</a>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">{item.value}</span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Email</p>
-                    <a href="mailto:info@christianopm.com" className="text-sm text-foreground hover:text-primary transition-colors">info@christianopm.com</a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Phone size={16} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Phone</p>
-                    <a href="tel:+35679274688" className="text-sm text-foreground hover:text-primary transition-colors">+356 7927 4688</a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin size={16} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Location</p>
-                    <span className="text-sm text-muted-foreground">Malta &amp; Gozo</span>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Clock size={16} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Response Time</p>
-                    <span className="text-sm text-muted-foreground">Within 24 hours</span>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Map embed */}
@@ -152,6 +151,9 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      {faqBlock && <FAQAccordionBlock data={faqBlock.data} />}
     </Layout>
   );
 }
