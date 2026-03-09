@@ -14,15 +14,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// TTL in seconds per action
+// Increased TTL to reduce API pressure during rate limits
 const TTL: Record<string, number> = {
-  listings: 15 * 60,
-  listing: 10 * 60,
-  calendar: 5 * 60,
-  cities: 24 * 60 * 60,
-  reviews: 60 * 60,
-  "rate-plans": 30 * 60,
-  "payment-provider": 60 * 60,
+  listings: 20 * 60,      // 20 min (was 15)
+  listing: 15 * 60,       // 15 min (was 10)
+  calendar: 8 * 60,       // 8 min (was 5)
+  cities: 48 * 60 * 60,   // 48h (was 24h)
+  reviews: 2 * 60 * 60,   // 2h (was 1h)
+  "rate-plans": 45 * 60,  // 45 min (was 30)
+  "payment-provider": 2 * 60 * 60, // 2h (was 1h)
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
