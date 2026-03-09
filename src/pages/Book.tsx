@@ -1,12 +1,25 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, CreditCard, Clock, Star, CheckCircle, Loader2, User, Mail, Phone, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ShieldCheck, CreditCard, Clock, Star, CheckCircle, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListing, useQuote, useCreateBooking, normalizeListingDetail } from '@/lib/guesty/hooks';
+
+// Validation schema
+const bookingSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required').max(50),
+  lastName: z.string().trim().min(1, 'Last name is required').max(50),
+  email: z.string().trim().email('Valid email is required').max(255),
+  phone: z.string().regex(/^\+?[\d\s\-()]{7,20}$/, 'Valid phone number required'),
+});
+
+type BookingFormData = z.infer<typeof bookingSchema>;
 
 const TRUST_ITEMS = [
   { icon: ShieldCheck, title: 'Secure Booking', desc: 'All payments encrypted and protected' },
@@ -14,6 +27,11 @@ const TRUST_ITEMS = [
   { icon: Clock, title: 'Instant Confirmation', desc: 'Receive confirmation within minutes' },
   { icon: Star, title: 'Highly Rated', desc: 'Verified guest satisfaction' },
 ];
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-destructive mt-1">{msg}</p>;
+}
 
 export default function Book() {
   const [searchParams] = useSearchParams();
@@ -29,17 +47,34 @@ export default function Book() {
 
   const property = rawListing ? normalizeListingDetail(rawListing) : null;
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
 
-  const handleBook = async () => {
-    if (!quoteId || !firstName || !lastName || !email) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    getValues,
+  } = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+    },
+  });
+
+  const onSubmit = async (data: BookingFormData) => {
+    if (!quoteId) return;
+    
     bookingMutation.mutate({
       quoteId,
-      guest: { firstName, lastName, email, phone },
+      guest: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+      },
     }, {
       onSuccess: () => setStep('confirmed'),
     });
@@ -87,6 +122,7 @@ export default function Book() {
   }
 
   if (step === 'confirmed') {
+    const { firstName, email } = getValues();
     return (
       <Layout>
         <section className="py-24 text-center">
@@ -133,26 +169,30 @@ export default function Book() {
               <p className="micro-type text-primary mb-3">Complete Your Booking</p>
               <h1 className="font-serif text-3xl font-semibold text-foreground mb-8">Guest Details</h1>
 
-              <div className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">First Name</Label>
-                    <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" className="mt-1.5" autoComplete="given-name" />
+                    <Input {...register('firstName')} placeholder="John" className="mt-1.5" autoComplete="given-name" />
+                    <FieldError msg={errors.firstName?.message} />
                   </div>
                   <div>
                     <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Name</Label>
-                    <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith" className="mt-1.5" autoComplete="family-name" />
+                    <Input {...register('lastName')} placeholder="Smith" className="mt-1.5" autoComplete="family-name" />
+                    <FieldError msg={errors.lastName?.message} />
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email Address</Label>
-                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" className="mt-1.5" autoComplete="email" />
+                  <Input type="email" {...register('email')} placeholder="john@example.com" className="mt-1.5" autoComplete="email" />
+                  <FieldError msg={errors.email?.message} />
                 </div>
 
                 <div>
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
-                  <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+356 7900 0000" className="mt-1.5" autoComplete="tel" />
+                  <Input type="tel" {...register('phone')} placeholder="+356 7900 0000" className="mt-1.5" autoComplete="tel" />
+                  <FieldError msg={errors.phone?.message} />
                 </div>
 
                 {bookingMutation.error && (
@@ -163,12 +203,12 @@ export default function Book() {
                 )}
 
                 <Button
-                  onClick={handleBook}
-                  disabled={!firstName || !lastName || !email || bookingMutation.isPending}
+                  type="submit"
+                  disabled={isSubmitting || bookingMutation.isPending}
                   className="w-full h-12 text-sm font-semibold"
                   size="lg"
                 >
-                  {bookingMutation.isPending ? (
+                  {(isSubmitting || bookingMutation.isPending) ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing...</>
                   ) : (
                     'Confirm Booking'
@@ -178,7 +218,7 @@ export default function Book() {
                 <p className="text-[11px] text-muted-foreground text-center">
                   By confirming, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
                 </p>
-              </div>
+              </form>
             </motion.div>
 
             {/* Right: Booking summary */}
