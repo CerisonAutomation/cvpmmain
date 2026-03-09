@@ -165,6 +165,20 @@ export default function PropertyDetail() {
 
   return (
     <Layout>
+      <SEOHead
+        title={property.title}
+        description={`${property.title} — ${property.bedrooms} bed, ${property.bathrooms} bath luxury rental in ${property.city}. From €${property.basePrice}/night.`}
+        image={images[0]?.large || images[0]?.original}
+        keywords={['Malta rental', property.city, property.title]}
+        structuredData={createPropertySchema({
+          name: property.title,
+          description: property.description || '',
+          image: images[0]?.original || '',
+          address: { city: property.city, country: property.country || 'Malta' },
+          price: property.basePrice,
+          rating: property.rating,
+        })}
+      />
       {/* Back nav */}
       <div className="section-container py-3">
         <Link to="/properties" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
