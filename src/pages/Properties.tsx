@@ -74,6 +74,7 @@ export default function Properties() {
   if (error) {
     return (
       <Layout>
+        <SEOHead title="Properties" description="Browse our collection of luxury holiday rentals across Malta." />
         <section className="py-6 border-b border-border/20">
           <div className="section-container">
             <BookingSearchBar variant="page" onSearch={(params) => setActiveLocation(params.location)} />
@@ -81,21 +82,12 @@ export default function Properties() {
         </section>
         <section className="py-12">
           <div className="section-container">
-            <div className="text-center py-16">
-              <div className="w-12 h-12 mx-auto mb-3 border border-destructive/30 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-destructive" />
-              </div>
-              <h2 className="font-serif text-xl font-semibold mb-2">Unable to load properties</h2>
-              <p className="text-muted-foreground text-[13px] mb-4 max-w-sm mx-auto">
-                Our booking system is experiencing high demand. Please try again.
-              </p>
-              <button 
-                onClick={() => refetch()} 
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity"
-              >
-                Try Again
-              </button>
-            </div>
+            <ErrorState
+              type="ratelimit"
+              title="Unable to load properties"
+              message="Our booking system is experiencing high demand. Please try again."
+              onRetry={() => refetch()}
+            />
           </div>
         </section>
       </Layout>
