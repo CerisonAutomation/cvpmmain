@@ -1,6 +1,10 @@
 import { motion } from 'framer-motion';
-import * as Icons from 'lucide-react';
-import type { FeatureGridData, FeatureGridItem } from '@/lib/cms/types';
+import { 
+  Shield, Sparkles, Clock, Lightbulb, Star, BarChart3, TrendingUp, 
+  Gift, MessageCircle, Camera, Bed, ShieldCheck, Wrench, FileText, 
+  Calendar, Mail, Phone, MapPin, ClipboardCheck, Rocket, Key
+} from 'lucide-react';
+import type { FeatureGridData } from '@/lib/cms/types';
 import SectionHeading from './SectionHeading';
 
 interface Props {
@@ -8,9 +12,14 @@ interface Props {
   className?: string;
 }
 
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  Shield, Sparkles, Clock, Lightbulb, Star, BarChart3, TrendingUp,
+  Gift, MessageCircle, Camera, Bed, ShieldCheck, Wrench, FileText,
+  Calendar, Mail, Phone, MapPin, ClipboardCheck, Rocket, Key
+};
+
 function getIcon(name: string) {
-  const IconComponent = (Icons as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[name];
-  return IconComponent || Icons.Star;
+  return ICON_MAP[name] || Star;
 }
 
 export default function FeatureGridBlock({ data, className = '' }: Props) {
