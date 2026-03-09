@@ -34,19 +34,21 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Retry failed requests 3 times with exponential backoff
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Cache data for 5 minutes
-      staleTime: 5 * 60 * 1000,
-      // Refetch in background when window gains focus
-      refetchOnWindowFocus: true,
-      // Refetch on reconnect
+      // Stale-while-revalidate: show cached data instantly, refresh in background
+      staleTime: 10 * 60 * 1000,
+      // GC unused cache after 30 min
+      gcTime: 30 * 60 * 1000,
+      // Retry with exponential backoff, but not on auth errors
+      retry: (failureCount, error: any) => {
+        if (error?.message?.includes('401') || error?.message?.includes('403')) return false;
+        if (error?.message?.includes('429')) return failureCount < 1;
+        return failureCount < 2;
+      },
+      retryDelay: (i) => Math.min(5000 * 2 ** i, 30000),
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      // Don't refetch on mount if data exists
       refetchOnMount: false,
-      // Keep previous data while fetching new data
-      placeholderData: (previousData) => previousData,
+      placeholderData: (prev: unknown) => prev,
     },
     mutations: {
       // Retry mutations once
