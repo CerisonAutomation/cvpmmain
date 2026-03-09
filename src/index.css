@@ -6,62 +6,65 @@
 
 @layer base {
   :root {
-    /* ── Core palette: warm obsidian + antique gold ── */
-    --background: 225 14% 5%;
-    --foreground: 38 12% 90%;
+    /* ── Premium Mediterranean palette ── */
+    --background: 30 8% 5%;
+    --foreground: 35 15% 92%;
 
-    --card: 225 12% 7%;
-    --card-foreground: 38 12% 90%;
+    --card: 30 6% 7%;
+    --card-foreground: 35 15% 92%;
 
-    --popover: 225 12% 7%;
-    --popover-foreground: 38 12% 90%;
+    --popover: 30 6% 7%;
+    --popover-foreground: 35 15% 92%;
 
-    --primary: 40 45% 52%;
-    --primary-foreground: 225 14% 5%;
+    /* Antique gold - muted, warm, premium */
+    --primary: 38 42% 48%;
+    --primary-foreground: 30 8% 5%;
 
-    --secondary: 225 10% 10%;
-    --secondary-foreground: 38 12% 82%;
+    --secondary: 30 5% 10%;
+    --secondary-foreground: 35 12% 78%;
 
-    --muted: 225 10% 10%;
-    --muted-foreground: 225 8% 48%;
+    --muted: 30 5% 10%;
+    --muted-foreground: 30 6% 45%;
 
-    --accent: 225 10% 12%;
-    --accent-foreground: 38 12% 90%;
+    --accent: 30 5% 11%;
+    --accent-foreground: 35 15% 92%;
 
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 38 12% 95%;
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 35 15% 95%;
 
-    --border: 225 10% 12%;
-    --input: 225 10% 12%;
-    --ring: 40 45% 52%;
+    --border: 30 6% 14%;
+    --input: 30 6% 14%;
+    --ring: 38 42% 48%;
 
-    --radius: 0.375rem;
+    /* ARCHITECTURAL: squared geometry */
+    --radius: 0.125rem;
 
-    /* ── Gold tones — muted, warm, no neon ── */
-    --luxury-gold: 40 45% 52%;
-    --luxury-gold-light: 40 38% 62%;
-    --luxury-gold-dark: 40 50% 38%;
+    /* ── Gold system - warm, shimmer-ready ── */
+    --gold-base: 38 42% 48%;
+    --gold-light: 40 45% 58%;
+    --gold-dark: 35 48% 32%;
+    --gold-shimmer-1: #7d6038;
+    --gold-shimmer-2: #c4a35a;
+    --gold-shimmer-3: #8a6d3b;
 
-    /* ── Gradients — ultra-subtle, directional ── */
+    /* ── Premium overlays ── */
     --gradient-hero-overlay: linear-gradient(
       180deg,
-      hsla(225, 14%, 5%, 0.2) 0%,
-      hsla(225, 14%, 5%, 0.6) 50%,
-      hsla(225, 14%, 5%, 0.95) 100%
+      hsla(30, 8%, 5%, 0.15) 0%,
+      hsla(30, 8%, 5%, 0.55) 45%,
+      hsla(30, 8%, 5%, 0.92) 100%
     );
-    --gradient-gold: linear-gradient(135deg, hsl(40, 45%, 52%), hsl(40, 38%, 58%));
-    --shadow-gold: 0 2px 12px -4px hsla(40, 45%, 52%, 0.12);
-    --surface-overlay: hsla(225, 14%, 5%, 0.9);
+    --surface-overlay: hsla(30, 8%, 5%, 0.92);
 
     /* ── Sidebar ── */
-    --sidebar-background: 225 12% 7%;
-    --sidebar-foreground: 38 12% 90%;
-    --sidebar-primary: 40 45% 52%;
-    --sidebar-primary-foreground: 225 14% 5%;
-    --sidebar-accent: 225 10% 10%;
-    --sidebar-accent-foreground: 38 12% 90%;
-    --sidebar-border: 225 10% 12%;
-    --sidebar-ring: 40 45% 52%;
+    --sidebar-background: 30 6% 7%;
+    --sidebar-foreground: 35 15% 92%;
+    --sidebar-primary: 38 42% 48%;
+    --sidebar-primary-foreground: 30 8% 5%;
+    --sidebar-accent: 30 5% 10%;
+    --sidebar-accent-foreground: 35 15% 92%;
+    --sidebar-border: 30 6% 14%;
+    --sidebar-ring: 38 42% 48%;
   }
 }
 
@@ -74,7 +77,9 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
     font-weight: 400;
+    font-size: 14px;
     letter-spacing: -0.01em;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -100,55 +105,83 @@
     font-family: 'Raleway', sans-serif;
   }
 
-  /* ── Gold text — flat matte gradient, no shimmer ── */
+  /* ── MALTESE GOLD SHIMMER - signature effect ── */
+  @keyframes goldShimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
   .gold-text {
-    background: var(--gradient-gold);
+    background: linear-gradient(
+      105deg,
+      var(--gold-shimmer-1) 0%,
+      var(--gold-shimmer-2) 25%,
+      var(--gold-shimmer-3) 50%,
+      var(--gold-shimmer-2) 75%,
+      var(--gold-shimmer-1) 100%
+    );
+    background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: goldShimmer 4s linear infinite;
   }
 
-  /* ── Satin surface — matte silk finish, NO glow, NO sparkle ── */
+  .gold-text-static {
+    color: hsl(var(--primary));
+  }
+
+  /* ── Architectural surface - flat, crisp ── */
   .satin-surface {
-    background: linear-gradient(
-      168deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--card) / 0.92) 100%
-    );
-    box-shadow:
-      inset 0 0.5px 0 hsl(var(--foreground) / 0.03),
-      0 1px 3px -1px hsl(var(--background) / 0.6);
-    border: 1px solid hsl(var(--border) / 0.6);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
-  /* ── Glass surface — matte frosted, NOT shiny ── */
+  /* ── Glass surface - subtle frost ── */
   .glass-surface {
-    @apply bg-card/80 backdrop-blur-md border border-border/40;
+    @apply bg-card/85 backdrop-blur-md border border-border/30;
   }
 
-  /* ── Section container — tighter, more editorial ── */
+  /* ── COMPACT section container ── */
   .section-container {
-    @apply max-w-6xl mx-auto px-5 sm:px-8;
+    @apply max-w-6xl mx-auto px-4 sm:px-6;
   }
 
-  /* ── Micro type — refined tracking ── */
+  /* ── Micro type - refined tracking ── */
   .micro-type {
-    @apply text-[11px] font-semibold uppercase tracking-[0.2em];
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em];
     font-family: 'Raleway', sans-serif;
   }
 
+  /* ── Premium form inputs - compact ── */
   .form-input {
-    @apply w-full px-4 py-3 text-sm bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/60 transition-colors;
+    @apply w-full px-3 py-2 text-sm bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors;
   }
 
-  /* ── Divider line — subtle ── */
+  /* ── Architectural divider ── */
   .divider {
-    @apply h-px w-full bg-border/40;
+    @apply h-px w-full bg-border/30;
   }
 
-  /* ── Section heading pattern ── */
+  /* ── Section heading - compact ── */
   .section-heading {
-    @apply font-serif text-2xl sm:text-3xl font-semibold text-foreground leading-tight;
+    @apply font-serif text-xl sm:text-2xl font-semibold text-foreground leading-tight;
+  }
+
+  /* ── Dense grid layouts ── */
+  .dense-grid {
+    @apply grid gap-3 sm:gap-4;
+  }
+
+  /* ── Compact vertical rhythm ── */
+  .compact-stack {
+    @apply space-y-3;
+  }
+
+  /* ── Premium numeric styling ── */
+  .numeric {
+    font-variant-numeric: tabular-nums;
+    @apply font-semibold;
   }
 }
 
@@ -162,7 +195,12 @@
 
 @keyframes floatMap {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes logoReveal {
+  0% { opacity: 0; transform: scale(0.95) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* ── Reduced motion ── */
@@ -175,20 +213,25 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .gold-text {
+    animation: none;
+    background: hsl(var(--primary));
+    -webkit-text-fill-color: initial;
+  }
 }
 
-/* ── Cookie consent ── */
+/* ── Cookie consent theming ── */
 .cc-window,
 #cc-main {
-  --cc-bg: hsl(225, 12%, 7%);
-  --cc-text: hsl(38, 12%, 90%);
-  --cc-btn-primary-bg: hsl(40, 45%, 52%);
-  --cc-btn-primary-text: hsl(225, 14%, 5%);
-  --cc-btn-secondary-bg: hsl(225, 10%, 10%);
-  --cc-btn-secondary-text: hsl(38, 12%, 90%);
-  --cc-toggle-bg-off: hsl(225, 10%, 12%);
-  --cc-toggle-bg-on: hsl(40, 45%, 52%);
-  --cc-cookie-category-block-bg: hsl(225, 10%, 8%);
-  --cc-cookie-category-block-bg-hover: hsl(225, 10%, 11%);
-  --cc-separator-border-color: hsl(225, 10%, 12%);
+  --cc-bg: hsl(30, 6%, 7%);
+  --cc-text: hsl(35, 15%, 92%);
+  --cc-btn-primary-bg: hsl(38, 42%, 48%);
+  --cc-btn-primary-text: hsl(30, 8%, 5%);
+  --cc-btn-secondary-bg: hsl(30, 5%, 10%);
+  --cc-btn-secondary-text: hsl(35, 15%, 92%);
+  --cc-toggle-bg-off: hsl(30, 6%, 14%);
+  --cc-toggle-bg-on: hsl(38, 42%, 48%);
+  --cc-cookie-category-block-bg: hsl(30, 5%, 8%);
+  --cc-cookie-category-block-bg-hover: hsl(30, 5%, 11%);
+  --cc-separator-border-color: hsl(30, 6%, 14%);
 }
