@@ -823,6 +823,129 @@ const faqCta: ContentBlock<'cta_banner', CTABannerData> = {
 };
 
 // ══════════════════════════════════════════════════════════
+// PRICING PAGE BLOCKS
+// ══════════════════════════════════════════════════════════
+
+const pricingHero: ContentBlock<'hero_centered', HeroCenteredData> = {
+  id: 'pricing-hero',
+  type: 'hero_centered',
+  tags: ['pricing', 'above-fold'],
+  data: {
+    tagline: 'Management Plans',
+    headline: 'One fee. No surprises.',
+    body: 'A single commission on net room revenue. No setup charges, no hidden markups, no management fees buried in maintenance invoices.',
+    cta: { label: 'Get Free Estimate', href: '/owners/estimate' },
+  },
+};
+
+const pricingAddons: ContentBlock<'feature_grid', FeatureGridData> = {
+  id: 'pricing-addons',
+  type: 'feature_grid',
+  tags: ['pricing', 'addons'],
+  data: {
+    heading: {
+      tagline: 'Available on both plans — charged separately',
+      headline: 'Optional add-ons',
+      highlightWord: 'add-ons',
+      alignment: 'center',
+    },
+    items: [
+      { icon: 'Camera', title: 'Professional Photoshoot', description: 'On quotation — recommended before going live.' },
+      { icon: 'Sparkles', title: 'Annual Deep Clean', description: 'On quotation — scheduled once per year.' },
+      { icon: 'Shield', title: 'MTA Licensing', description: '€150 one-time + associated authority fees.' },
+      { icon: 'Wrench', title: 'Procurement & Setup', description: '€25/hr + VAT — furniture, fixtures, pre-launch preparation.' },
+      { icon: 'Mail', title: 'Mail & Bills Handling', description: '€10/month — full correspondence management.' },
+      { icon: 'Lightbulb', title: 'Interior Design', description: 'On quotation — spatial and aesthetic upgrades.' },
+    ],
+    columns: 3,
+  },
+};
+
+const pricingFootnote: ContentBlock<'text_block', TextBlockData> = {
+  id: 'pricing-footnote',
+  type: 'text_block',
+  tags: ['pricing', 'legal'],
+  data: {
+    body: 'Net Room Revenue is calculated on gross rental income, excluding platform commissions, VAT, cleaning fees, damage deposits, and optional extras. All agreements are governed by the laws of Malta.',
+    alignment: 'center',
+  },
+};
+
+const pricingCta: ContentBlock<'cta_banner', CTABannerData> = {
+  id: 'pricing-cta',
+  type: 'cta_banner',
+  tags: ['pricing', 'conversion'],
+  data: {
+    headline: 'Ready to get started?',
+    body: 'Get a free property estimate with a detailed rental income projection.',
+    cta: { label: 'Start Free Estimate', href: '/owners/estimate' },
+    variant: 'gold',
+  },
+};
+
+// ══════════════════════════════════════════════════════════
+// RESIDENTIAL PAGE BLOCKS
+// ══════════════════════════════════════════════════════════
+
+const residentialHero: ContentBlock<'hero_centered', HeroCenteredData> = {
+  id: 'residential-hero',
+  type: 'hero_centered',
+  tags: ['residential', 'above-fold'],
+  data: {
+    tagline: 'Residential Services',
+    headline: 'Long-term property management, simplified',
+    body: 'Professional residential property management for landlords across Malta and Gozo. From tenant sourcing to maintenance coordination — we handle every detail.',
+    cta: { label: 'Contact Our Team', href: '/contact' },
+  },
+};
+
+const residentialServices: ContentBlock<'feature_grid', FeatureGridData> = {
+  id: 'residential-services',
+  type: 'feature_grid',
+  tags: ['residential', 'services'],
+  data: {
+    heading: {
+      tagline: 'Our Services',
+      headline: 'End-to-end residential management',
+      highlightWord: 'residential',
+      alignment: 'center',
+    },
+    items: [
+      { icon: 'UserCheck', title: 'Tenant Sourcing & Vetting', description: 'Thorough background checks, employment verification, and reference validation for every prospective tenant.' },
+      { icon: 'FileText', title: 'Lease Management', description: 'Professional lease agreements drafted and managed in compliance with Maltese tenancy law.' },
+      { icon: 'Banknote', title: 'Rent Collection', description: 'Automated rent collection with transparent monthly statements and prompt payouts to owners.' },
+      { icon: 'Wrench', title: 'Property Maintenance', description: 'Proactive and reactive maintenance through our network of vetted contractors — all at cost.' },
+      { icon: 'Search', title: 'Periodic Inspections', description: 'Scheduled property inspections with detailed photo reports to protect your asset.' },
+      { icon: 'Scale', title: 'Regulatory Compliance', description: 'Full compliance management including rental registration, tax reporting, and safety certifications.' },
+    ],
+    columns: 3,
+  },
+};
+
+const residentialWhyUs: ContentBlock<'text_block', TextBlockData> = {
+  id: 'residential-why-us',
+  type: 'text_block',
+  tags: ['residential', 'story'],
+  data: {
+    heading: 'Why Choose Us',
+    body: 'Our residential management service brings the same institutional-grade standards and radical transparency that defines our short-let operations. No hidden fees, no markups on maintenance, and full visibility into every aspect of your property\'s management.',
+    alignment: 'left',
+  },
+};
+
+const residentialCta: ContentBlock<'cta_banner', CTABannerData> = {
+  id: 'residential-cta',
+  type: 'cta_banner',
+  tags: ['residential', 'conversion'],
+  data: {
+    headline: 'Interested in residential management?',
+    body: 'Contact our residential team for a free consultation about your property.',
+    cta: { label: 'Contact Our Residential Team', href: '/contact' },
+    variant: 'default',
+  },
+};
+
+// ══════════════════════════════════════════════════════════
 // PAGE DEFINITIONS
 // ══════════════════════════════════════════════════════════
 
@@ -891,6 +1014,28 @@ export const PAGES: Record<string, PageDefinition> = {
     meta: {
       ogTitle: 'Frequently Asked Questions — Christiano Property Management',
       ogDescription: 'Find answers to common questions about property management in Malta.',
+    },
+  },
+  pricing: {
+    slug: '/owners/pricing',
+    title: 'Pricing — Christiano Property Management',
+    description: 'Simple, transparent property management pricing. One fee, no surprises.',
+    tags: ['pricing', 'owners'],
+    blocks: [pricingHero, ownersPricing, pricingAddons, pricingFootnote, homeFaq, pricingCta],
+    meta: {
+      ogTitle: 'Pricing — Malta Property Management',
+      ogDescription: 'One commission on net room revenue. No setup charges, no hidden markups.',
+    },
+  },
+  residential: {
+    slug: '/residential',
+    title: 'Residential Services — Christiano Property Management',
+    description: 'Professional long-term residential property management across Malta and Gozo.',
+    tags: ['residential'],
+    blocks: [residentialHero, residentialServices, residentialWhyUs, residentialCta],
+    meta: {
+      ogTitle: 'Residential Property Management — Malta',
+      ogDescription: 'End-to-end residential management from tenant sourcing to maintenance.',
     },
   },
 };
