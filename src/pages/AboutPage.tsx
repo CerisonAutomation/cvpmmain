@@ -1,16 +1,15 @@
 /**
- * About Page — Fully CMS-Driven
- * All content loaded from centralized CMS blocks.
+ * About Page — CMS-Driven with Realtime DB Sync
  */
 
 import Layout from '@/components/Layout';
-import { getPage } from '@/lib/cms/content';
+import { useCmsPage } from '@/hooks/use-cms-page';
 import BlockRenderer from '@/components/blocks/BlockRenderer';
 import type { ContentBlock } from '@/lib/cms/types';
 
 export default function AboutPage() {
-  const page = getPage('about');
-  
+  const { page, isLoading } = useCmsPage('about');
+
   if (!page) {
     return (
       <Layout>
