@@ -29,7 +29,14 @@ export const useListings = (params: {
 } = {}) => {
   return useQuery({
     queryKey: ['listings', params],
-    queryFn: () => guestyClient.getListings(params),
+    queryFn: async () => {
+      const raw = await guestyClient.getListings(params);
+      // Guesty BE API returns { results: [...] } or array
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === 'object' && 'results' in raw) return (raw as any).results || [];
+      if (raw && typeof raw === 'object' && 'listings' in raw) return (raw as any).listings || [];
+      return [];
+    },
     staleTime: CACHE.LISTINGS,
     refetchOnWindowFocus: false,
     retry: (failureCount, error: any) => {
@@ -38,6 +45,8 @@ export const useListings = (params: {
       return failureCount < 1;
     },
     retryDelay: (i) => Math.min(15000 * 2 ** i, 60000),
+    // Return empty array rather than undefined on error
+    placeholderData: [],
   });
 };
 

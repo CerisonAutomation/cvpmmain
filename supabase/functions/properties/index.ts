@@ -1,9 +1,7 @@
 /**
- * Properties Edge Function — Proxy to Guesty listings via guesty-proxy
- * Fixed: proper CORS headers, proper Supabase SDK import, typo fix
+ * Properties Edge Function — Thin wrapper around guesty-proxy
+ * Returns normalized property data for the frontend
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -18,64 +16,38 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, supabaseKey);
-
     const url = new URL(req.url);
-    const slug = url.searchParams.get("slug");
+    const id = url.searchParams.get("id");
 
-    // Call guesty-proxy edge function for listings
-    const guestyProxyUrl = `${supabaseUrl}/functions/v1/guesty-proxy?action=listings`;
-    const proxyRes = await fetch(guestyProxyUrl, {
-      headers: {
-        Authorization: `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!proxyRes.ok) {
-      const err = await proxyRes.text();
-      console.error("Guesty proxy error:", err);
-      return Response.json(
-        { error: "Failed to fetch properties", data: [], count: 0 },
-        { status: 200, headers: corsHeaders }
+    // Route: single listing by ID
+    if (id) {
+      const proxyRes = await fetch(
+        `${supabaseUrl}/functions/v1/guesty-proxy?action=listing&id=${encodeURIComponent(id)}`,
+        { headers: { Authorization: `Bearer ${supabaseKey}` } }
       );
+      const body = await proxyRes.text();
+      return new Response(body, {
+        status: proxyRes.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const listings = await proxyRes.json();
-    const results = listings?.results || listings?.data || (Array.isArray(listings) ? listings : []);
-
-    // Transform for frontend
-    const transformed = results.map((p: any) => ({
-      id: p._id || p.id,
-      name: p.title || p.name || "Untitled",
-      slug: (p.title || p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      destination: p.address?.city || p.city || "Malta",
-      description: p.publicDescription?.summary || p.description || "",
-      hero_image: p.picture?.thumbnail || p.pictures?.[0]?.thumbnail || "",
-      gallery: (p.pictures || []).map((pic: any) => pic.original || pic.thumbnail || ""),
-      amenities: p.amenities || [],
-      max_guests: p.accommodates || 4,
-      bedrooms: p.bedrooms || 1,
-      bathrooms: p.bathrooms || 1,
-      price_per_night: p.prices?.basePrice || 0,
-      rating: p.reviewsCount > 0 ? (p.reviews?.avg || null) : null,
-      check_in: p.defaultCheckInTime || "15:00",
-      check_out: p.defaultCheckOutTime || "11:00",
-    }));
-
-    // Filter by slug if requested
-    const filtered = slug
-      ? transformed.filter((p: any) => p.slug === slug)
-      : transformed;
-
-    return Response.json(
-      { data: filtered, count: filtered.length },
-      { headers: corsHeaders }
+    // Route: all listings
+    const params = url.searchParams.get("params") || "";
+    const proxyRes = await fetch(
+      `${supabaseUrl}/functions/v1/guesty-proxy?action=listings&params=${encodeURIComponent(params)}`,
+      { headers: { Authorization: `Bearer ${supabaseKey}` } }
     );
+
+    const body = await proxyRes.text();
+    return new Response(body, {
+      status: proxyRes.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Properties API error:", err);
     return Response.json(
-      { error: "Internal server error", data: [], count: 0 },
+      { error: "Internal server error", results: [] },
       { status: 500, headers: corsHeaders }
     );
   }
