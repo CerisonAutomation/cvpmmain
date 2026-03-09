@@ -76,6 +76,23 @@ const Index = () => {
                   </div>
                 ))}
               </div>
+            ) : listingsError || (featured.length === 0 && !listingsLoading) ? (
+              <div className="border border-border/30 bg-card/50 p-8 text-center">
+                <div className="max-w-sm mx-auto">
+                  <p className="text-muted-foreground text-[13px] mb-4">
+                    {listingsError 
+                      ? 'Unable to load properties at the moment. Our booking system is experiencing high demand.'
+                      : 'No properties available right now.'
+                    }
+                  </p>
+                  <button
+                    onClick={() => refetch()}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-[12px] font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {featured.map((p, i) => (
