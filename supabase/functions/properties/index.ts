@@ -1,9 +1,13 @@
-// supabase/functions/properties/index.ts
-// API for fetching properties - frontend calls this, not Supabase directly
+/**
+ * Properties Edge Function — Proxy to Guesty listings via guesty-proxy
+ * Fixed: proper CORS headers, proper Supabase SDK import, typo fix
+ */
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -14,128 +18,64 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
 
-    // Get query params
     const url = new URL(req.url);
-    const destination = url.searchParams.get("destination");
-    const minPrice = url.searchParams.get("minPrice");
-    const maxPrice = url.searchParams.get("maxPrice");
-    const guests = url.searchParams.get("guests");
     const slug = url.searchParams.get("slug");
 
-    // Build query
-    let queryParams = new URLSearchParams();
-    queryParams.append("select", "*");
-    
-    if (slug) {
-      // Fetch single property by slug
-      queryParams.append("slug", `eq.${slug}`);
-    } else {
-      queryParams.append("order", "created_at.desc");
-      
-      if (destination) {
-        queryParams.append("destination", `ilike.*${encodeURIComponent(destination)}*`);
-      }
-      if (minPrice) {
-        queryParams.append("price_per_night", `gte.${minPrice}`);
-      }
-      if (maxPrice) {
-        queryParams.append("price_per_night", `lte.${maxPrice}`);
-      }
-      if (guests) {
-        queryParams.append("max_guests", `gte.${guests}`);
-      }
-    }
+    // Call guesty-proxy edge function for listings
+    const guestyProxyUrl = `${supabaseUrl}/functions/v1/guesty-proxy?action=listings`;
+    const proxyRes = await fetch(guestyProxyUrl, {
+      headers: {
+        Authorization: `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+      },
+    });
 
-    const response = await fetch(
-      `${supabaseUrl}/rest/v1/properties?${queryParams.toString()}`,
-      {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
+    if (!proxyRes.ok) {
+      const err = await proxyRes.text();
+      console.error("Guesty proxy error:", err);
       return Response.json(
-        { error: "Failed to fetch properties", details: error },
-        { status: 500, headers: corsHeaders }
+        { error: "Failed to fetch properties", data: [], count: 0 },
+        { status: 200, headers: corsHeaders }
       );
     }
 
-    let properties = await response.json();
-
-    // If fetching single property by slug, also get units and rate plans
-    if (slug && properties.length > 0) {
-      const property = properties[0];
-      
-      // Get units
-      const unitsRes = await fetch(
-        `${supabaseUrl}/rest/v1/units?property_id=eq.${property.id}`,
-        {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-        }
-      );
-      const units = unitsRes.ok ? await unitsRes.json() : [];
-
-      // Get rate plans
-      const unitIds = units.map((u: any) => u.id);
-      let ratePlans: any[] = [];
-      if (unitIds.length > 0) {
-        const ratePlansRes = await fetch(
-          `${supabaseUrl}/rest/v1/rate_plans?unit_id=in.(${unitIds.join(",")})`,
-          {
-            headers: {
-              apabaseKey: supabaseKey,
-              Authorization: `Bearer ${supabaseKey}`,
-            },
-          }
-        );
-        ratePlans = ratePlansRes.ok ? await ratePlansRes.json() : [];
-      }
-
-      properties = [{ ...property, units, rate_plans: ratePlans }];
-    }
+    const listings = await proxyRes.json();
+    const results = listings?.results || listings?.data || (Array.isArray(listings) ? listings : []);
 
     // Transform for frontend
-    const transformed = properties.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      destination: p.destination,
-      description: p.description,
-      hero_image: p.hero_image,
-      gallery: p.gallery,
-      amenities: p.amenities,
-      max_guests: p.max_guests,
-      bedrooms: p.bedrooms,
-      bathrooms: p.bathrooms,
-      price_per_night: Number(p.price_per_night),
-      rating: p.rating ? Number(p.rating) : null,
-      check_in: p.check_in,
-      check_out: p.check_out,
-      cancellation_policy: p.cancellation_policy,
-      units: p.units || [],
-      rate_plans: p.rate_plans || [],
-      created_at: p.created_at,
+    const transformed = results.map((p: any) => ({
+      id: p._id || p.id,
+      name: p.title || p.name || "Untitled",
+      slug: (p.title || p.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      destination: p.address?.city || p.city || "Malta",
+      description: p.publicDescription?.summary || p.description || "",
+      hero_image: p.picture?.thumbnail || p.pictures?.[0]?.thumbnail || "",
+      gallery: (p.pictures || []).map((pic: any) => pic.original || pic.thumbnail || ""),
+      amenities: p.amenities || [],
+      max_guests: p.accommodates || 4,
+      bedrooms: p.bedrooms || 1,
+      bathrooms: p.bathrooms || 1,
+      price_per_night: p.prices?.basePrice || 0,
+      rating: p.reviewsCount > 0 ? (p.reviews?.avg || null) : null,
+      check_in: p.defaultCheckInTime || "15:00",
+      check_out: p.defaultCheckOutTime || "11:00",
     }));
 
+    // Filter by slug if requested
+    const filtered = slug
+      ? transformed.filter((p: any) => p.slug === slug)
+      : transformed;
+
     return Response.json(
-      { 
-        data: transformed,
-        count: transformed.length,
-      },
+      { data: filtered, count: filtered.length },
       { headers: corsHeaders }
     );
   } catch (err) {
     console.error("Properties API error:", err);
     return Response.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", data: [], count: 0 },
       { status: 500, headers: corsHeaders }
     );
   }

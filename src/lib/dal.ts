@@ -77,6 +77,38 @@ export async function getCachedApiResponse<T = unknown>(key: string): Promise<T 
   return data.response_data as T;
 }
 
+// ── CMS Admin Operations ──
+
+export async function upsertCmsPage(page: PageDefinition & { published?: boolean }) {
+  const { error } = await supabase.from('cms_pages').upsert({
+    slug: page.slug,
+    title: page.title,
+    description: page.description,
+    blocks: page.blocks as any,
+    meta: page.meta as any,
+    tags: page.tags || [],
+    published: page.published ?? true,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+}
+
+export async function deleteCmsPage(slug: string) {
+  const { error } = await supabase.from('cms_pages').delete().eq('slug', slug);
+  if (error) throw error;
+}
+
+// ── User Roles ──
+
+export async function getUserRole(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data?.role ?? null;
+}
+
 // ── AI Concierge ──
 
 type Msg = { role: 'user' | 'assistant'; content: string };
