@@ -1,12 +1,79 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import { streamAiChat } from '@/lib/dal';
 import { cn } from '@/lib/utils';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
+
+/** Lightweight markdown → JSX renderer (no external deps). */
+function SimpleMarkdown({ content }: { content: string }) {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  const inlineFormat = (text: string): React.ReactNode => {
+    // Bold (**text** or __text__), italic (*text* or _text_), inline code (`code`)
+    const parts = text.split(/(\*\*.*?\*\*|__.*?__|`.*?`|\*.*?\*|_.*?_)/g);
+    return parts.map((part, idx) => {
+      if (/^\*\*(.*)\*\*$/.test(part) || /^__(.*__)$/.test(part))
+        return <strong key={idx}>{part.replace(/^\*\*|\*\*$|^__|__$/g, '')}</strong>;
+      if (/^`(.*)`$/.test(part))
+        return <code key={idx} className="bg-muted-foreground/20 px-1 py-0.5 rounded text-xs font-mono">{part.slice(1, -1)}</code>;
+      if (/^\*(.*)\*$/.test(part) || /^_(.*_)$/.test(part))
+        return <em key={idx}>{part.replace(/^\*|\*$|^_|_$/g, '')}</em>;
+      return part;
+    });
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Headings
+    const headingMatch = line.match(/^(#{1,3})\s+(.*)/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const Tag = (['h1', 'h2', 'h3'] as const)[level - 1];
+      const cls = level === 1 ? 'text-base font-bold mt-2 mb-1' : level === 2 ? 'text-sm font-bold mt-2 mb-1' : 'text-sm font-semibold mt-1 mb-0.5';
+      elements.push(<Tag key={i} className={cls}>{inlineFormat(headingMatch[2])}</Tag>);
+      i++; continue;
+    }
+    // Unordered list
+    if (/^[-*+]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*+]\s+/, ''));
+        i++;
+      }
+      elements.push(
+        <ul key={i} className="list-disc list-inside space-y-0.5 my-1 text-sm">
+          {items.map((item, j) => <li key={j}>{inlineFormat(item)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+    // Ordered list
+    if (/^\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\.\s+/, ''));
+        i++;
+      }
+      elements.push(
+        <ol key={i} className="list-decimal list-inside space-y-0.5 my-1 text-sm">
+          {items.map((item, j) => <li key={j}>{inlineFormat(item)}</li>)}
+        </ol>
+      );
+      continue;
+    }
+    // Blank line
+    if (line.trim() === '') { elements.push(<br key={i} />); i++; continue; }
+    // Paragraph
+    elements.push(<p key={i} className="text-sm leading-relaxed">{inlineFormat(line)}</p>);
+    i++;
+  }
+
+  return <div className="space-y-0.5">{elements}</div>;
+}
 
 export default function AiConcierge() {
   const [open, setOpen] = useState(false);
@@ -121,7 +188,7 @@ export default function AiConcierge() {
                   >
                     {msg.role === 'assistant' ? (
                       <div className="prose prose-sm dark:prose-invert prose-p:my-1 prose-headings:my-2 max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        <SimpleMarkdown content={msg.content} />
                       </div>
                     ) : (
                       msg.content
