@@ -503,9 +503,9 @@ export default function PropertyDetail() {
               </Button>
 
               {quote && (
-                <Button variant="outline" className="w-full h-11 text-sm font-semibold" asChild>
-                  <Link to={`/book?listing=${id}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}&quoteId=${quote._id}`}>
-                    Proceed to Booking
+                <Button className="w-full h-11 text-sm font-semibold" asChild>
+                  <Link to={`/checkout?listing=${id}&checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}&quoteId=${quote._id}`}>
+                    Proceed to Checkout
                   </Link>
                 </Button>
               )}

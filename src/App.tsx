@@ -16,6 +16,7 @@ const Residential = lazy(() => import("./pages/Residential"));
 const Properties = lazy(() => import("./pages/Properties"));
 const PropertyDetail = lazy(() => import("./pages/PropertyDetail"));
 const Book = lazy(() => import("./pages/Book"));
+const BookingCheckout = lazy(() => import("./pages/BookingCheckout"));
 const Owners = lazy(() => import("./pages/Owners"));
 const OwnersEstimate = lazy(() => import("./pages/OwnersEstimate"));
 const OwnersStandards = lazy(() => import("./pages/OwnersStandards"));
@@ -158,6 +159,7 @@ function App() {
               <Route path="/properties" element={<Properties />} />
               <Route path="/properties/:id" element={<PropertyDetail />} />
               <Route path="/book" element={<Book />} />
+              <Route path="/checkout" element={<BookingCheckout />} />
               <Route path="/owners" element={<Owners />} />
               <Route path="/owners/estimate" element={<OwnersEstimate />} />
               <Route path="/owners/pricing" element={<PricingPage />} />

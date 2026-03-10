@@ -8,6 +8,9 @@ interface EnvConfig {
   VITE_STRIPE_PUBLISHABLE_KEY?: string;
 }
 
+// Stripe publishable key — needed for checkout
+export const STRIPE_PK = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+
 interface ValidationResult {
   valid: boolean;
   errors: string[];

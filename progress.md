@@ -36,8 +36,42 @@
 - Loading skeletons
 - Error boundaries with fallback UI
 
-## Remaining Tasks
-- Security: CSRF tokens, form validation
-- Performance: Image optimization, bundle analysis
-- Testing: More unit tests, E2E tests
-- Monitoring: Sentry integration
+## 2026-03-11 — Booking Platform Autocomplete (v2 architecture)
+
+### Database (migration 002_booking_platform.sql)
+- Added: listings_cache, quotes, bookings, payments, booking_events, webhook_receipts, cms_config
+- Full booking state machine (draft → quote_created → awaiting_payment → payment_processing → paid → booking_submitting → confirmed | inquiry_required | needs_manual_review | payment_failed | cancelled)
+- Indexes, updated_at triggers, RLS policies for all new tables
+- NOTE: Migration is on disk; apply once Supabase project DB connection recovers
+
+### Edge Functions (new / upgraded)
+- checkout-service: quote persistence → bookings row → Stripe PaymentIntent (idempotent)
+- stripe-webhook: full state machine driver (payment_intent.succeeded, payment_failed, charge.refunded, charge.dispute)
+- guesty-proxy: added `inquiry` action (POST /reservations/quotes/:id/inquiry)
+- reservation-status: GET booking + events (safe, no secrets exposed)
+- guesty-webhook: invalidates listings_cache, syncs reservation status
+- process-booking-commands: operator cancel / refund / manual_confirm / retry_guesty
+
+### Frontend (new files)
+- src/lib/checkout.ts — initiateCheckout(), fetchBookingStatus()
+- src/lib/useStripe.ts — lazy-loads Stripe.js from CDN
+- src/components/PaymentForm.tsx — Stripe Payment Element
+- src/components/BookingConfirmation.tsx — polls reservation-status until confirmed/inquiry
+- src/components/InquiryForm.tsx — fallback inquiry submission
+- src/pages/BookingCheckout.tsx — 3-step checkout (guest details → payment → confirmation)
+
+### Routing
+- /checkout route added in App.tsx (lazy BookingCheckout)
+- PropertyDetail "Proceed to Booking" now links to /checkout?...
+
+## Environment Variables Required
+- VITE_STRIPE_PUBLISHABLE_KEY (frontend)
+- STRIPE_SECRET_KEY (edge functions secret)
+- STRIPE_WEBHOOK_SECRET (stripe-webhook verification)
+- GUESTY_WEBHOOK_SECRET (guesty-webhook optional HMAC)
+
+## Remaining
+- Deploy edge functions via Supabase dashboard
+- Apply migration 002 when DB connection recovers
+- Add VITE_STRIPE_PUBLISHABLE_KEY to Vercel project vars
+

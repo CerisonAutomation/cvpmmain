@@ -404,6 +404,16 @@ Deno.serve(async (req) => {
         return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
       }
 
+      case "inquiry": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        if (!quoteId) return Response.json({ error: "Missing quoteId" }, { status: 400, headers: corsHeaders });
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/inquiry`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
       default:
         return Response.json({ error: `Unknown action: ${action}` }, { status: 400, headers: corsHeaders });
     }
