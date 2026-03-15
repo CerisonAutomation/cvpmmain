@@ -1,4 +1,10 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { MapPin, Star, BedDouble, Bath, Users } from 'lucide-react';
+import { usePrefetchListing } from '@/lib/guesty/hooks';
+import ProgressiveImage from './ProgressiveImage';
+import { useRef, useCallback, memo } from 'react';
+import { block } from 'million/react';
 import { MapPin, Star, Bed, Users, Bath } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -78,3 +84,5 @@ export default function PropertyCard({
     </Link>
   );
 }
+
+export default block(PropertyCard);
