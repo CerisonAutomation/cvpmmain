@@ -7,7 +7,9 @@ export function useCmsPage(slug: string) {
     queryKey: ['cms', 'page', slug],
     queryFn: () => getCmsPage(slug),
     staleTime: 5 * 60 * 1000,
+    enabled: Boolean(slug), // don't fire with empty slug
+    retry: 1,
   });
 
-  return { page: data, isLoading, isError };
+  return { page: data ?? null, isLoading, isError };
 }
