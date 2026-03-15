@@ -23,6 +23,63 @@ export const SITE_CONFIG = {
   phone: '+356 7927 4688',
   email: 'info@christianopm.com',
   address: 'The Fives - Unit A7, Triq Charles Sciberras, San Ġiljan, Malta',
+export const SITE_CONFIG: SiteConfig = {
+  brandName: 'Christiano Vincenti',
+  tagline: 'Property Management',
+  email: 'info@christianopropertymanagement.com',
+  phone: '+356 7979 0202',
+  address: 'Malta & Gozo',
+  locale: 'en-MT',
+  currency: 'EUR',
+  timezone: 'Europe/Malta',
+  navigation: [
+    {
+      label: 'Owners',
+      href: '/owners',
+      children: [
+        { label: 'How It Works', href: '/owners' },
+        { label: 'Pricing', href: '/owners/pricing' },
+        { label: 'Get Free Estimate', href: '/owners/estimate' },
+        { label: 'Our Standards', href: '/owners/standards' },
+        { label: 'Owner Portal', href: '/owners/portal' },
+      ],
+    },
+    { label: 'Properties', href: '/properties' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+  ],
+  footerLinks: {
+    guests: [
+      { label: 'Properties', href: '/properties' },
+      { label: 'Book Direct', href: '/book' },
+      { label: 'Residential', href: '/residential' },
+      { label: 'FAQ', href: '/faq' },
+    ],
+    owners: [
+      { label: 'How It Works', href: '/owners' },
+      { label: 'Pricing', href: '/owners/pricing' },
+      { label: 'Free Estimate', href: '/owners/estimate' },
+      { label: 'Our Standards', href: '/owners/standards' },
+      { label: 'Owner Portal', href: '/owners/portal' },
+    ],
+    insights: [
+      { label: 'Blog', href: '/blog' },
+      { label: 'Sliema', href: '/locations/sliema' },
+      { label: 'Valletta', href: '/locations/valletta' },
+      { label: "St Julian's", href: '/locations/st-julians' },
+      { label: 'Gozo', href: '/locations/gozo' },
+    ],
+    company: [
+      { label: 'About', href: '/about' },
+      { label: 'Contact', href: '/contact' },
+    ],
+    legal: [
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
+      { label: 'Cookies', href: '/cookies' },
+    ],
+  },
   social: {
     instagram: 'https://instagram.com/christianovincentipm',
     facebook: 'https://facebook.com/christianovincentipm',
@@ -367,6 +424,17 @@ export const PAGES: Record<string, PageDefinition> = {
     blocks: [contactHero, contactForm],
     meta: {
       ogTitle: 'Contact Christiano Property Management',
+    },
+  },
+  blog: {
+    slug: '/blog',
+    title: 'Blog — Christiano Property Management',
+    description: 'Expert insights on Malta property management, rental market trends, and owner strategies.',
+    tags: ['blog'],
+    blocks: [],
+    meta: {
+      ogTitle: 'Malta Property Management Blog — Christiano Vincenti',
+      ogDescription: 'Expert guides, market data, and owner strategies from Malta\'s leading property managers.',
     },
   },
 };
