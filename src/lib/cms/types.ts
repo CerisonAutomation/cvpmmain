@@ -1,7 +1,8 @@
 // ══════════════════════════════════════════════════════════
 // CMS TYPE SYSTEM
-// Production-safe, fully typed, Zod-ready
+// Production-safe, fully typed, Zod-validated
 // ══════════════════════════════════════════════════════════
+import { z } from 'zod';
 
 export interface NavItem {
   label: string;
@@ -69,6 +70,31 @@ export interface PageDefinition {
     noindex?: boolean;
   };
 }
+
+// ── Zod Schemas (runtime validation for DAL) ──
+
+export const contentBlockSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  tags: z.array(z.string()).default([]),
+  data: z.unknown(),
+});
+
+export const pageDefinitionSchema = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().default(''),
+  tags: z.array(z.string()).default([]),
+  blocks: z.array(contentBlockSchema).default([]),
+  meta: z
+    .object({
+      ogTitle: z.string().optional(),
+      ogDescription: z.string().optional(),
+      ogImage: z.string().optional(),
+      noindex: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 // ── Data shapes ──
 
