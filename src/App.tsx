@@ -28,6 +28,10 @@ const PrivacyPage      = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage      = lazy(() => import("./pages/CookiesPage"));
 const TermsPage        = lazy(() => import("./pages/TermsPage"));
 const Admin            = lazy(() => import("./pages/Admin"));
+const BlogPage         = lazy(() => import("./pages/BlogPage"));
+const BlogPostPage     = lazy(() => import("./pages/BlogPostPage"));
+const LocationPage     = lazy(() => import("./pages/LocationPage"));
+const OwnerPortalPage  = lazy(() => import("./pages/OwnerPortalPage"));
 const NotFound         = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -148,6 +152,14 @@ export default function App() {
               <Route path="/owners/owners-pack"   element={<OwnersPack />} />
 
               {/* Legal & Admin */}
+              <Route path="/owners/portal"        element={<OwnerPortalPage />} />
+              <Route path="/pricing"              element={<PricingPage />} />
+              <Route path="/about"                element={<AboutPage />} />
+              <Route path="/faq"                  element={<FAQPage />} />
+              <Route path="/contact"              element={<ContactPage />} />
+              <Route path="/blog"                 element={<BlogPage />} />
+              <Route path="/blog/:slug"           element={<BlogPostPage />} />
+              <Route path="/locations/:slug"      element={<LocationPage />} />
               <Route path="/privacy"              element={<PrivacyPage />} />
               <Route path="/cookies"              element={<CookiesPage />} />
               <Route path="/terms"                element={<TermsPage />} />

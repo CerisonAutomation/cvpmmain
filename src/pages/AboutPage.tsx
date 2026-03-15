@@ -5,7 +5,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { SkipLink } from '@/components/ui/accessibility';
 import { FadeInView } from '@/components/PageTransition';
 import { useState } from 'react';
-import WizardModal from '@/components/WizardModal';
+import LeadModal from '@/components/LeadModal';
 import { Award, Users, Star, MapPin, Shield, Heart, TrendingUp, CheckCircle } from 'lucide-react';
 
 const stats = [
@@ -23,13 +23,13 @@ const values = [
 ];
 
 const team = [
-  { name: 'Christiano Vincenti', role: 'Founder & Director', bio: 'Born and raised in Malta, Christiano has spent over a decade shaping the island\'s short-stay market. His vision: world-class hospitality, managed locally.' },
+  { name: 'Christiano Vincenti', role: 'Founder & Director', bio: "Born and raised in Malta, Christiano has spent over a decade shaping the island's short-stay market. His vision: world-class hospitality, managed locally." },
   { name: 'Operations Team', role: 'Property Specialists', bio: 'Our on-the-ground team handles everything from linen changes to maintenance emergencies — available 7 days a week.' },
   { name: 'Guest Experience', role: 'Concierge & Support', bio: 'Multilingual support available 24/7 to ensure every guest feels looked after from arrival to departure.' },
 ];
 
 export default function AboutPage() {
-  const [wizardOpen, setWizardOpen] = useState(false);
+  const [leadOpen, setLeadOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,7 +39,7 @@ export default function AboutPage() {
         description="Meet the team behind Malta's most trusted short-stay property management company. 8+ years, 40+ properties, 4.97 star average."
         keywords={['Malta property management', 'Christiano Vincenti', 'Malta holiday rentals management']}
       />
-      <Navbar onOpenWizard={() => setWizardOpen(true)} />
+      <Navbar onOpenWizard={() => setLeadOpen(true)} />
 
       <main id="main-content">
         {/* Hero */}
@@ -50,9 +50,12 @@ export default function AboutPage() {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight max-w-3xl leading-[1.1] mb-6">
                 Malta&apos;s Most Trusted Property Managers
               </h1>
-              <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed">
+              <p className="text-muted-foreground text-lg max-w-2xl leading-relaxed mb-8">
                 Christiano Vincenti Property Management was founded on a simple belief: property owners in Malta deserve a management partner who treats their investment with the same care and ambition they do.
               </p>
+              <button onClick={() => setLeadOpen(true)} className="btn-primary" aria-label="Get a free property estimate">
+                Get a Free Estimate
+              </button>
             </FadeInView>
           </div>
         </section>
@@ -89,7 +92,7 @@ export default function AboutPage() {
               </FadeInView>
               <FadeInView delay={0.2}>
                 <div className="grid grid-cols-2 gap-4">
-                  {['/images/valletta.jpg', '/images/malta-aerial.jpg', '/images/property-interior.jpg', '/images/team.jpg'].map((src, i) => (
+                  {[0,1,2,3].map(i => (
                     <div key={i} className={`aspect-square bg-muted/40 rounded-lg overflow-hidden ${i === 0 ? 'col-span-2 aspect-video' : ''}`}>
                       <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                         <MapPin className="w-8 h-8 text-primary/30" />
@@ -148,25 +151,22 @@ export default function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-20">
+        <section className="py-20 bg-primary/5">
           <div className="section-container text-center">
             <FadeInView>
               <h2 className="section-heading mb-4">Ready to Partner With Us?</h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">Get a free income estimate for your Malta property and see what we can achieve together.</p>
-              <button
-                onClick={() => setWizardOpen(true)}
-                className="btn-primary"
-                aria-label="Get free property estimate"
-              >
-                Get Free Estimate
-              </button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button onClick={() => setLeadOpen(true)} className="btn-primary" aria-label="Get free property estimate">Get Free Estimate</button>
+                <a href="tel:+35679790202" className="btn-secondary">Call +356 7979 0202</a>
+              </div>
             </FadeInView>
           </div>
         </section>
       </main>
 
       <Footer />
-      <WizardModal open={wizardOpen} onClose={() => setWizardOpen(false)} />
+      <LeadModal open={leadOpen} onClose={() => setLeadOpen(false)} context="owner" />
     </div>
   );
 }
