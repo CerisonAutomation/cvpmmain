@@ -5,6 +5,7 @@ import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMemo } from 'react';
 import type { PropertyShowcaseData } from '@/lib/cms/types';
+import type { Listing } from '@/lib/guesty/types';
 
 interface Props {
   data: PropertyShowcaseData;
@@ -16,11 +17,11 @@ export default function PropertyShowcaseBlock({ data, className = '' }: Props) {
   const { data: rawListings, isLoading } = useListings();
 
   const properties = useMemo(() => {
-    const list = Array.isArray(rawListings) ? rawListings : [];
+    const list = (Array.isArray(rawListings) ? rawListings : []) as Listing[];
     const filtered = propertyIds?.length
-      ? list.filter((l: any) => propertyIds.includes(l._id ?? l.id))
+      ? list.filter((l) => propertyIds.includes(l._id))
       : list;
-    return filtered.slice(0, limit).map((l: any) => normalizeListingSummary(l));
+    return filtered.slice(0, limit).map((l) => normalizeListingSummary(l));
   }, [rawListings, limit, propertyIds]);
 
   const skeletonCount = limit ?? 3;

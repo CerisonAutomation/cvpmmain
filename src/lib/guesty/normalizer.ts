@@ -4,6 +4,8 @@
  * Stores raw upstream payload for debugging.
  */
 
+import type { Listing } from './types';
+
 // ── Normalized types ──
 
 export interface NormalizedImage {
@@ -72,7 +74,7 @@ export interface NormalizedListingSummary {
   rating?: number;
   reviewsCount?: number;
   tags: string[];
-  raw: any;
+  raw: unknown;
 }
 
 export interface NormalizedListingDetail extends NormalizedListingSummary {
@@ -97,19 +99,19 @@ export interface NormalizedListingDetail extends NormalizedListingSummary {
 const FALLBACK_IMG = '/placeholder.svg';
 
 // ── Helper: safe string ──
-function str(val: any, fallback = ''): string {
+function str(val: unknown, fallback = ''): string {
   if (typeof val === 'string') return val;
   if (typeof val === 'number') return String(val);
   return fallback;
 }
-function num(val: any, fallback = 0): number {
+function num(val: unknown, fallback = 0): number {
   const n = Number(val);
   return isFinite(n) ? n : fallback;
 }
 
 // ── Normalize images from any shape ──
-function normalizeImages(raw: any): NormalizedImage[] {
-  const arr = raw?.pictures || raw?.photos || raw?.images || raw?.gallery || [];
+function normalizeImages(raw: Listing): NormalizedImage[] {
+  const arr = (raw?.pictures || (raw as any)?.photos || (raw as any)?.images || (raw as any)?.gallery || []) as any[];
   if (!Array.isArray(arr)) return [];
   return arr.map((img: any, i: number) => ({
     id: str(img?._id || img?.id, `img-${i}`),
@@ -122,8 +124,8 @@ function normalizeImages(raw: any): NormalizedImage[] {
 }
 
 // ── Normalize address ──
-function normalizeAddress(raw: any): NormalizedAddress {
-  const addr = raw?.publishedAddress || raw?.address || raw?.location || {};
+function normalizeAddress(raw: Listing): NormalizedAddress {
+  const addr = ((raw as any)?.publishedAddress || raw?.address || (raw as any)?.location || {}) as any;
   return {
     full: str(addr?.full || addr?.formatted || addr?.display || ''),
     city: str(addr?.city || addr?.locality || addr?.town || ''),
@@ -137,8 +139,8 @@ function normalizeAddress(raw: any): NormalizedAddress {
 }
 
 // ── Best description ──
-function bestDescription(raw: any): string {
-  const pd = raw?.publicDescription || raw?.description || {};
+function bestDescription(raw: Listing): string {
+  const pd = (raw as any)?.publicDescription || raw?.description || {};
   if (typeof pd === 'string') return pd;
   return str(
     pd?.summary ||
@@ -153,8 +155,8 @@ function bestDescription(raw: any): string {
 }
 
 // ── Normalize amenities ──
-function normalizeAmenities(raw: any): string[] {
-  const arr = raw?.amenities || raw?.amenityIds || [];
+function normalizeAmenities(raw: Listing): string[] {
+  const arr = (raw?.amenities || raw?.amenityIds || []) as any[];
   if (!Array.isArray(arr)) return [];
   return arr.map((a: any) => {
     if (typeof a === 'string') return a;
@@ -176,12 +178,12 @@ function amenityToLabel(code: string): string {
 }
 
 // ── Normalize bedrooms ──
-function normalizeBedrooms(raw: any): NormalizedBedroom[] {
-  const ba = raw?.bedArrangements;
+function normalizeBedrooms(raw: Listing): NormalizedBedroom[] {
+  const ba = (raw as any)?.bedArrangements as any;
   if (!ba?.details || !Array.isArray(ba.details)) return [];
-  return ba.details.map((room: any) => ({
+  return (ba.details as any[]).map((room: any) => ({
     name: str(room?.roomName || room?.name, 'Room'),
-    beds: Array.isArray(room?.beds) ? room.beds.map((b: any) => ({
+    beds: Array.isArray(room?.beds) ? (room.beds as any[]).map((b: any) => ({
       type: str(b?.type, 'bed').replace(/([A-Z])/g, ' $1').trim(),
       count: num(b?.count, 1),
     })) : [],
@@ -189,8 +191,8 @@ function normalizeBedrooms(raw: any): NormalizedBedroom[] {
 }
 
 // ── Normalize policies ──
-function normalizePolicies(raw: any): NormalizedPolicy {
-  const pd = raw?.publicDescription || {};
+function normalizePolicies(raw: Listing): NormalizedPolicy {
+  const pd = (raw as any)?.publicDescription || {};
   return {
     houseRules: str(pd?.houseRules || raw?.houseRules),
     cancellation: str(raw?.cancellationPolicy || raw?.cancellation?.policyText),
@@ -206,10 +208,10 @@ function normalizePolicies(raw: any): NormalizedPolicy {
 }
 
 // ── Normalize taxes ──
-function normalizeTaxes(raw: any): Array<{ name: string; amount: number; type: string; units: string }> {
-  const taxes = raw?.taxes;
+function normalizeTaxes(raw: Listing): Array<{ name: string; amount: number; type: string; units: string }> {
+  const taxes = (raw as any)?.taxes;
   if (!Array.isArray(taxes)) return [];
-  return taxes.map((t: any) => ({
+  return (taxes as any[]).map((t: any) => ({
     name: str(t?.name, 'Tax'),
     amount: num(t?.amount),
     type: str(t?.type),
@@ -221,7 +223,7 @@ function normalizeTaxes(raw: any): Array<{ name: string; amount: number; type: s
 // PUBLIC API
 // ══════════════════════════════════════════════════════════════════════
 
-export function normalizeListingSummary(raw: any): NormalizedListingSummary {
+export function normalizeListingSummary(raw: Listing): NormalizedListingSummary {
   const images = normalizeImages(raw);
   const addr = normalizeAddress(raw);
   return {
@@ -246,7 +248,7 @@ export function normalizeListingSummary(raw: any): NormalizedListingSummary {
   };
 }
 
-export function normalizeListingDetail(raw: any): NormalizedListingDetail {
+export function normalizeListingDetail(raw: Listing): NormalizedListingDetail {
   const summary = normalizeListingSummary(raw);
   const amenities = normalizeAmenities(raw);
   const pd = raw?.publicDescription || {};

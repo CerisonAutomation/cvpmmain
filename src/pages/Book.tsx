@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListing, useQuote, useCreateBooking, normalizeListingDetail } from '@/lib/guesty/hooks';
+import { sanitizeObject } from '@/lib/utils';
 
 const bookingSchema = z.object({
   firstName: z.string().trim().min(1, 'Required').max(50),
@@ -61,14 +62,16 @@ export default function Book() {
   const onSubmit = async (data: BookingFormData) => {
     if (!quoteId) return;
     
+    const sanitizedGuest = sanitizeObject({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+    });
+
     bookingMutation.mutate({
       quoteId,
-      guest: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-      },
+      guest: sanitizedGuest,
     }, {
       onSuccess: () => setStep('confirmed'),
     });
@@ -118,6 +121,11 @@ export default function Book() {
         </section>
       </Layout>
     );
+  }
+
+  // Guard: if listing exists but no quote, redirect back to listing to get a fresh quote
+  if (!quoteId && listingId) {
+    return <Navigate to={`/properties/${listingId}`} replace />;
   }
 
   // Confirmed state

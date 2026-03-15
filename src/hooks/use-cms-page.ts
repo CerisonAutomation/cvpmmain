@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCmsPage } from '@/lib/dal';
-import type { PageDefinition } from '@/lib/cms/types';
+import type { PageDefinition, ContentBlock } from '@/lib/cms/types';
+
+export function getBlockByType<T>(page: PageDefinition | null, type: string) {
+  if (!page) return null;
+  const block = page.blocks.find((b: ContentBlock) => b.type === type);
+  if (!block) return null;
+  return block as { id: string; type: string; data: T };
+}
 
 export function useCmsPage(slug: string) {
   const { data, isLoading, isError } = useQuery<PageDefinition | null>({
