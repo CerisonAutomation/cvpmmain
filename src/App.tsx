@@ -12,6 +12,7 @@ import CookieConsentBanner from "@/components/CookieConsentBanner";
 import LoadingScreen from "@/components/LoadingScreen";
 import AiConcierge from "@/components/AiConcierge";
 import AdminGuard from "@/components/AdminGuard";
+import { SmartSearch } from "@/components/SmartSearch";
 
 // Lazy-loaded pages
 const Index            = lazy(() => import("./pages/Index"));
@@ -39,9 +40,10 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 10 * 60 * 1000,
       gcTime: 30 * 60 * 1000,
-      retry: (failureCount, error: any) => {
-        if (error?.message?.includes('401') || error?.message?.includes('403')) return false;
-        if (error?.message?.includes('429')) return failureCount < 1;
+      retry: (failureCount, error: unknown) => {
+        const err = error as Error;
+        if (err?.message?.includes('401') || err?.message?.includes('403')) return false;
+        if (err?.message?.includes('429')) return failureCount < 1;
         return failureCount < 2;
       },
       retryDelay: (i) => Math.min(5000 * 2 ** i, 30_000),
@@ -129,6 +131,7 @@ export default function App() {
         {!loaded && <LoadingScreen onComplete={() => setLoaded(true)} />}
         <BrowserRouter>
           <SuspenseWrapper>
+            <SmartSearch />
             <Routes>
               <Route path="/"                     element={<Index />} />
               <Route path="/residential"          element={<Residential />} />

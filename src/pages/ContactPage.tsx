@@ -10,6 +10,7 @@ import { Check, Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/Layout';
 import { useCmsPage, getBlockByType } from '@/hooks/use-cms-page';
+import { sanitizeObject } from '@/lib/utils';
 import { SITE_CONFIG } from '@/lib/cms/content';
 import { FAQAccordionBlock } from '@/components/blocks';
 import type { HeroCenteredData, FAQAccordionData } from '@/lib/cms/types';
@@ -43,7 +44,8 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const onSubmit = async (data: FormData) => {
-    const body = `Type: ${data.enquiryType}\nName: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone || 'N/A'}\n\n${data.message}`;
+    const sanitized = sanitizeObject(data);
+    const body = `Type: ${sanitized.enquiryType}\nName: ${sanitized.name}\nEmail: ${sanitized.email}\nPhone: ${sanitized.phone || 'N/A'}\n\n${sanitized.message}`;
     window.location.href = `mailto:info@christianopm.com?subject=${encodeURIComponent(`${data.enquiryType.charAt(0).toUpperCase() + data.enquiryType.slice(1)} Enquiry — ${data.name}`)}&body=${encodeURIComponent(body)}`;
     setSubmitted(true);
   };

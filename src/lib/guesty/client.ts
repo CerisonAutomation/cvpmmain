@@ -1,30 +1,31 @@
+import { z } from 'zod';
 import type {
   Listing, PropertyType, Amenity, Quote, QuoteRequest,
   City, CalendarDay, PaymentProvider, Review, UpsellFee,
   GuestyError, ReservationResponse, ErrorCode, RatePlan,
 } from './types';
+import {
+  GuestyListingSchema,
+  GuestyQuoteSchema,
+  GuestyCalendarDaySchema,
+  GuestyCitySchema,
+  GuestyReviewSchema,
+  GuestyRatePlanSchema,
+} from './schemas';
+import { config } from '../env';
 
 // Use the edge function proxy URL
 const getProxyUrl = (): string => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    console.warn('VITE_SUPABASE_URL not set - Guesty API unavailable');
-    return '';
-  }
-  return `${supabaseUrl}/functions/v1/guesty-proxy`;
+  return `${config.VITE_SUPABASE_URL}/functions/v1/guesty-proxy`;
 };
-
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '';
 
 async function request<T>(params: Record<string, string>, method: 'GET' | 'POST' = 'GET', body?: unknown): Promise<T> {
   const proxyUrl = getProxyUrl();
-  if (!proxyUrl) throw { error_code: 'INTERNAL_ERROR', message: 'API not configured' } as GuestyError;
-
   const url = new URL(proxyUrl);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
 
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${ANON_KEY}`,
+    'Authorization': `Bearer ${config.VITE_SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
   };
 
@@ -53,6 +54,18 @@ async function request<T>(params: Record<string, string>, method: 'GET' | 'POST'
 }
 
 class GuestyClient {
+  private validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
+    const result = schema.safeParse(data);
+    if (!result.success) {
+      console.error('Guesty API Validation Error:', result.error.format());
+      // In production, we might want to be more tolerant or log to Sentry
+      // For now, we return the data as-is but casted, to avoid breaking everything
+      // while still getting the error in the console.
+      return data as T;
+    }
+    return result.data;
+  }
+
   async getListings(params: {
     minOccupancy?: number;
     minBedrooms?: number;
@@ -70,23 +83,33 @@ class GuestyClient {
         qp.set(k, Array.isArray(v) ? v.join(',') : String(v));
       }
     });
-    return request<Listing[]>({ action: 'listings', params: qp.toString() });
+    const data = await request<unknown>({ action: 'listings', params: qp.toString() });
+
+    // API might return { results: [...] }
+    const rawListings = (data && typeof data === 'object' && 'results' in data)
+      ? (data as Record<string, unknown>).results
+      : data;
+
+    return this.validate(z.array(GuestyListingSchema), rawListings);
   }
 
   async getListing(id: string): Promise<Listing> {
-    return request<Listing>({ action: 'listing', id });
+    const data = await request<unknown>({ action: 'listing', id });
+    return this.validate(GuestyListingSchema, data);
   }
 
   async getCities(): Promise<City[]> {
-    return request<City[]>({ action: 'cities' });
+    const data = await request<unknown>({ action: 'cities' });
+    return this.validate(z.array(GuestyCitySchema), data);
   }
 
   async getListingCalendar(listingId: string, from: string, to: string): Promise<CalendarDay[]> {
-    return request<CalendarDay[]>({ action: 'calendar', id: listingId, from, to });
+    const data = await request<unknown>({ action: 'calendar', id: listingId, from, to });
+    return this.validate(z.array(GuestyCalendarDaySchema), data);
   }
 
   async createQuote(params: QuoteRequest): Promise<Quote> {
-    return request<Quote>({ action: 'quote' }, 'POST', {
+    const data = await request<unknown>({ action: 'quote' }, 'POST', {
       listingId: params.listingId,
       checkInDateLocalized: params.checkInDateLocalized,
       checkOutDateLocalized: params.checkOutDateLocalized,
@@ -94,16 +117,19 @@ class GuestyClient {
       ...(params.ratePlanId ? { ratePlanId: params.ratePlanId } : {}),
       ...(params.coupons?.length ? { coupon: params.coupons[0] } : {}),
     });
+    return this.validate(GuestyQuoteSchema, data);
   }
 
   async getQuote(quoteId: string): Promise<Quote> {
-    return request<Quote>({ action: 'quote-get', quoteId });
+    const data = await request<unknown>({ action: 'quote-get', quoteId });
+    return this.validate(GuestyQuoteSchema, data);
   }
 
   async createInstantReservation(quoteId: string, guestData: {
     guest: { firstName: string; lastName: string; email: string; phone: string };
     payment?: { token: string };
   }): Promise<ReservationResponse> {
+    // Reservation response is complex, using any for now but could add schema
     return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', guestData);
   }
 
@@ -112,11 +138,13 @@ class GuestyClient {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined) qp.set(k, String(v));
     });
-    return request<Review[]>({ action: 'reviews', params: qp.toString() });
+    const data = await request<unknown>({ action: 'reviews', params: qp.toString() });
+    return this.validate(z.array(GuestyReviewSchema), data);
   }
 
   async getRatePlans(listingId: string): Promise<RatePlan[]> {
-    return request<RatePlan[]>({ action: 'rate-plans', id: listingId });
+    const data = await request<unknown>({ action: 'rate-plans', id: listingId });
+    return this.validate(z.array(GuestyRatePlanSchema), data);
   }
 
   async getPaymentProvider(listingId: string): Promise<PaymentProvider> {

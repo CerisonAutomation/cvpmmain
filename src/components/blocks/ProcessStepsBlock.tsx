@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { ClipboardCheck, Camera, Rocket } from 'lucide-react';
+import { ClipboardCheck, Camera, Rocket, type LucideIcon } from 'lucide-react';
 import SectionHeading from './SectionHeading';
 import type { ProcessStepsData } from '@/lib/cms/types';
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   ClipboardCheck, Camera, Rocket,
 };
 

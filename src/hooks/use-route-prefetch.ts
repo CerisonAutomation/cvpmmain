@@ -19,8 +19,9 @@ export function useRoutePrefetch() {
     if (prefetchedRoutes.has(key)) return;
     
     // Respect data saver mode
-    if ('connection' in navigator) {
-      const conn = (navigator as any).connection;
+    const nav = navigator as any;
+    if ('connection' in nav) {
+      const conn = nav.connection;
       if (conn?.saveData || conn?.effectiveType === 'slow-2g') return;
     }
 
@@ -40,7 +41,7 @@ export function useRoutePrefetch() {
       queryFn: async () => {
         const raw = await guestyClient.getListings();
         if (Array.isArray(raw)) return raw;
-        if (raw && typeof raw === 'object' && 'results' in raw) return (raw as any).results;
+        if (raw && typeof raw === 'object' && 'results' in (raw as object)) return (raw as { results: any[] }).results;
         return [];
       },
       staleTime: 15 * 60 * 1000,

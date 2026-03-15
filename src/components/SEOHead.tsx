@@ -131,16 +131,59 @@ export function createOrganizationSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': `${BASE_URL}/#organization`,
     name: SITE_NAME,
     url: BASE_URL,
-    logo: `${BASE_URL}/logo.png`,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${BASE_URL}/logo.png`,
+      width: '180',
+      height: '60'
+    },
     contactPoint: {
       '@type': 'ContactPoint',
       telephone: '+356-9999-9999',
       contactType: 'customer service',
       availableLanguage: ['English'],
+      areaServed: 'MT'
     },
     sameAs: [],
+  };
+}
+
+export function createLocalBusinessSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'RealEstateAgent',
+    '@id': `${BASE_URL}/#localbusiness`,
+    name: SITE_NAME,
+    url: BASE_URL,
+    image: `${BASE_URL}/og-image.jpg`,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Sliema',
+      addressRegion: 'Malta',
+      addressCountry: 'MT'
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 35.9122,
+      longitude: 14.5042
+    },
+    openingHoursSpecification: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ],
+      opens: '00:00',
+      closes: '23:59'
+    }
   };
 }
 
