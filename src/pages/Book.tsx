@@ -1,31 +1,39 @@
 import { useState } from 'react';
 import { useSearchParams, Link, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ShieldCheck, CreditCard, Clock, Star, CheckCircle, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import {
+  ShieldCheck, CreditCard, Clock, Star,
+  CheckCircle, Loader2, AlertCircle, ArrowLeft,
+  Plus, Minus, ChevronRight,
+} from 'lucide-react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useListing, useQuote, useCreateBooking, normalizeListingDetail } from '@/lib/guesty/hooks';
+import {
+  useListing, useQuote, useCreateBooking,
+  normalizeListingDetail,
+} from '@/lib/guesty/hooks';
+import { useUpsellFees } from '@/lib/guesty/hooks';
 import { sanitizeObject } from '@/lib/utils';
+import type { UpsellFee } from '@/lib/guesty/types';
 
 const bookingSchema = z.object({
   firstName: z.string().trim().min(1, 'Required').max(50),
-  lastName: z.string().trim().min(1, 'Required').max(50),
-  email: z.string().trim().email('Valid email required').max(255),
-  phone: z.string().regex(/^\+?[\d\s\-()]{7,20}$/, 'Valid phone required'),
+  lastName:  z.string().trim().min(1, 'Required').max(50),
+  email:     z.string().trim().email('Valid email required').max(255),
+  phone:     z.string().regex(/^\+?[\d\s\-()]{7,20}$/, 'Valid phone required'),
 });
-
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 const TRUST_ITEMS = [
   { icon: ShieldCheck, title: 'Secure Booking', desc: 'Encrypted payments' },
-  { icon: CreditCard, title: 'Best Price', desc: 'Direct owner rates' },
-  { icon: Clock, title: 'Instant Confirm', desc: 'Within minutes' },
-  { icon: Star, title: 'Verified', desc: 'Guest satisfaction' },
+  { icon: CreditCard,  title: 'Best Price',     desc: 'Direct owner rates' },
+  { icon: Clock,       title: 'Instant Confirm', desc: 'Within minutes' },
+  { icon: Star,        title: 'Verified',        desc: 'Guest satisfaction' },
 ];
 
 function FieldError({ msg }: { msg?: string }) {
@@ -33,19 +41,78 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-[10px] text-destructive mt-0.5">{msg}</p>;
 }
 
+// ── Upsell card ──────────────────────────────────────────────────────────────
+function UpsellCard({
+  fee,
+  selected,
+  onToggle,
+}: {
+  fee: UpsellFee;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`w-full text-left border transition-colors p-3 ${
+        selected
+          ? 'border-primary bg-primary/5'
+          : 'border-border/40 hover:border-primary/50'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[12px] font-semibold text-foreground truncate">{fee.name}</p>
+          {fee.description && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{fee.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[12px] font-semibold numeric">
+            {fee.amount != null ? `€${fee.amount.toFixed(2)}` : 'Quoted'}
+          </span>
+          <div
+            className={`w-5 h-5 border flex items-center justify-center transition-colors ${
+              selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50'
+            }`}
+          >
+            {selected ? <Minus size={10} /> : <Plus size={10} />}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export default function Book() {
   const [searchParams] = useSearchParams();
-  const listingId = searchParams.get('listing') || '';
-  const checkIn = searchParams.get('checkIn') || '';
-  const checkOut = searchParams.get('checkOut') || '';
+  const listingId   = searchParams.get('listing')  || '';
+  const checkIn     = searchParams.get('checkIn')  || '';
+  const checkOut    = searchParams.get('checkOut') || '';
   const guestsCount = Number(searchParams.get('guests') || '2');
-  const quoteId = searchParams.get('quoteId') || '';
+  const quoteId     = searchParams.get('quoteId')  || '';
 
-  const { data: rawListing } = useListing(listingId || undefined);
-  const { data: quote } = useQuote(quoteId || undefined);
+  const { data: rawListing }  = useListing(listingId || undefined);
+  const { data: quote }       = useQuote(quoteId || undefined);
+  const { data: upsellFees = [] } = useUpsellFees(listingId || undefined);
   const bookingMutation = useCreateBooking();
 
   const property = rawListing ? normalizeListingDetail(rawListing) : null;
+
+  // Track which upsell fees the guest has selected
+  const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
+
+  const toggleUpsell = (id: string) =>
+    setSelectedUpsells((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const upsellTotal = upsellFees
+    .filter((f: UpsellFee) => selectedUpsells.has(f._id))
+    .reduce((sum: number, f: UpsellFee) => sum + (f.amount ?? 0), 0);
 
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
 
@@ -61,23 +128,19 @@ export default function Book() {
 
   const onSubmit = async (data: BookingFormData) => {
     if (!quoteId) return;
-    
     const sanitizedGuest = sanitizeObject({
       firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
+      lastName:  data.lastName,
+      email:     data.email,
+      phone:     data.phone,
     });
-
-    bookingMutation.mutate({
-      quoteId,
-      guest: sanitizedGuest,
-    }, {
-      onSuccess: () => setStep('confirmed'),
-    });
+    bookingMutation.mutate(
+      { quoteId, guest: sanitizedGuest },
+      { onSuccess: () => setStep('confirmed') }
+    );
   };
 
-  // No listing — generic booking page
+  // ── No listing: browse prompt ────────────────────────────────────────────
   if (!listingId) {
     return (
       <Layout>
@@ -91,22 +154,19 @@ export default function Book() {
               <p className="text-muted-foreground text-[13px] max-w-sm mx-auto mb-6">
                 Browse our collection and book directly for the best rates.
               </p>
-              <Button asChild>
-                <Link to="/properties">Browse Properties</Link>
-              </Button>
+              <Button asChild><Link to="/properties">Browse Properties</Link></Button>
             </motion.div>
           </div>
         </section>
-
         <section className="py-10 border-t border-border/20">
           <div className="section-container">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {TRUST_ITEMS.map(({ icon: Icon, title, desc }, i) => (
-                <motion.div 
-                  key={title} 
-                  initial={{ opacity: 0, y: 8 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: 0.1 + i * 0.04 }} 
+                <motion.div
+                  key={title}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.04 }}
                   className="text-center"
                 >
                   <div className="w-9 h-9 border border-border/40 flex items-center justify-center mx-auto mb-2">
@@ -123,12 +183,9 @@ export default function Book() {
     );
   }
 
-  // Guard: if listing exists but no quote, redirect back to listing to get a fresh quote
-  if (!quoteId && listingId) {
-    return <Navigate to={`/properties/${listingId}`} replace />;
-  }
+  if (!quoteId && listingId) return <Navigate to={`/properties/${listingId}`} replace />;
 
-  // Confirmed state
+  // ── Confirmed ────────────────────────────────────────────────────────────
   if (step === 'confirmed') {
     const { firstName, email } = getValues();
     return (
@@ -140,19 +197,11 @@ export default function Book() {
                 <CheckCircle size={28} className="text-primary" />
               </div>
               <h1 className="font-serif text-2xl font-semibold text-foreground mb-2">Booking Confirmed</h1>
-              <p className="text-muted-foreground text-[13px] mb-1">
-                Thank you, {firstName}! Your reservation is confirmed.
-              </p>
-              <p className="text-[11px] text-muted-foreground mb-6">
-                Confirmation sent to <strong>{email}</strong>
-              </p>
+              <p className="text-muted-foreground text-[13px] mb-1">Thank you, {firstName}! Your reservation is confirmed.</p>
+              <p className="text-[11px] text-muted-foreground mb-6">Confirmation sent to <strong>{email}</strong></p>
               <div className="flex gap-2 justify-center">
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/properties">Browse More</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link to="/">Home</Link>
-                </Button>
+                <Button asChild variant="outline" size="sm"><Link to="/properties">Browse More</Link></Button>
+                <Button asChild size="sm"><Link to="/">Home</Link></Button>
               </div>
             </motion.div>
           </div>
@@ -161,10 +210,14 @@ export default function Book() {
     );
   }
 
+  // ── Main booking page ────────────────────────────────────────────────────
   return (
     <Layout>
       <div className="section-container py-2">
-        <Link to={`/properties/${listingId}`} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+        <Link
+          to={`/properties/${listingId}`}
+          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
           <ArrowLeft size={12} /> Back to property
         </Link>
       </div>
@@ -172,12 +225,14 @@ export default function Book() {
       <section className="py-6">
         <div className="section-container">
           <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Guest details form */}
+
+            {/* ── Left: form + upsells ──────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
               <p className="micro-type text-primary mb-2">Complete Booking</p>
               <h1 className="font-serif text-2xl font-semibold text-foreground mb-6">Guest Details</h1>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Guest fields */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">First Name</Label>
@@ -203,32 +258,77 @@ export default function Book() {
                   <FieldError msg={errors.phone?.message} />
                 </div>
 
+                {/* ── Upsell fees — shown BEFORE submit/Stripe ──────── */}
+                <AnimatePresence>
+                  {upsellFees.length > 0 && (
+                    <motion.div
+                      key="upsells"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        Optional Add-Ons
+                      </p>
+                      <div className="space-y-2">
+                        {upsellFees.map((fee: UpsellFee) => (
+                          <UpsellCard
+                            key={fee._id}
+                            fee={fee}
+                            selected={selectedUpsells.has(fee._id)}
+                            onToggle={() => toggleUpsell(fee._id)}
+                          />
+                        ))}
+                      </div>
+                      {upsellTotal > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-2 text-right">
+                          Add-ons: <span className="font-semibold text-foreground numeric">+€{upsellTotal.toFixed(2)}</span>
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Error */}
                 {bookingMutation.error && (
                   <div className="flex items-start gap-1.5 p-2.5 border border-destructive/30 bg-destructive/5 text-[11px] text-destructive">
                     <AlertCircle size={12} className="shrink-0 mt-0.5" />
-                    {bookingMutation.error instanceof Error ? bookingMutation.error.message : 'Booking failed. Please try again.'}
+                    {bookingMutation.error instanceof Error
+                      ? bookingMutation.error.message
+                      : 'Booking failed. Please try again.'}
                   </div>
                 )}
 
+                {/* Submit — this is where Stripe would render its element */}
                 <Button
                   type="submit"
                   disabled={isSubmitting || bookingMutation.isPending}
                   className="w-full h-10 text-[12px] font-semibold"
                 >
-                  {(isSubmitting || bookingMutation.isPending) ? (
+                  {isSubmitting || bookingMutation.isPending ? (
                     <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Processing...</>
                   ) : (
-                    'Confirm Booking'
+                    <span className="flex items-center gap-1.5">
+                      Confirm Booking
+                      {(quote?.priceBreakdown.total != null || upsellTotal > 0) && (
+                        <span className="opacity-70 font-normal">
+                          — €{((quote?.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}
+                        </span>
+                      )}
+                      <ChevronRight size={13} />
+                    </span>
                   )}
                 </Button>
 
                 <p className="text-[9px] text-muted-foreground text-center">
-                  By confirming, you agree to our <Link to="/terms" className="text-primary hover:underline">Terms</Link> and <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                  By confirming, you agree to our{' '}
+                  <Link to="/terms" className="text-primary hover:underline">Terms</Link>{' '}and{' '}
+                  <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
                 </p>
               </form>
             </motion.div>
 
-            {/* Booking summary */}
+            {/* ── Right: booking summary ────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
               <div className="border border-border/50 bg-card p-4 sticky top-20">
                 <h2 className="font-serif text-base font-semibold mb-4">Booking Summary</h2>
@@ -248,11 +348,15 @@ export default function Book() {
                 <div className="space-y-1.5 text-[12px] pb-3 border-b border-border/30">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-in</span>
-                    <span className="font-medium numeric">{checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
+                    <span className="font-medium numeric">
+                      {checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-out</span>
-                    <span className="font-medium numeric">{checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
+                    <span className="font-medium numeric">
+                      {checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guests</span>
@@ -278,9 +382,18 @@ export default function Book() {
                         <span className="numeric">€{quote.priceBreakdown.taxes}</span>
                       </div>
                     )}
+                    {/* Selected upsells reflected in summary */}
+                    {selectedUpsells.size > 0 && upsellTotal > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Add-ons ({selectedUpsells.size})</span>
+                        <span className="numeric">€{upsellTotal.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-semibold text-base pt-2">
                       <span>Total</span>
-                      <span className="numeric">€{quote.priceBreakdown.total?.toLocaleString()}</span>
+                      <span className="numeric">
+                        €{((quote.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -295,6 +408,7 @@ export default function Book() {
                 </div>
               </div>
             </motion.div>
+
           </div>
         </div>
       </section>
