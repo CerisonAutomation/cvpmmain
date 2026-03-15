@@ -246,6 +246,30 @@ export interface Guest {
   countryCode?: string;
 }
 
+/**
+ * BookingPolicy — typed cancellation/policy params for reservation creation.
+ * Replaces the `policy?: any` escape hatch in booking mutation methods.
+ */
+export interface BookingPolicy {
+  /** Guesty rate plan ID to enforce for this booking */
+  cancellationPolicyId?: string;
+  /** Human-readable override text shown to the guest at checkout */
+  customPolicyText?: string;
+  /** Whether the guest explicitly acknowledged the policy at checkout */
+  acknowledged?: boolean;
+}
+
+/**
+ * BookingNotes — typed notes attached to a reservation.
+ * Replaces `notes?: any` in createInstantChargeReservation.
+ */
+export interface BookingNotes {
+  /** Internal note visible only to the host/manager */
+  internal?: string;
+  /** Guest-facing note or special requests */
+  guestNote?: string;
+}
+
 export interface ReservationResponse {
   _id: string;
   confirmationCode?: string;
