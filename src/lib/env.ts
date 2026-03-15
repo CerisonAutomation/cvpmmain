@@ -1,14 +1,17 @@
 import { z } from 'zod';
 
 /**
- * Environment variable schema
- * Ensures all required variables are present and correctly formatted
+ * Environment variable schema.
+ * All VITE_ vars used anywhere in the codebase must be declared here.
+ * Validated at boot — app throws in production if required vars are missing.
  */
 const envSchema = z.object({
   VITE_SUPABASE_URL: z.string().url(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1),
   VITE_GUESTY_FN_URL: z.string().url().optional(),
   VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  // Optional: validated URL prevents (import.meta as any).env escape hatch
+  VITE_LEAD_WEBHOOK_URL: z.string().url().optional(),
   MODE: z.enum(['development', 'production', 'test']).default('development'),
   DEV: z.boolean().default(false),
   PROD: z.boolean().default(false),
@@ -16,15 +19,13 @@ const envSchema = z.object({
 
 export type EnvConfig = z.infer<typeof envSchema>;
 
-/**
- * Validate and export environment variables
- */
 function getEnv(): EnvConfig {
   const env = {
     VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
     VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
     VITE_GUESTY_FN_URL: import.meta.env.VITE_GUESTY_FN_URL,
     VITE_STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+    VITE_LEAD_WEBHOOK_URL: import.meta.env.VITE_LEAD_WEBHOOK_URL,
     MODE: import.meta.env.MODE,
     DEV: import.meta.env.DEV,
     PROD: import.meta.env.PROD,
@@ -40,7 +41,6 @@ function getEnv(): EnvConfig {
     console.error('❌ Invalid environment variables:\n', errorMsg);
 
     if (import.meta.env.PROD) {
-      // In production, we might want to throw or show a catastrophic error UI
       throw new Error(`Environment validation failed:\n${errorMsg}`);
     }
 
@@ -52,16 +52,14 @@ function getEnv(): EnvConfig {
 
 export const config = getEnv();
 
-/**
- * Initialize environment validation on app startup
- */
 export function initEnvValidation() {
   try {
-    const validated = envSchema.parse({
+    envSchema.parse({
       VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
       VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
       VITE_GUESTY_FN_URL: import.meta.env.VITE_GUESTY_FN_URL,
       VITE_STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+      VITE_LEAD_WEBHOOK_URL: import.meta.env.VITE_LEAD_WEBHOOK_URL,
       MODE: import.meta.env.MODE,
       DEV: import.meta.env.DEV,
       PROD: import.meta.env.PROD,

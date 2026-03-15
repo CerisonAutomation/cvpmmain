@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, ArrowLeft, Check, Shield, BarChart3, Clock } from "lucide-react";
+import { X, ArrowRight, ArrowLeft, Check, Shield, BarChart3, Clock, AlertCircle } from "lucide-react";
 import { MALTA_LOCALITIES, PROPERTY_TYPES, BEDROOM_OPTIONS, SLEEPS_OPTIONS } from "@/lib/malta-localities";
 import {
   WizardData, INITIAL_WIZARD_DATA,
@@ -19,16 +19,22 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(INITIAL_WIZARD_DATA);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [localitySearch, setLocalitySearch] = useState("");
   const [showLocalities, setShowLocalities] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const firstFocusRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (open) {
       const draft = loadDraft();
       if (draft) setData(draft);
       setSubmitted(false);
+      setSubmitError(null);
       setStep(0);
+      // Move focus into modal
+      setTimeout(() => firstFocusRef.current?.focus(), 50);
     }
   }, [open]);
 
@@ -51,8 +57,10 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
     setData((prev) => ({ ...prev, ...patch }));
   }, []);
 
-  const filteredLocalities = MALTA_LOCALITIES.filter((l) =>
-    l.toLowerCase().includes(localitySearch.toLowerCase())
+  // Memoized: only recomputes when localitySearch changes
+  const filteredLocalities = useMemo(
+    () => MALTA_LOCALITIES.filter((l) => l.toLowerCase().includes(localitySearch.toLowerCase())),
+    [localitySearch],
   );
 
   const canNext = (): boolean => {
@@ -66,9 +74,24 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
   };
 
   const handleSubmit = async () => {
-    await submitLead(data);
-    clearDraft();
-    setSubmitted(true);
+    if (loading) return;
+    setLoading(true);
+    setSubmitError(null);
+    try {
+      const result = await submitLead(data);
+      if (!result.success) {
+        setSubmitError(result.error ?? 'Submission failed. Please try again.');
+        return;
+      }
+      // Only clear draft after confirmed success
+      clearDraft();
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError('Something went wrong. Please try again or contact us directly.');
+      console.error('[WizardModal] handleSubmit error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!open) return null;
@@ -106,14 +129,14 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
                 <p className="text-xs text-muted-foreground">Step {step + 1} of {STEPS.length}</p>
               )}
             </div>
-            <button onClick={onClose} aria-label="Close" className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors">
+            <button ref={firstFocusRef} onClick={onClose} aria-label="Close" className="p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors">
               <X size={18} />
             </button>
           </div>
 
           {!submitted && (
             <div className="px-6 pt-4">
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-label={`Step ${step + 1} of ${STEPS.length}`}>
                 {STEPS.map((_, i) => (
                   <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-border"}`} />
                 ))}
@@ -137,19 +160,27 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
           </div>
 
           {!submitted && (
-            <div className="sticky bottom-0 glass-surface border-t border-border/50 px-6 py-4 flex items-center justify-between">
-              <button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                <ArrowLeft size={14} /> Back
-              </button>
-              {step < 3 ? (
-                <button onClick={() => setStep((s) => s + 1)} disabled={!canNext()} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold bg-primary text-primary-foreground rounded hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                  Continue <ArrowRight size={14} />
-                </button>
-              ) : (
-                <button onClick={handleSubmit} disabled={!canNext()} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold bg-primary text-primary-foreground rounded hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                  Submit <Check size={14} />
-                </button>
+            <div className="sticky bottom-0 glass-surface border-t border-border/50 px-6 pt-3 pb-4 flex flex-col gap-2">
+              {submitError && (
+                <div role="alert" className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                  <AlertCircle size={13} className="shrink-0" />
+                  {submitError}
+                </div>
               )}
+              <div className="flex items-center justify-between">
+                <button onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                  <ArrowLeft size={14} /> Back
+                </button>
+                {step < 3 ? (
+                  <button onClick={() => setStep((s) => s + 1)} disabled={!canNext()} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold bg-primary text-primary-foreground rounded hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    Continue <ArrowRight size={14} />
+                  </button>
+                ) : (
+                  <button onClick={handleSubmit} disabled={!canNext() || loading} className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold bg-primary text-primary-foreground rounded hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    {loading ? 'Submitting…' : <><span>Submit</span> <Check size={14} /></>}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -199,9 +230,9 @@ function Step1({ data, update, localitySearch, setLocalitySearch, showLocalities
         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Locality</label>
         <input type="text" placeholder="Search locality..." value={data.locality || localitySearch} onChange={(e) => { setLocalitySearch(e.target.value); setShowLocalities(true); if (data.locality) update({ locality: "" }); }} onFocus={() => setShowLocalities(true)} className="w-full px-4 py-3 text-sm bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary" autoComplete="address-level2" />
         {showLocalities && filteredLocalities.length > 0 && (
-          <div className="absolute z-20 top-full mt-1 w-full max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-lg">
+          <div className="absolute z-20 top-full mt-1 w-full max-h-48 overflow-y-auto bg-card border border-border rounded-lg shadow-lg" role="listbox" aria-label="Localities">
             {filteredLocalities.slice(0, 20).map((loc) => (
-              <button key={loc} onClick={() => { update({ locality: loc }); setLocalitySearch(""); setShowLocalities(false); }} className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors">{loc}</button>
+              <button key={loc} role="option" aria-selected={data.locality === loc} onClick={() => { update({ locality: loc }); setLocalitySearch(""); setShowLocalities(false); }} className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors">{loc}</button>
             ))}
           </div>
         )}
@@ -302,7 +333,7 @@ function Step3({ data, update }: { data: WizardData; update: (p: Partial<WizardD
         <input type="checkbox" checked={data.consent} onChange={(e) => update({ consent: e.target.checked })} className="w-4 h-4 mt-0.5 rounded border-border accent-primary" />
         <span className="text-xs text-muted-foreground leading-relaxed">
           I agree to receive communications from Christiano Property Management. See our{" "}
-          <a href="#" className="text-primary underline">Privacy Policy</a>.
+          <a href="/privacy" className="text-primary underline">Privacy Policy</a>.
         </span>
       </label>
     </div>
