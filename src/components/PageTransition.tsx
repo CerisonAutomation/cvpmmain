@@ -1,8 +1,7 @@
 /**
  * Page Transition Component
- * - Smooth fade + slide animations
- * - Respects reduced motion preferences
- * - Exit animations support
+ * - Ultra-smooth cinematic transitions
+ * - Custom easing [0.22, 1, 0.36, 1]
  */
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
@@ -12,6 +11,8 @@ interface PageTransitionProps {
   children: ReactNode;
   className?: string;
 }
+
+const CINEMATIC_EASE = [0.22, 1, 0.36, 1];
 
 // Detect if user prefers reduced motion
 function usePrefersReducedMotion() {
@@ -32,31 +33,31 @@ function usePrefersReducedMotion() {
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 8,
+    y: 12,
   },
   enter: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.25,
-      ease: [0.25, 0.1, 0.25, 1],
+      duration: 0.6,
+      ease: CINEMATIC_EASE,
       when: 'beforeChildren',
     },
   },
   exit: {
     opacity: 0,
-    y: -4,
+    y: -8,
     transition: {
-      duration: 0.15,
-      ease: [0.25, 0.1, 0.25, 1],
+      duration: 0.4,
+      ease: CINEMATIC_EASE,
     },
   },
 };
 
 const reducedVariants = {
   initial: { opacity: 0 },
-  enter: { opacity: 1, transition: { duration: 0.15 } },
-  exit: { opacity: 0, transition: { duration: 0.1 } },
+  enter: { opacity: 1, transition: { duration: 0.3 } },
+  exit: { opacity: 0, transition: { duration: 0.2 } },
 };
 
 export function PageTransition({ children, className }: PageTransitionProps) {
@@ -84,7 +85,7 @@ export function PageTransition({ children, className }: PageTransitionProps) {
 export function StaggerContainer({
   children,
   className,
-  staggerDelay = 0.05,
+  staggerDelay = 0.08,
 }: {
   children: ReactNode;
   className?: string;
@@ -101,7 +102,7 @@ export function StaggerContainer({
           opacity: 1,
           transition: {
             staggerChildren: staggerDelay,
-            delayChildren: 0.1,
+            delayChildren: 0.2,
           },
         },
       }}
@@ -122,11 +123,11 @@ export function StaggerItem({
     <motion.div
       className={className}
       variants={{
-        hidden: { opacity: 0, y: 12 },
+        hidden: { opacity: 0, y: 15 },
         visible: {
           opacity: 1,
           y: 0,
-          transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] },
+          transition: { duration: 0.5, ease: CINEMATIC_EASE },
         },
       }}
     >
@@ -150,10 +151,10 @@ export function FadeInView({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once, margin: '-48px' }}
-      transition={{ duration: 0.35, delay, ease: [0.25, 0.1, 0.25, 1] }}
+      viewport={{ once, margin: '-40px' }}
+      transition={{ duration: 0.7, delay, ease: CINEMATIC_EASE }}
     >
       {children}
     </motion.div>
@@ -164,7 +165,7 @@ export function FadeInView({
 export function ScaleOnHover({
   children,
   className,
-  scale = 1.02,
+  scale = 1.015,
 }: {
   children: ReactNode;
   className?: string;
@@ -174,8 +175,8 @@ export function ScaleOnHover({
     <motion.div
       className={className}
       whileHover={{ scale }}
-      whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.15 }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.4, ease: CINEMATIC_EASE }}
     >
       {children}
     </motion.div>
