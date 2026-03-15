@@ -1,79 +1,83 @@
-/**
- * BlockRenderer — universal CMS block dispatcher.
- * All casts now use proper imported types from cms/types.
- */
-import type {
-  ContentBlock,
-  ProofStripData,
-  StatsRowData,
-  ProcessStepsData,
-  PricingTableData,
-  FAQAccordionData,
-  CTABannerData,
-  HeroCenteredData,
-  HeroSplitData,
-  FeatureGridData,
-  TextBlockData,
-  SectionHeadingData,
-  TestimonialCarouselData,
-  ImageTextData,
-  LogoStripData,
-  PropertyShowcaseData,
-} from '@/lib/cms/types';
-import ProofStripBlock from './ProofStripBlock';
-import StatsRowBlock from './StatsRowBlock';
-import ProcessStepsBlock from './ProcessStepsBlock';
-import PricingTableBlock from './PricingTableBlock';
-import FAQAccordionBlock from './FAQAccordionBlock';
-import CTABannerBlock from './CTABannerBlock';
-import HeroCenteredBlock from './HeroCenteredBlock';
-import HeroSplitBlock from './HeroSplitBlock';
-import FeatureGridBlock from './FeatureGridBlock';
-import TextBlock from './TextBlock';
-import SectionHeadingBlock from './SectionHeadingBlock';
-import PropertyShowcaseBlock from './PropertyShowcaseBlock';
-import TestimonialCarouselBlock from './TestimonialCarouselBlock';
-import ImageTextBlock from './ImageTextBlock';
-import LogoStripBlock from './LogoStripBlock';
+import React, { Suspense, lazy } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import type { ContentBlock } from '@/lib/cms/types';
+import { FadeInView } from '@/components/PageTransition';
 
-interface Props {
-  block: ContentBlock;
+// Lazy load blocks for performance
+const HeroSplitBlock = lazy(() => import('./HeroSplitBlock'));
+const HeroCenteredBlock = lazy(() => import('./HeroCenteredBlock'));
+const TextBlock = lazy(() => import('./TextBlock'));
+const SectionHeadingBlock = lazy(() => import('./SectionHeadingBlock'));
+const FeatureGridBlock = lazy(() => import('./FeatureGridBlock'));
+const ProofStripBlock = lazy(() => import('./ProofStripBlock'));
+const StatsRowBlock = lazy(() => import('./StatsRowBlock'));
+const ProcessStepsBlock = lazy(() => import('./ProcessStepsBlock'));
+const PricingTableBlock = lazy(() => import('./PricingTableBlock'));
+const FAQAccordionBlock = lazy(() => import('./FAQAccordionBlock'));
+const CTABannerBlock = lazy(() => import('./CTABannerBlock'));
+const TestimonialCarouselBlock = lazy(() => import('./TestimonialCarouselBlock'));
+const ImageTextBlock = lazy(() => import('./ImageTextBlock'));
+const LogoStripBlock = lazy(() => import('./LogoStripBlock'));
+const PropertyShowcaseBlock = lazy(() => import('./PropertyShowcaseBlock'));
+const BookingSearchBlock = lazy(() => import('./BookingSearchBlock'));
+const ContactFormBlock = lazy(() => import('./ContactFormBlock'));
+
+const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
+  hero_split: HeroSplitBlock,
+  hero_centered: HeroCenteredBlock,
+  text_block: TextBlock,
+  section_heading: SectionHeadingBlock,
+  feature_grid: FeatureGridBlock,
+  proof_strip: ProofStripBlock,
+  stats_row: StatsRowBlock,
+  process_steps: ProcessStepsBlock,
+  pricing_table: PricingTableBlock,
+  faq_accordion: FAQAccordionBlock,
+  cta_banner: CTABannerBlock,
+  testimonial_carousel: TestimonialCarouselBlock,
+  image_text: ImageTextBlock,
+  logo_strip: LogoStripBlock,
+  property_showcase: PropertyShowcaseBlock,
+  booking_search: BookingSearchBlock,
+  contact_form: ContactFormBlock,
+};
+
+function BlockErrorFallback({ resetErrorBoundary }: { resetErrorBoundary: () => void }) {
+  return (
+    <div className="py-8 text-center border border-dashed border-destructive/30 rounded-lg">
+      <AlertTriangle className="w-5 h-5 text-destructive mx-auto mb-2" />
+      <p className="text-xs text-muted-foreground mb-2">Block failed to load</p>
+      <button onClick={resetErrorBoundary} className="text-[10px] text-primary hover:underline flex items-center gap-1 mx-auto">
+        <RefreshCw size={10} /> Retry
+      </button>
+    </div>
+  );
 }
 
-export default function BlockRenderer({ block }: Props) {
-  switch (block.type) {
-    case 'proof_strip':
-      return <ProofStripBlock data={block.data as ProofStripData} />;
-    case 'stats_row':
-      return <StatsRowBlock data={block.data as StatsRowData} />;
-    case 'process_steps':
-      return <ProcessStepsBlock data={block.data as ProcessStepsData} />;
-    case 'pricing_table':
-      return <PricingTableBlock data={block.data as PricingTableData} />;
-    case 'faq_accordion':
-      return <FAQAccordionBlock data={block.data as FAQAccordionData} />;
-    case 'cta_banner':
-      return <CTABannerBlock data={block.data as CTABannerData} />;
-    case 'hero_centered':
-      return <HeroCenteredBlock data={block.data as HeroCenteredData} />;
-    case 'hero_split':
-      return <HeroSplitBlock data={block.data as HeroSplitData} />;
-    case 'feature_grid':
-      return <FeatureGridBlock data={block.data as FeatureGridData} />;
-    case 'text_block':
-      return <TextBlock data={block.data as TextBlockData} />;
-    case 'section_heading':
-      return <SectionHeadingBlock data={block.data as SectionHeadingData} />;
-    case 'property_showcase':
-      return <PropertyShowcaseBlock data={block.data as PropertyShowcaseData} />;
-    case 'testimonial_carousel':
-      return <TestimonialCarouselBlock data={block.data as TestimonialCarouselData} />;
-    case 'image_text':
-      return <ImageTextBlock data={block.data as ImageTextData} />;
-    case 'logo_strip':
-      return <LogoStripBlock data={block.data as LogoStripData} />;
-    default:
-      if (import.meta.env.DEV) console.warn(`[BlockRenderer] Unknown block type: "${block.type}"`);
-      return null;
+function BlockSkeleton() {
+  return (
+    <div className="w-full h-32 bg-secondary/20 animate-pulse rounded-lg" />
+  );
+}
+
+const BlockRenderer: React.FC<{ block: ContentBlock }> = ({ block }) => {
+  const Component = BLOCK_COMPONENTS[block.type];
+
+  if (!Component) {
+    console.warn(`[BlockRenderer] Unknown block type: ${block.type}`);
+    return null;
   }
-}
+
+  return (
+    <ErrorBoundary FallbackComponent={BlockErrorFallback}>
+      <Suspense fallback={<BlockSkeleton />}>
+        <FadeInView>
+          <Component data={block.data} />
+        </FadeInView>
+      </Suspense>
+    </ErrorBoundary>
+  );
+};
+
+export default React.memo(BlockRenderer);

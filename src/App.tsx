@@ -13,22 +13,17 @@ import LoadingScreen from "@/components/LoadingScreen";
 import AiConcierge from "@/components/AiConcierge";
 import AdminGuard from "@/components/AdminGuard";
 import { SmartSearch } from "@/components/SmartSearch";
+import { CmsPage } from "@/components/CmsPage";
+import { useListingsRealtime } from "@/hooks/use-listings-realtime";
 
 // Lazy-loaded pages
-const Index            = lazy(() => import("./pages/Index"));
-const Residential      = lazy(() => import("./pages/Residential"));
 const Properties       = lazy(() => import("./pages/Properties"));
 const PropertyDetail   = lazy(() => import("./pages/PropertyDetail"));
 const Book             = lazy(() => import("./pages/Book"));
-const Owners           = lazy(() => import("./pages/Owners"));
 const OwnersEstimate   = lazy(() => import("./pages/OwnersEstimate"));
 const OwnersStandards  = lazy(() => import("./pages/OwnersStandards"));
 const OwnersResults    = lazy(() => import("./pages/OwnersResults"));
 const OwnersPack       = lazy(() => import("./pages/OwnersPack"));
-const PricingPage      = lazy(() => import("./pages/PricingPage"));
-const AboutPage        = lazy(() => import("./pages/AboutPage"));
-const FAQPage          = lazy(() => import("./pages/FAQPage"));
-const ContactPage      = lazy(() => import("./pages/ContactPage"));
 const PrivacyPage      = lazy(() => import("./pages/PrivacyPage"));
 const CookiesPage      = lazy(() => import("./pages/CookiesPage"));
 const TermsPage        = lazy(() => import("./pages/TermsPage"));
@@ -121,6 +116,7 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  useListingsRealtime();
   const [loaded, setLoaded] = useState(false);
 
   return (
@@ -133,21 +129,25 @@ export default function App() {
           <SuspenseWrapper>
             <SmartSearch />
             <Routes>
-              <Route path="/"                     element={<Index />} />
-              <Route path="/residential"          element={<Residential />} />
+              {/* 100% CMS Driven Routes */}
+              <Route path="/"                     element={<CmsPage slug="home" />} />
+              <Route path="/about"                element={<CmsPage slug="about" />} />
+              <Route path="/residential"          element={<CmsPage slug="residential" />} />
+              <Route path="/owners"               element={<CmsPage slug="owners" />} />
+              <Route path="/contact"              element={<CmsPage slug="contact" />} />
+
+              {/* Functional/Application Routes */}
               <Route path="/properties"           element={<Properties />} />
               <Route path="/properties/:id"       element={<PropertyDetail />} />
               <Route path="/book"                 element={<Book />} />
-              <Route path="/owners"               element={<Owners />} />
+
+              {/* Owners Sub-pages (Logic Heavy) */}
               <Route path="/owners/estimate"      element={<OwnersEstimate />} />
-              <Route path="/owners/pricing"       element={<PricingPage />} />
               <Route path="/owners/standards"     element={<OwnersStandards />} />
               <Route path="/owners/results"       element={<OwnersResults />} />
               <Route path="/owners/owners-pack"   element={<OwnersPack />} />
-              <Route path="/pricing"              element={<PricingPage />} />
-              <Route path="/about"                element={<AboutPage />} />
-              <Route path="/faq"                  element={<FAQPage />} />
-              <Route path="/contact"              element={<ContactPage />} />
+
+              {/* Legal & Admin */}
               <Route path="/privacy"              element={<PrivacyPage />} />
               <Route path="/cookies"              element={<CookiesPage />} />
               <Route path="/terms"                element={<TermsPage />} />
