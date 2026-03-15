@@ -1,105 +1,92 @@
-import { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, ArrowRight, Tag } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { SEOHead } from '@/components/SEOHead';
-import { SkipLink } from '@/components/ui/accessibility';
-import { FadeInView } from '@/components/PageTransition';
-import LeadModal from '@/components/LeadModal';
+import { Calendar, Clock, ArrowRight } from 'lucide-react';
 
-const posts = [
-  { slug: 'malta-property-investment-guide-2025', title: 'Malta Property Investment Guide 2025', excerpt: 'Everything you need to know before buying a short-stay investment property in Malta — yields, locations, legal requirements, and management.', category: 'Investment', readTime: '8 min', date: '2025-11-01', image: null },
-  { slug: 'best-areas-to-stay-malta', title: 'Best Areas to Stay in Malta: St Julian's, Valletta & Sliema Compared', excerpt: 'A practical guide to Malta\'s most popular neighbourhoods for short stays — walkability, nightlife, beach access, and what type of traveller each suits best.', category: 'Travel Guide', readTime: '6 min', date: '2025-10-15', image: null },
-  { slug: 'how-to-maximise-airbnb-income-malta', title: 'How to Maximise Your Airbnb Income in Malta', excerpt: 'Dynamic pricing, listing optimisation, response rates, and the one thing most Malta hosts get wrong that costs them 20% of potential income.', category: 'Owner Tips', readTime: '7 min', date: '2025-09-20', image: null },
-  { slug: 'malta-eco-tax-explained', title: 'Malta Eco Tax Explained for Short-Stay Property Owners', excerpt: 'A plain-language breakdown of Malta\'s Eco Contribution, how it\'s collected, what you owe, and how we handle it on your behalf.', category: 'Legal & Tax', readTime: '5 min', date: '2025-09-05', image: null },
-  { slug: 'gozo-holiday-rental-opportunity', title: 'Why Gozo is Malta\'s Next Big Holiday Rental Opportunity', excerpt: 'Gozo\'s tourist numbers have grown 40% in 3 years. Here\'s why smart investors are looking at the sister island before the market matures.', category: 'Investment', readTime: '6 min', date: '2025-08-18', image: null },
-  { slug: 'property-management-vs-self-manage', title: 'Self-Managing vs. Professional Property Management in Malta', excerpt: 'We break down the real time cost, risk, and income difference — backed by data from our own portfolio of 40+ managed properties.', category: 'Owner Tips', readTime: '9 min', date: '2025-07-30', image: null },
+/** Static seed articles — swap for Supabase/CMS fetch when ready. */
+const POSTS = [
+  {
+    slug: 'malta-short-let-guide-2025',
+    title: 'The Complete Guide to Short-Let Property Management in Malta',
+    excerpt: 'Everything you need to know about Malta Tourism Authority licensing, setting up your listing, and maximising your rental income in 2025.',
+    category: 'Owners',
+    date: '2025-03-01',
+    readMin: 8,
+    image: '',
+  },
+  {
+    slug: 'valletta-rental-market-2025',
+    title: 'Valletta Rental Market: Trends & Opportunities for Property Owners',
+    excerpt: 'A deep dive into Valletta's booming short-let market — occupancy rates, pricing trends, and what savvy owners are doing differently.',
+    category: 'Market Insights',
+    date: '2025-02-15',
+    readMin: 6,
+    image: '',
+  },
+  {
+    slug: 'airbnb-vs-direct-booking-malta',
+    title: 'Airbnb vs Direct Booking: Which Earns More in Malta?',
+    excerpt: 'We crunched the numbers across our portfolio. Here's what the data says about OTAs vs direct booking channels for Malta properties.',
+    category: 'Strategy',
+    date: '2025-01-20',
+    readMin: 5,
+    image: '',
+  },
 ];
 
-const categories = ['All', 'Investment', 'Owner Tips', 'Travel Guide', 'Legal & Tax'];
-
 export default function BlogPage() {
-  const [leadOpen, setLeadOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('All');
-
-  const filtered = activeCategory === 'All' ? posts : posts.filter(p => p.category === activeCategory);
-
   return (
-    <div className="min-h-screen bg-background">
-      <SkipLink />
-      <SEOHead
-        title="Malta Property Blog — Christiano Vincenti"
-        description="Expert guides on Malta property investment, short-stay management, Airbnb tips, and travel guides for property owners and guests."
-        keywords={['Malta property investment', 'Airbnb Malta tips', 'Malta short-stay rental guide', 'Malta travel blog']}
-      />
-      <Navbar onOpenWizard={() => setLeadOpen(true)} />
-
-      <main id="main-content">
-        <section className="pt-28 pb-16 border-b border-border/20">
-          <div className="section-container">
-            <FadeInView>
-              <p className="micro-type text-primary mb-4">Blog</p>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-2xl leading-[1.1] mb-4">Malta Property Insights</h1>
-              <p className="text-muted-foreground text-lg max-w-xl">Expert guides for property owners, investors, and guests exploring Malta.</p>
-            </FadeInView>
+    <>
+      <Helmet>
+        <title>Blog — Christiano Property Management</title>
+        <meta name="description" content="Expert insights on Malta property management, rental market trends, and owner strategies from Christiano Vincenti." />
+      </Helmet>
+      <Navbar />
+      <main id="main" className="pt-20">
+        <section className="section-container py-16 md:py-24">
+          <div className="max-w-2xl mb-12">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary mb-3">Insights</p>
+            <h1 className="text-3xl md:text-4xl font-bold font-display mb-4">Malta Property Blog</h1>
+            <p className="text-muted-foreground text-[15px] leading-relaxed">
+              Expert guides, market data, and owner strategies from Malta's leading property management team.
+            </p>
           </div>
-        </section>
 
-        <section className="py-12">
-          <div className="section-container">
-            {/* Category filter */}
-            <div className="flex flex-wrap gap-2 mb-10">
-              {categories.map(c => (
-                <button key={c} onClick={() => setActiveCategory(c)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                    activeCategory === c ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/40'
-                  }`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filtered.map((post, i) => (
-                <FadeInView key={post.slug} delay={i * 0.07}>
-                  <Link to={`/blog/${post.slug}`} className="group block border border-border/30 rounded-2xl overflow-hidden hover:border-primary/30 transition-colors">
-                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-muted/30 flex items-center justify-center">
-                      <Tag className="w-8 h-8 text-primary/30" />
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">{post.category}</span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={10} />{post.readTime}</span>
-                      </div>
-                      <h3 className="font-semibold leading-snug mb-2 group-hover:text-primary transition-colors">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{post.excerpt}</p>
-                      <div className="flex items-center justify-between mt-4">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar size={10} />{new Date(post.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        <ArrowRight size={14} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </div>
-                  </Link>
-                </FadeInView>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Owner CTA */}
-        <section className="py-20 bg-primary/5 border-t border-border/20">
-          <div className="section-container text-center">
-            <FadeInView>
-              <h2 className="text-2xl font-bold mb-3">Own a property in Malta?</h2>
-              <p className="text-muted-foreground mb-8 max-w-sm mx-auto">Get a free income estimate based on your property's location, size, and current market data.</p>
-              <button onClick={() => setLeadOpen(true)} className="btn-primary">Get Free Estimate</button>
-            </FadeInView>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {POSTS.map((post) => (
+              <Link
+                key={post.slug}
+                to={`/blog/${post.slug}`}
+                className="group flex flex-col border border-border/50 bg-card hover:border-border transition-colors"
+              >
+                {post.image ? (
+                  <img src={post.image} alt={post.title} className="w-full h-48 object-cover" loading="lazy" />
+                ) : (
+                  <div className="w-full h-48 bg-muted flex items-center justify-center">
+                    <span className="text-[11px] text-muted-foreground uppercase tracking-widest">{post.category}</span>
+                  </div>
+                )}
+                <div className="flex flex-col flex-1 p-5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary mb-2">{post.category}</span>
+                  <h2 className="text-[14px] font-semibold font-display leading-snug mb-2 group-hover:text-primary transition-colors">{post.title}</h2>
+                  <p className="text-[12px] text-muted-foreground leading-relaxed flex-1 mb-4">{post.excerpt}</p>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><Calendar size={10} />{new Date(post.date).toLocaleDateString('en-MT', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span className="flex items-center gap-1"><Clock size={10} />{post.readMin} min read</span>
+                  </div>
+                </div>
+                <div className="px-5 pb-4">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary group-hover:gap-2 transition-all">
+                    Read article <ArrowRight size={11} />
+                  </span>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       </main>
-
       <Footer />
-      <LeadModal open={leadOpen} onClose={() => setLeadOpen(false)} context="owner" />
-    </div>
+    </>
   );
 }
