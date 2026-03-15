@@ -18,6 +18,7 @@ import {
   normalizeListingDetail, useUpsellFees,
 } from '@/lib/guesty/hooks';
 import { sanitizeObject } from '@/lib/utils';
+import { UpsellIcon } from '@/lib/guesty/upsellIcons';
 import type { UpsellFee } from '@/lib/guesty/types';
 
 const bookingSchema = z.object({
@@ -40,7 +41,7 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-[10px] text-destructive mt-0.5">{msg}</p>;
 }
 
-/** Upsell add-on card — uses fee.price (Guesty canonical field) */
+/** Upsell add-on card with dynamic icon based on fee name */
 function UpsellCard({
   fee, selected, onToggle,
 }: { fee: UpsellFee; selected: boolean; onToggle: () => void }) {
@@ -53,16 +54,22 @@ function UpsellCard({
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-semibold text-foreground truncate">{fee.name}</p>
-          {fee.description && (
-            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{fee.description}</p>
-          )}
-          <p className="text-[9px] text-muted-foreground mt-0.5 capitalize">{fee.type.replace(/_/g, ' ')}</p>
+        <div className="flex items-start gap-2.5 flex-1 min-w-0">
+          {/* Dynamic icon resolved from fee name */}
+          <div className="w-7 h-7 border border-border/40 flex items-center justify-center shrink-0 mt-0.5">
+            <UpsellIcon feeName={fee.name} size={13} className="text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[12px] font-semibold text-foreground truncate">{fee.name}</p>
+            {fee.description && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{fee.description}</p>
+            )}
+            <p className="text-[9px] text-muted-foreground mt-0.5 capitalize">{fee.type.replace(/_/g, ' ')}</p>
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[12px] font-semibold numeric">
-            {fee.price != null ? `€${fee.price.toFixed(2)}` : 'Quoted'}
+            {fee.price != null ? `\u20ac${fee.price.toFixed(2)}` : 'Quoted'}
           </span>
           <div className={`w-5 h-5 border flex items-center justify-center transition-colors ${
             selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50'
@@ -93,7 +100,6 @@ export default function Book() {
   const toggleUpsell = (id: string) =>
     setSelectedUpsells((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
-  // fee.price is the canonical Guesty field
   const upsellTotal = (upsellFees as UpsellFee[])
     .filter((f) => selectedUpsells.has(f._id))
     .reduce((sum, f) => sum + (f.price ?? 0), 0);
@@ -218,7 +224,6 @@ export default function Book() {
                   <FieldError msg={errors.phone?.message} />
                 </div>
 
-                {/* Upsell fees — rendered BEFORE submit/Stripe */}
                 <AnimatePresence>
                   {(upsellFees as UpsellFee[]).length > 0 && (
                     <motion.div key="upsells" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
@@ -230,7 +235,7 @@ export default function Book() {
                       </div>
                       {upsellTotal > 0 && (
                         <p className="text-[11px] text-muted-foreground mt-2 text-right">
-                          Add-ons: <span className="font-semibold text-foreground numeric">+€{upsellTotal.toFixed(2)}</span>
+                          Add-ons: <span className="font-semibold text-foreground numeric">+\u20ac{upsellTotal.toFixed(2)}</span>
                         </p>
                       )}
                     </motion.div>
@@ -244,7 +249,6 @@ export default function Book() {
                   </div>
                 )}
 
-                {/* Submit button — Stripe element mounts here */}
                 <Button type="submit" disabled={isSubmitting || bookingMutation.isPending} className="w-full h-10 text-[12px] font-semibold">
                   {isSubmitting || bookingMutation.isPending ? (
                     <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Processing...</>
@@ -252,7 +256,7 @@ export default function Book() {
                     <span className="flex items-center gap-1.5">
                       Confirm Booking
                       {(quote?.priceBreakdown.total != null || upsellTotal > 0) && (
-                        <span className="opacity-70 font-normal">— €{((quote?.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
+                        <span className="opacity-70 font-normal">\u2014 \u20ac{((quote?.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
                       )}
                       <ChevronRight size={13} />
                     </span>
@@ -267,7 +271,6 @@ export default function Book() {
               </form>
             </motion.div>
 
-            {/* Booking summary */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
               <div className="border border-border/50 bg-card p-4 sticky top-20">
                 <h2 className="font-serif text-base font-semibold mb-4">Booking Summary</h2>
@@ -287,11 +290,11 @@ export default function Book() {
                 <div className="space-y-1.5 text-[12px] pb-3 border-b border-border/30">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-in</span>
-                    <span className="font-medium numeric">{checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
+                    <span className="font-medium numeric">{checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '\u2014'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-out</span>
-                    <span className="font-medium numeric">{checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
+                    <span className="font-medium numeric">{checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '\u2014'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guests</span>
@@ -303,29 +306,29 @@ export default function Book() {
                   <div className="space-y-1.5 text-[12px] py-3 border-b border-border/30">
                     <div className="flex justify-between">
                       <span>Accommodation ({quote.nightsCount}n)</span>
-                      <span className="numeric">€{quote.priceBreakdown.accommodation?.toLocaleString()}</span>
+                      <span className="numeric">\u20ac{quote.priceBreakdown.accommodation?.toLocaleString()}</span>
                     </div>
                     {quote.priceBreakdown.cleaningFee != null && (
                       <div className="flex justify-between text-muted-foreground">
                         <span>Cleaning</span>
-                        <span className="numeric">€{quote.priceBreakdown.cleaningFee}</span>
+                        <span className="numeric">\u20ac{quote.priceBreakdown.cleaningFee}</span>
                       </div>
                     )}
                     {quote.priceBreakdown.taxes != null && (
                       <div className="flex justify-between text-muted-foreground">
                         <span>Taxes</span>
-                        <span className="numeric">€{quote.priceBreakdown.taxes}</span>
+                        <span className="numeric">\u20ac{quote.priceBreakdown.taxes}</span>
                       </div>
                     )}
                     {selectedUpsells.size > 0 && upsellTotal > 0 && (
                       <div className="flex justify-between text-muted-foreground">
                         <span>Add-ons ({selectedUpsells.size})</span>
-                        <span className="numeric">€{upsellTotal.toFixed(2)}</span>
+                        <span className="numeric">\u20ac{upsellTotal.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-semibold text-base pt-2">
                       <span>Total</span>
-                      <span className="numeric">€{((quote.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
+                      <span className="numeric">\u20ac{((quote.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
                     </div>
                   </div>
                 )}
