@@ -7,24 +7,28 @@ interface Props {
 
 export default function StatsRowBlock({ data }: Props) {
   return (
-    <section className="py-12 border-b border-border/20">
+    <section className="py-20 lg:py-32 relative overflow-hidden">
       <div className="section-container">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {data.items.map((stat, i) => (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
+          {data.stats.map((stat, i) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.35 }}
-              className="text-center"
+              transition={{ duration: 0.8, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="text-center relative group"
             >
-              <p className="font-serif text-3xl sm:text-4xl font-semibold text-primary leading-none mb-1">
-                {stat.value}
-              </p>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-display">
+              <div className="text-4xl lg:text-6xl font-serif font-bold text-foreground mb-4 tracking-tighter">
+                <span className="gold-text">{stat.value}</span>
+                {stat.suffix && <span className="text-2xl lg:text-3xl font-light text-muted-foreground ml-1">{stat.suffix}</span>}
+              </div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground/60 leading-relaxed max-w-[140px] mx-auto">
                 {stat.label}
               </p>
+
+              {/* Decorative accent */}
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-8 h-px bg-primary/20 group-hover:w-12 transition-all duration-500" />
             </motion.div>
           ))}
         </div>

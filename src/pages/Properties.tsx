@@ -7,12 +7,12 @@ import PropertyCard from '@/components/PropertyCard';
 import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
 import { ErrorState } from '@/components/ui/error-states';
 import { SEOHead } from '@/components/SEOHead';
-import { FadeInView, StaggerContainer, StaggerItem } from '@/components/PageTransition';
 import { LiveRegion } from '@/components/ui/accessibility';
 import { motion } from 'framer-motion';
-import { MapPin, Star, Users, BedDouble, Bath, ExternalLink, Map, LayoutGrid, AlertCircle } from 'lucide-react';
+import { Map, LayoutGrid } from 'lucide-react';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
 import type { NormalizedListingSummary } from '@/lib/guesty/normalizer';
+import { For } from 'million/react';
 
 export default function Properties() {
   const [searchParams] = useSearchParams();
@@ -20,16 +20,13 @@ export default function Properties() {
   const [activeLocation, setActiveLocation] = useState(locationFilter);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  // Live data from Guesty BE API
   const { data: rawListings, isLoading, error, refetch } = useListings();
 
-  // Normalize all listings (hook already returns array)
   const properties: NormalizedListingSummary[] = useMemo(() => {
     const list = Array.isArray(rawListings) ? rawListings : [];
     return list.map((l) => normalizeListingSummary(l));
   }, [rawListings]);
 
-  // Map locations
   const mapLocations = useMemo(() => {
     return MALTA_LOCALITIES_COORDS.map(loc => {
       const matches = properties.filter(p =>
@@ -142,21 +139,23 @@ export default function Properties() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((property, i) => (
-              <PropertyCard
-                key={property.id || i}
-                id={property.id}
-                title={property.title}
-                city={property.city}
-                bedrooms={property.bedrooms}
-                bathrooms={property.bathrooms}
-                accommodates={property.accommodates}
-                rating={property.rating || 4.97}
-                basePrice={property.basePrice}
-                heroImage={property.heroImage}
-                index={i}
-              />
-            ))}
+            <For each={filtered}>
+              {(property, i) => (
+                <PropertyCard
+                  key={property.id || i}
+                  id={property.id}
+                  title={property.title}
+                  city={property.city}
+                  bedrooms={property.bedrooms}
+                  bathrooms={property.bathrooms}
+                  accommodates={property.accommodates}
+                  rating={property.rating || 4.97}
+                  basePrice={property.basePrice}
+                  heroImage={property.heroImage}
+                  index={i}
+                />
+              )}
+            </For>
           </div>
 
           {filtered.length === 0 && !isLoading && (

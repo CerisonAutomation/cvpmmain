@@ -31,58 +31,87 @@ export type PricingTableData = z.infer<typeof pricingTableDataSchema>;
 
 export const faqAccordionDataSchema = z.object({
   heading: z.string().default(''),
-  items: z.array(z.object({ question: z.string(), answer: z.string() })).default([]),
+  items: z.array(z.object({
+    question: z.string(),
+    answer: z.string(),
+    category: z.string().optional(),
+  })).default([]),
+  showFilters: z.boolean().optional(),
 });
 export type FAQAccordionData = z.infer<typeof faqAccordionDataSchema>;
 
 export const ctaBannerDataSchema = z.object({
-  heading: z.string().default(''),
-  subheading: z.string().optional(),
-  buttonLabel: z.string().default('Get Started'),
-  buttonHref: z.string().default('/'),
+  headline: z.string().default(''),
+  body: z.string().optional(),
+  cta: z.object({
+    label: z.string(),
+    href: z.string(),
+  }),
+  variant: z.enum(['default', 'gold', 'outline']).default('default'),
 });
 export type CTABannerData = z.infer<typeof ctaBannerDataSchema>;
 
 export const heroCenteredDataSchema = z.object({
-  heading: z.string().default(''),
-  subheading: z.string().optional(),
+  tagline: z.string().optional(),
+  headline: z.string().default(''),
+  body: z.string().optional(),
   backgroundImage: z.string().optional(),
-  buttonLabel: z.string().optional(),
-  buttonHref: z.string().optional(),
+  cta: z.object({
+    label: z.string(),
+    href: z.string(),
+  }),
+  secondaryCta: z.object({
+    label: z.string(),
+    href: z.string(),
+  }).optional(),
 });
 export type HeroCenteredData = z.infer<typeof heroCenteredDataSchema>;
 
 export const heroSplitDataSchema = z.object({
-  heading: z.string().default(''),
-  subheading: z.string().optional(),
+  tagline: z.string().optional(),
+  headline: z.string().default(''),
+  body: z.string().optional(),
   image: z.string().optional(),
-  buttonLabel: z.string().optional(),
-  buttonHref: z.string().optional(),
+  cta: z.object({
+    label: z.string(),
+    href: z.string(),
+  }),
+  secondaryCta: z.object({
+    label: z.string(),
+    href: z.string(),
+  }).optional(),
   reversed: z.boolean().optional(),
 });
 export type HeroSplitData = z.infer<typeof heroSplitDataSchema>;
 
 export const featureGridDataSchema = z.object({
-  heading: z.string().default(''),
-  features: z.array(z.object({
+  heading: z.object({
+    tagline: z.string().optional(),
+    headline: z.string(),
+    highlightWord: z.string().optional(),
+    alignment: z.enum(['left', 'center']).default('center'),
+  }).optional(),
+  items: z.array(z.object({
     icon: z.string().optional(),
     title: z.string(),
     description: z.string(),
   })).default([]),
+  columns: z.number().default(3),
 });
 export type FeatureGridData = z.infer<typeof featureGridDataSchema>;
 
 export const textBlockDataSchema = z.object({
   heading: z.string().optional(),
   body: z.string().default(''),
-  align: z.enum(['left', 'center', 'right']).optional(),
+  alignment: z.enum(['left', 'center', 'right']).optional(),
 });
 export type TextBlockData = z.infer<typeof textBlockDataSchema>;
 
 export const sectionHeadingDataSchema = z.object({
-  heading: z.string().default(''),
-  subheading: z.string().optional(),
-  align: z.enum(['left', 'center', 'right']).optional(),
+  tagline: z.string().optional(),
+  headline: z.string().default(''),
+  highlightWord: z.string().optional(),
+  alignment: z.enum(['left', 'center', 'right']).optional(),
 });
 export type SectionHeadingData = z.infer<typeof sectionHeadingDataSchema>;
 
@@ -117,6 +146,17 @@ export const propertyShowcaseDataSchema = z.object({
 });
 export type PropertyShowcaseData = z.infer<typeof propertyShowcaseDataSchema>;
 
+export const bookingSearchDataSchema = z.object({
+  variant: z.enum(['hero', 'default']).default('default'),
+});
+export type BookingSearchData = z.infer<typeof bookingSearchDataSchema>;
+
+export const contactFormDataSchema = z.object({
+  heading: z.string().optional(),
+  body: z.string().optional(),
+});
+export type ContactFormData = z.infer<typeof contactFormDataSchema>;
+
 // ── Core CMS types ──
 
 export const BLOCK_TYPES = [
@@ -135,18 +175,25 @@ export const BLOCK_TYPES = [
   { type: 'image_text',           label: 'Image + Text' },
   { type: 'logo_strip',           label: 'Logo Strip' },
   { type: 'property_showcase',    label: 'Property Showcase' },
-  { type: 'booking_cta',          label: 'Booking CTA' },
+  { type: 'booking_search',       label: 'Booking Search' },
+  { type: 'contact_form',         label: 'Contact Form' },
 ] as const;
 
 export type BlockType = typeof BLOCK_TYPES[number]['type'];
+
+export interface ContentBlock<T extends BlockType = BlockType, D = any> {
+  id: string;
+  type: T;
+  data: D;
+  tags?: string[];
+}
 
 export const contentBlockSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1),
   data: z.record(z.any()),
+  tags: z.array(z.string()).optional(),
 });
-
-export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
 export const pageDefinitionSchema = z.object({
   slug: z.string().min(1),

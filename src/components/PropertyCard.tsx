@@ -4,6 +4,7 @@ import { MapPin, Star, BedDouble, Bath, Users } from 'lucide-react';
 import { usePrefetchListing } from '@/lib/guesty/hooks';
 import ProgressiveImage from './ProgressiveImage';
 import { useRef, useCallback, memo } from 'react';
+import { block } from 'million/react';
 
 interface Props {
   id: string;
@@ -104,4 +105,4 @@ function PropertyCard({
   );
 }
 
-export default memo(PropertyCard);
+export default block(PropertyCard);

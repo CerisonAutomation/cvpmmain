@@ -2,6 +2,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import Layout from '@/components/Layout';
 import { SEOHead } from '@/components/SEOHead';
 import { useCmsPage } from '@/hooks/use-cms-page';
+import { For } from 'million/react';
 import BlockRenderer from '@/components/blocks/BlockRenderer';
 import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
@@ -65,11 +66,11 @@ export function CmsPage({ slug }: { slug: string }) {
     <Layout>
       <SEOHead title={page.title} description={page.description} />
       <main>
-        {page.blocks.map((block) => (
+        <For each={page.blocks}>{(block) => (
           <ErrorBoundary key={block.id} FallbackComponent={BlockErrorFallback}>
             <BlockRenderer block={block} />
           </ErrorBoundary>
-        ))}
+        )}</For>
       </main>
     </Layout>
   );
