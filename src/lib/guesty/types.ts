@@ -146,7 +146,8 @@ export interface QuoteRequest {
   checkOutDateLocalized: string;
   guestsCount: number;
   ratePlanId?: string;
-  coupons?: string[];
+  /** Comma-separated in BE API v2 */
+  coupons?: string;
   upsellFees?: string[];
   message?: string;
 }
@@ -169,6 +170,7 @@ export interface Quote {
     total: number;
   };
   ratePlan?: RatePlan;
+  ratePlans?: RatePlan[];
   coupons?: Coupon[];
   upsellFees?: UpsellFee[];
   available: boolean;
@@ -187,6 +189,11 @@ export interface RatePlan {
     weeklyDiscount?: number;
     monthlyDiscount?: number;
   };
+  totalPrice?: number;
+  nightlyPrice?: number;
+  fees?: Array<{ type?: string; amount?: number }>;
+  taxes?: Array<{ type?: string; amount?: number }>;
+  inquiryId?: string;
   minNights?: number;
   maxNights?: number;
 }
@@ -228,25 +235,27 @@ export interface PaymentProvider {
 
 export interface ReservationResponse {
   _id: string;
-  confirmationCode: string;
-  status: 'inquiry' | 'tentative' | 'confirmed' | 'cancelled' | 'expired';
+  confirmationCode?: string;
+  status: 'inquiry' | 'tentative' | 'confirmed' | 'cancelled' | 'expired' | 'reserved' | string;
   listingId: string;
-  checkInDateLocalized: string;
-  checkOutDateLocalized: string;
+  quoteId?: string;
+  ratePlanId?: string;
+  checkInDateLocalized?: string;
+  checkOutDateLocalized?: string;
+  checkInDate?: string;
+  checkOutDate?: string;
   guestsCount: number;
-  nightsCount: number;
-  guest: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-  };
-  money: {
+  nightsCount?: number;
+  guest: Guest;
+  money?: {
     currency: string;
     totalPaid: number;
     fees?: number;
     taxes?: number;
   };
+  totalPrice?: number;
+  balanceDue?: number;
+  currency?: string;
   createdAt: string;
   updatedAt: string;
 }
