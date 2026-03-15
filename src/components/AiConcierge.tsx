@@ -8,25 +8,48 @@ import { cn } from '@/lib/utils';
 
 type Msg = { role: 'user' | 'assistant'; content: string; id: string };
 
+// Max messages kept in context window sent to the AI edge function.
+// Older messages are trimmed from the payload (not from UI history).
+const MAX_CONTEXT_MESSAGES = 12;
+const SESSION_KEY = 'cv_ai_chat_history';
+
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+const WELCOME_MSG: Msg = {
+  id: 'welcome',
+  role: 'assistant',
+  content: "Welcome! I'm your Malta property concierge. Ask me anything about our luxury collection, local areas, or booking.",
+};
+
+function loadHistory(): Msg[] {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return [WELCOME_MSG];
+    const parsed: Msg[] = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [WELCOME_MSG];
+  } catch {
+    return [WELCOME_MSG];
+  }
+}
+
+function saveHistory(msgs: Msg[]) {
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(msgs)); } catch {}
+}
+
 export default function AiConcierge() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: "Welcome! I'm your Malta property concierge. Ask me anything about our luxury collection, local areas, or booking.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>(loadHistory);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const liveRegionId = useId();
+
+  // Persist chat across page navigations
+  useEffect(() => { saveHistory(messages); }, [messages]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -56,17 +79,21 @@ export default function AiConcierge() {
 
     const userMsg: Msg = { id: makeId(), role: 'user', content: text };
     const assistantId = makeId();
-    const history = [...messages, userMsg];
+    const nextMessages = [...messages, userMsg];
 
-    setMessages([...history, { id: assistantId, role: 'assistant', content: '' }]);
+    setMessages([...nextMessages, { id: assistantId, role: 'assistant', content: '' }]);
     setInput('');
     setStreaming(true);
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
+    // Trim context: send only the last MAX_CONTEXT_MESSAGES to the edge function
+    // to prevent token limit errors and runaway billing
+    const contextWindow = nextMessages.slice(-MAX_CONTEXT_MESSAGES);
+
     await streamAiChat({
-      messages: history.map(({ role, content }) => ({ role, content })),
+      messages: contextWindow.map(({ role, content }) => ({ role, content })),
       onDelta: (chunk) => {
         setMessages((prev) =>
           prev.map((m) =>

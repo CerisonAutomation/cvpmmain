@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, ArrowRight, Phone, Mail, User } from 'lucide-react';
+import { X, Check, ArrowRight, Phone, Mail, User, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { submitLeadModal } from '@/lib/submission';
 
 interface LeadModalProps {
   open: boolean;
@@ -117,6 +118,7 @@ function Step2View({ s2, setS2, firstFieldRef }: { s2: Step2Data; setS2: React.D
           placeholder="Full name"
           value={s2.name}
           onChange={e => setS2(p => ({ ...p, name: e.target.value }))}
+          autoComplete="name"
           className="w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
         />
       </div>
@@ -127,6 +129,7 @@ function Step2View({ s2, setS2, firstFieldRef }: { s2: Step2Data; setS2: React.D
           placeholder="Phone number"
           value={s2.phone}
           onChange={e => setS2(p => ({ ...p, phone: e.target.value }))}
+          autoComplete="tel"
           className="w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
         />
       </div>
@@ -137,6 +140,7 @@ function Step2View({ s2, setS2, firstFieldRef }: { s2: Step2Data; setS2: React.D
           placeholder="Email address"
           value={s2.email}
           onChange={e => setS2(p => ({ ...p, email: e.target.value }))}
+          autoComplete="email"
           className="w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
         />
       </div>
@@ -148,7 +152,8 @@ function Step2View({ s2, setS2, firstFieldRef }: { s2: Step2Data; setS2: React.D
           className="mt-0.5 accent-primary"
         />
         <span className="text-xs text-muted-foreground leading-relaxed">
-          I agree to be contacted by Christiano Vincenti Property Management. We never share your data.
+          I agree to be contacted by Christiano Vincenti Property Management.{' '}
+          <a href="/privacy" className="text-primary underline">Privacy Policy</a>.
         </span>
       </label>
     </div>
@@ -159,13 +164,17 @@ export default function LeadModal({ open, onClose, context = 'general' }: LeadMo
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [s1, setS1] = useState<Step1Data>({ intent: context === 'owner' ? 'owner' : context === 'guest' ? 'guest' : '', situation: '', goal: '' });
   const [s2, setS2] = useState<Step2Data>({ name: '', phone: '', email: '', consent: false });
   const firstFieldRef = useRef<HTMLInputElement>(null);
+  // Prevent double-submit
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
-      setStep(0); setSubmitted(false); setLoading(false);
+      setStep(0); setSubmitted(false); setLoading(false); setSubmitError(null);
+      submittingRef.current = false;
       setS1({ intent: context === 'owner' ? 'owner' : context === 'guest' ? 'guest' : '', situation: '', goal: '' });
       setS2({ name: '', phone: '', email: '', consent: false });
     }
@@ -185,14 +194,33 @@ export default function LeadModal({ open, onClose, context = 'general' }: LeadMo
   const canSubmit = s2.name.trim().length > 1 && s2.phone.trim().length > 6 && s2.email.includes('@') && s2.consent;
 
   const handleSubmit = useCallback(async () => {
-    if (!canSubmit || loading) return;
+    if (!canSubmit || loading || submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
+    setSubmitError(null);
     try {
-      const webhookUrl = (import.meta as any).env?.VITE_LEAD_WEBHOOK_URL;
-      const payload = { ...s1, ...s2, source: 'lead_modal', ts: new Date().toISOString() };
-      if (webhookUrl) await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(() => null);
+      const result = await submitLeadModal({
+        intent: s1.intent as 'owner' | 'guest',
+        situation: s1.situation,
+        goal: s1.goal || undefined,
+        name: s2.name,
+        phone: s2.phone,
+        email: s2.email,
+        consent: true,
+      });
+      if (!result.success) {
+        setSubmitError(result.error ?? 'Submission failed. Please try again.');
+        submittingRef.current = false;
+        return;
+      }
       setSubmitted(true);
-    } finally { setLoading(false); }
+    } catch (err) {
+      console.error('[LeadModal] handleSubmit:', err);
+      setSubmitError('Something went wrong. Please try again or call us directly.');
+      submittingRef.current = false;
+    } finally {
+      setLoading(false);
+    }
   }, [s1, s2, canSubmit, loading]);
 
   if (!open) return null;
@@ -221,22 +249,36 @@ export default function LeadModal({ open, onClose, context = 'general' }: LeadMo
               </button>
             </div>
             <div className="px-5 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              {submitted ? <SuccessView name={s2.name} intent={s1.intent} /> : step === 0 ? <Step1View s1={s1} setS1={setS1} /> : <Step2View s2={s2} setS2={setS2} firstFieldRef={firstFieldRef} />}
+              {submitted
+                ? <SuccessView name={s2.name} intent={s1.intent} />
+                : step === 0
+                ? <Step1View s1={s1} setS1={setS1} />
+                : <Step2View s2={s2} setS2={setS2} firstFieldRef={firstFieldRef} />}
             </div>
             {!submitted && (
-              <div className="px-5 pb-5 pt-2 border-t border-border/30 flex items-center justify-between gap-3">
-                {step === 1 ? <button type="button" onClick={() => setStep(0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back</button> : <span />}
-                {step === 0 ? (
-                  <button type="button" onClick={() => setStep(1)} disabled={!step1Complete}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
-                    Continue <ArrowRight size={14} />
-                  </button>
-                ) : (
-                  <button type="button" onClick={handleSubmit} disabled={!canSubmit || loading}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
-                    {loading ? 'Sending…' : 'Send Enquiry'} {!loading && <ArrowRight size={14} />}
-                  </button>
+              <div className="px-5 pb-5 pt-2 border-t border-border/30 flex flex-col gap-2">
+                {submitError && (
+                  <div role="alert" className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+                    <AlertCircle size={13} className="shrink-0" />
+                    {submitError}
+                  </div>
                 )}
+                <div className="flex items-center justify-between gap-3">
+                  {step === 1
+                    ? <button type="button" onClick={() => setStep(0)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back</button>
+                    : <span />}
+                  {step === 0 ? (
+                    <button type="button" onClick={() => setStep(1)} disabled={!step1Complete}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
+                      Continue <ArrowRight size={14} />
+                    </button>
+                  ) : (
+                    <button type="button" onClick={handleSubmit} disabled={!canSubmit || loading}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity">
+                      {loading ? 'Sending…' : <><span>Send Enquiry</span> <ArrowRight size={14} /></>}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>
