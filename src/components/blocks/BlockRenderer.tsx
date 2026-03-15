@@ -1,10 +1,25 @@
 /**
- * Block Renderer — Universal block-to-component mapping
- * Dynamically renders CMS blocks based on type.
- * All 15 block types fully implemented.
+ * BlockRenderer — universal CMS block dispatcher.
+ * All casts now use proper imported types from cms/types.
  */
-
-import type { ContentBlock, ProofStripData, StatsRowData, ProcessStepsData, PricingTableData, FAQAccordionData, CTABannerData, HeroCenteredData, HeroSplitData, FeatureGridData, TextBlockData, SectionHeadingData, TestimonialCarouselData, ImageTextData } from '@/lib/cms/types';
+import type {
+  ContentBlock,
+  ProofStripData,
+  StatsRowData,
+  ProcessStepsData,
+  PricingTableData,
+  FAQAccordionData,
+  CTABannerData,
+  HeroCenteredData,
+  HeroSplitData,
+  FeatureGridData,
+  TextBlockData,
+  SectionHeadingData,
+  TestimonialCarouselData,
+  ImageTextData,
+  LogoStripData,
+  PropertyShowcaseData,
+} from '@/lib/cms/types';
 import ProofStripBlock from './ProofStripBlock';
 import StatsRowBlock from './StatsRowBlock';
 import ProcessStepsBlock from './ProcessStepsBlock';
@@ -50,15 +65,15 @@ export default function BlockRenderer({ block }: Props) {
     case 'section_heading':
       return <SectionHeadingBlock data={block.data as SectionHeadingData} />;
     case 'property_showcase':
-      return <PropertyShowcaseBlock data={block.data as any} />;
+      return <PropertyShowcaseBlock data={block.data as PropertyShowcaseData} />;
     case 'testimonial_carousel':
       return <TestimonialCarouselBlock data={block.data as TestimonialCarouselData} />;
     case 'image_text':
       return <ImageTextBlock data={block.data as ImageTextData} />;
     case 'logo_strip':
-      return <LogoStripBlock data={block.data as any} />;
+      return <LogoStripBlock data={block.data as LogoStripData} />;
     default:
-      console.warn(`Unknown block type: ${block.type}`);
+      if (import.meta.env.DEV) console.warn(`[BlockRenderer] Unknown block type: "${block.type}"`);
       return null;
   }
 }
