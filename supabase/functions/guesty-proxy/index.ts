@@ -1,8 +1,12 @@
 /**
  * Guesty Booking Engine Proxy
  *
+ * Guesty Booking Engine Proxy (Zenith Version)
+ *
  * Security model:
  *   - Frontend NEVER calls Guesty directly — all traffic goes through this proxy
+ *   - Access token is read ONLY from Redis (populated by external cron/service)
+ *   - In-memory cache sits in front of Redis for zero-latency fast path
  *   - GUESTY_CLIENT_ID / GUESTY_CLIENT_SECRET live only in Supabase secrets
  *   - Access token is persisted in Redis and survives restarts
  *   - Token is NEVER force-regenerated via API — only renewed on natural expiry
@@ -50,13 +54,31 @@ function badRequest(details: unknown) {
 }
 
 // ══════════════════════════════════════════════════════════
-// TOKEN MANAGEMENT
+// TOKEN MANAGEMENT (Redis-Only)
 // ══════════════════════════════════════════════════════════
 let memToken: string | null = null;
 let memExpiresAt = 0;
 
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
+  const BUFFER = 60_000; // 1 min safety buffer
+
+  // 1. Memory Check
+  if (memToken && now < memExpiresAt - BUFFER) return memToken;
+
+  // 2. Redis Fetch
+  const redisUrl = Deno.env.get("REDIS_URL");
+  if (!redisUrl) throw new Error("REDIS_URL not configured");
+
+  const result = await readTokenFromRedis(redisUrl);
+  if (result && now < result.expiresAt - BUFFER) {
+    memToken = result.token;
+    memExpiresAt = result.expiresAt;
+    return result.token;
+  }
+
+  // 3. Fallback to existing memory if no other choice
+  if (memToken && now < memExpiresAt) return memToken;
   const BUFFER = 120_000;
 
   if (memToken && now < memExpiresAt - BUFFER) return memToken;
@@ -88,21 +110,41 @@ async function getAccessToken(): Promise<string> {
     );
   }
 
-  return newToken;
+  throw new Error("No valid Guesty token found in Redis or memory");
 }
 
+// ── Redis helpers ──────────────────────────────────────────
+
+function buildResp(args: string[]): Uint8Array {
+  const encoder = new TextEncoder();
+  let cmd = `*${args.length}\r\n`;
+  for (const arg of args) {
+    cmd += `$${encoder.encode(arg).length}\r\n${arg}\r\n`;
+  }
+  return encoder.encode(cmd);
+}
+
+async function redisCmd(redisUrl: string, ...args: string[]): Promise<string> {
+  const url = new URL(redisUrl);
+  const conn = await Deno.connect({ hostname: url.hostname, port: parseInt(url.port || "6379") });
 async function redisCmd(redisUrl: string, ...args: string[]): Promise<string> {
   const url = new URL(redisUrl);
   const conn = await Deno.connect({ hostname: url.hostname, port: parseInt(url.port || "6379") });
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   try {
-    async function send(cmd: string): Promise<string> {
-      await conn.write(encoder.encode(cmd + "\r\n"));
-      const buf = new Uint8Array(8192);
+    if (url.password) {
+      await conn.write(buildResp(["AUTH", url.password]));
+      const buf = new Uint8Array(1024);
       const n = await conn.read(buf);
-      return decoder.decode(buf.subarray(0, n || 0));
+      const res = decoder.decode(buf.subarray(0, n || 0));
+      if (!res.startsWith("+OK")) throw new Error(`Redis AUTH failed: ${res.trim()}`);
     }
+
+    await conn.write(buildResp(args));
+    const buf = new Uint8Array(8192);
+    const n = await conn.read(buf);
+    return decoder.decode(buf.subarray(0, n || 0));
     if (url.password) {
       const auth = await send(`AUTH ${url.password}`);
       if (!auth.startsWith("+OK")) throw new Error(`Redis AUTH failed: ${auth.trim()}`);
@@ -125,6 +167,29 @@ function parseRedisString(resp: string): string | null {
 
 async function readTokenFromRedis(redisUrl: string): Promise<{ token: string; expiresAt: number } | null> {
   try {
+    const resp = await redisCmd(redisUrl, "HGETALL", "guesty:beapi:token");
+    if (!resp || resp.startsWith("*-1") || resp.startsWith("*0")) return null;
+
+    // Very simple RESP HGETALL parser (expects *4 \r\n $5 \r\n token \r\n $... \r\n value \r\n ...)
+    const lines = resp.split("\r\n");
+    let token = "";
+    let exp = 0;
+
+    for (let i = 1; i < lines.length; i += 2) {
+      const key = lines[i + 1];
+      const val = lines[i + 3];
+      if (key === "token") token = val;
+      if (key === "expires_at") exp = Number(val);
+      i += 2;
+    }
+
+    if (token) {
+      return { token, expiresAt: exp > 1e12 ? exp : exp * 1000 };
+    }
+  } catch (err) {
+    console.error("Redis read failed:", err);
+  }
+  return null;
     const resp1 = await redisCmd(redisUrl, "GET", "guesty:access_token");
     const raw = parseRedisString(resp1);
     if (raw) {
@@ -376,6 +441,15 @@ Deno.serve(async (req) => {
         return Response.json(await res.json(), { headers: corsHeaders });
       }
 
+      case "quote-coupons": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/coupons`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
       // ── instant-booking (mutation) ────────────────────────────
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
@@ -390,6 +464,50 @@ Deno.serve(async (req) => {
         const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant`, { method: "POST", body: JSON.stringify(payload) });
         return Response.json(await res.json(), { status: res.ok ? 200 : res.status, headers: corsHeaders });
       }
+
+      case "inquiry-booking": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/inquiry`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "instant-charge": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant-charge`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "reservation-details": {
+        const resId = url.searchParams.get("reservationId");
+        const res = await guestyFetch(`/reservations/${resId}/details`);
+        const data = await res.json();
+        return Response.json(data, { headers: corsHeaders });
+      }
+
+      case "verify-payment": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const resId = url.searchParams.get("reservationId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/${resId}/verify-payment`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "payouts": {
+        const params = url.searchParams.get("params") || "";
+        const res = await guestyFetch(`/reservations/payouts/list?${params}`);
+        const data = await res.json();
+        return Response.json(data, { headers: corsHeaders });
+      }
+
+      default:
+        return Response.json({ error: `Unknown action: ${action}` }, { status: 400, headers: corsHeaders });
     }
 
     return Response.json({ error: "Unknown action" }, { status: 400, headers: corsHeaders });

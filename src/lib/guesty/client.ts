@@ -115,7 +115,7 @@ class GuestyClient {
       checkOutDateLocalized: params.checkOutDateLocalized,
       guestsCount: params.guestsCount,
       ...(params.ratePlanId ? { ratePlanId: params.ratePlanId } : {}),
-      ...(params.coupons?.length ? { coupon: params.coupons[0] } : {}),
+      ...(params.coupons ? { coupons: params.coupons } : {}),
     });
     return this.validate(GuestyQuoteSchema, data);
   }
@@ -125,12 +125,52 @@ class GuestyClient {
     return this.validate(GuestyQuoteSchema, data);
   }
 
-  async createInstantReservation(quoteId: string, guestData: {
-    guest: { firstName: string; lastName: string; email: string; phone: string };
-    payment?: { token: string };
+  async updateQuoteCoupons(quoteId: string, coupons: string[]): Promise<Quote> {
+    const data = await request<unknown>({ action: 'quote-coupons', quoteId }, 'POST', { coupons });
+    return this.validate(GuestyQuoteSchema, data);
+  }
+
+  async createInstantReservation(quoteId: string, params: {
+    ratePlanId: string;
+    ccToken: string;
+    guest: Guest;
+    policy?: any;
   }): Promise<ReservationResponse> {
-    // Reservation response is complex, using any for now but could add schema
-    return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', guestData);
+    return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', params);
+  }
+
+  async createInquiryReservation(quoteId: string, params: {
+    ratePlanId: string;
+    guest: Guest;
+    reservedUntil?: number;
+    ccToken?: string;
+    policy?: any;
+  }): Promise<ReservationResponse> {
+    return request<ReservationResponse>({ action: 'inquiry-booking', quoteId }, 'POST', params);
+  }
+
+  async createInstantChargeReservation(quoteId: string, params: {
+    ratePlanId: string;
+    guest: Guest;
+    confirmationToken?: string;
+    initialPaymentMethodId?: string;
+    reservedUntil?: number;
+    reuse?: boolean;
+    policy?: any;
+    notes?: any;
+  }): Promise<ReservationResponse> {
+    return request<ReservationResponse>({ action: 'instant-charge', quoteId }, 'POST', params);
+  }
+
+  async getReservationDetails(reservationId: string): Promise<ReservationResponse> {
+    return request<ReservationResponse>({ action: 'reservation-details', reservationId });
+  }
+
+  async verifyPayment(reservationId: string, params: {
+    paymentId: string;
+    threeDSResult?: any;
+  }): Promise<{ status: string }> {
+    return request<{ status: string }>({ action: 'verify-payment', reservationId }, 'POST', params);
   }
 
   async getReviews(params: { listingId?: string; limit?: number } = {}): Promise<Review[]> {
@@ -151,8 +191,12 @@ class GuestyClient {
     return request<PaymentProvider>({ action: 'payment-provider', id: listingId });
   }
 
-  async getUpsellFees(listingId: string): Promise<UpsellFee[]> {
-    return request<UpsellFee[]>({ action: 'upsell-fees', id: listingId });
+  async getUpsellFees(listingId: string, inquiryId?: string): Promise<UpsellFee[]> {
+    return request<UpsellFee[]>({
+      action: 'upsell-fees',
+      id: listingId,
+      ...(inquiryId ? { inquiryId } : {})
+    });
   }
 
   formatError(error: GuestyError): string {
