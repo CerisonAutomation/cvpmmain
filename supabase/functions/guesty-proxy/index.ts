@@ -1,12 +1,12 @@
 /**
  * Guesty Booking Engine Proxy
  *
+ * Guesty Booking Engine Proxy (Zenith Version)
+ *
  * Security model:
  *   - Frontend NEVER calls Guesty directly — all traffic goes through this proxy
- *   - VITE_GUESTY_ADMIN_CLIENT_ID / VITE_GUESTY_CLIENT_SECRET live only in Supabase secrets
- *   - Access token is persisted in Redis (guesty:beapi:token hash) and survives restarts
- *   - Token is NEVER regenerated via API — only renewed on natural expiry (TTL set by Guesty)
- *   - In-memory cache sits in front of Redis for zero-latency fast path within the same isolate
+ *   - Access token is read ONLY from Redis (populated by external cron/service)
+ *   - In-memory cache sits in front of Redis for zero-latency fast path
  */
 
 const corsHeaders = {
@@ -31,89 +31,64 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const jitter = (ms: number) => ms + Math.random() * Math.min(ms * 0.3, 2000);
 
 // ══════════════════════════════════════════════════════════
-// TOKEN MANAGEMENT
-// Token lifecycle:
-//   1. Cold start / isolate spin-up → read from Redis
-//   2. Redis hit → populate in-memory, return immediately
-//   3. Redis miss + token expired → fetch via OAuth → write back to Redis with TTL
-//   4. Token is NEVER force-regenerated; only replaced when Guesty expires it
+// TOKEN MANAGEMENT (Redis-Only)
 // ══════════════════════════════════════════════════════════
 let memToken: string | null = null;
 let memExpiresAt = 0;
 
 async function getAccessToken(): Promise<string> {
   const now = Date.now();
-  const BUFFER = 120_000; // 2 min safety buffer
+  const BUFFER = 60_000; // 1 min safety buffer
 
-  // 1. Fast path: valid in-memory token
+  // 1. Memory Check
   if (memToken && now < memExpiresAt - BUFFER) return memToken;
 
-  // 2. Try Redis
+  // 2. Redis Fetch
   const redisUrl = Deno.env.get("REDIS_URL");
-  if (redisUrl) {
-    try {
-      const result = await readTokenFromRedis(redisUrl);
-      if (result) {
-        memToken = result.token;
-        memExpiresAt = result.expiresAt;
-        if (now < result.expiresAt - BUFFER) {
-          return result.token;
-        }
-        // Redis token exists but is about to expire — fall through to refresh
-      }
-    } catch (err) {
-      console.error("Redis token read failed:", err);
-    }
+  if (!redisUrl) throw new Error("REDIS_URL not configured");
+
+  const result = await readTokenFromRedis(redisUrl);
+  if (result && now < result.expiresAt - BUFFER) {
+    memToken = result.token;
+    memExpiresAt = result.expiresAt;
+    return result.token;
   }
 
-  // 3. Use in-memory token as fallback if still technically valid
-  if (memToken && now < memExpiresAt) {
-    console.warn("Using near-expiry in-memory token as fallback");
-    return memToken;
-  }
+  // 3. Fallback to existing memory if no other choice
+  if (memToken && now < memExpiresAt) return memToken;
 
-  // 4. OAuth refresh — only happens when token is truly expired
-  const newToken = await fetchTokenViaOAuth();
-
-  // 5. Write back to Redis immediately so next cold start skips OAuth
-  if (redisUrl) {
-    writeTokenToRedis(redisUrl, newToken, memExpiresAt).catch((err) =>
-      console.error("Redis token write-back failed:", err)
-    );
-  }
-
-  return newToken;
+  throw new Error("No valid Guesty token found in Redis or memory");
 }
 
 // ── Redis helpers ──────────────────────────────────────────
 
+function buildResp(args: string[]): Uint8Array {
+  const encoder = new TextEncoder();
+  let cmd = `*${args.length}\r\n`;
+  for (const arg of args) {
+    cmd += `$${encoder.encode(arg).length}\r\n${arg}\r\n`;
+  }
+  return encoder.encode(cmd);
+}
+
 async function redisCmd(redisUrl: string, ...args: string[]): Promise<string> {
   const url = new URL(redisUrl);
-  const hostname = url.hostname;
-  const port = parseInt(url.port || "6379");
-  const password = url.password || undefined;
-
-  const conn = await Deno.connect({ hostname, port });
-  const encoder = new TextEncoder();
+  const conn = await Deno.connect({ hostname: url.hostname, port: parseInt(url.port || "6379") });
   const decoder = new TextDecoder();
 
   try {
-    async function send(cmd: string): Promise<string> {
-      await conn.write(encoder.encode(cmd + "\r\n"));
-      const buf = new Uint8Array(8192);
+    if (url.password) {
+      await conn.write(buildResp(["AUTH", url.password]));
+      const buf = new Uint8Array(1024);
       const n = await conn.read(buf);
-      return decoder.decode(buf.subarray(0, n || 0));
+      const res = decoder.decode(buf.subarray(0, n || 0));
+      if (!res.startsWith("+OK")) throw new Error(`Redis AUTH failed: ${res.trim()}`);
     }
 
-    if (password) {
-      const auth = await send(`AUTH ${password}`);
-      if (!auth.startsWith("+OK")) throw new Error(`Redis AUTH failed: ${auth.trim()}`);
-    }
-
-    // Build RESP array command
-    const parts = ["*" + args.length];
-    for (const a of args) parts.push(`$${a.length}`, a);
-    return await send(parts.join("\r\n"));
+    await conn.write(buildResp(args));
+    const buf = new Uint8Array(8192);
+    const n = await conn.read(buf);
+    return decoder.decode(buf.subarray(0, n || 0));
   } finally {
     try { conn.close(); } catch { /* ignore */ }
   }
@@ -128,112 +103,30 @@ function parseRedisString(resp: string): string | null {
 }
 
 async function readTokenFromRedis(redisUrl: string): Promise<{ token: string; expiresAt: number } | null> {
-  // Try guesty:access_token (JSON string)
   try {
-    const resp1 = await redisCmd(redisUrl, "GET", "guesty:access_token");
-    const raw = parseRedisString(resp1);
-    if (raw) {
-      const json = JSON.parse(raw);
-      const token = json.accessToken || json.access_token;
-      const exp = json.expiresAt || json.expires_at;
-      if (token) {
-        const expiresAt = typeof exp === "number"
-          ? (exp > 1e12 ? exp : exp * 1000)
-          : Date.now() + 3600_000;
-        return { token, expiresAt };
-      }
-    }
-  } catch { /* try next key */ }
+    const resp = await redisCmd(redisUrl, "HGETALL", "guesty:beapi:token");
+    if (!resp || resp.startsWith("*-1") || resp.startsWith("*0")) return null;
 
-  // Try guesty:beapi:token (hash)
-  try {
-    const resp2 = await redisCmd(redisUrl, "HGET", "guesty:beapi:token", "token");
-    const token = parseRedisString(resp2);
+    // Very simple RESP HGETALL parser (expects *4 \r\n $5 \r\n token \r\n $... \r\n value \r\n ...)
+    const lines = resp.split("\r\n");
+    let token = "";
+    let exp = 0;
+
+    for (let i = 1; i < lines.length; i += 2) {
+      const key = lines[i + 1];
+      const val = lines[i + 3];
+      if (key === "token") token = val;
+      if (key === "expires_at") exp = Number(val);
+      i += 2;
+    }
+
     if (token) {
-      const resp3 = await redisCmd(redisUrl, "HGET", "guesty:beapi:token", "expires_at");
-      const expStr = parseRedisString(resp3);
-      const expiresAt = expStr
-        ? (Number(expStr) > 1e12 ? Number(expStr) : Number(expStr) * 1000)
-        : Date.now() + 3600_000;
-      return { token, expiresAt };
+      return { token, expiresAt: exp > 1e12 ? exp : exp * 1000 };
     }
-  } catch { /* fall through */ }
-
+  } catch (err) {
+    console.error("Redis read failed:", err);
+  }
   return null;
-}
-
-async function writeTokenToRedis(redisUrl: string, token: string, expiresAtMs: number): Promise<void> {
-  // Write to guesty:beapi:token hash
-  // Also set Redis TTL = remaining seconds until Guesty token expires, so Redis auto-expires it
-  const expiresAtSec = Math.floor(expiresAtMs / 1000);
-  const ttlSec = Math.max(60, Math.floor((expiresAtMs - Date.now()) / 1000));
-
-  await redisCmd(redisUrl, "HSET", "guesty:beapi:token", "token", token, "expires_at", String(expiresAtSec));
-  // Set key TTL so Redis auto-deletes when token expires — never manually deleted
-  await redisCmd(redisUrl, "EXPIRE", "guesty:beapi:token", String(ttlSec));
-  console.log(`Token written to Redis (TTL: ${ttlSec}s)`);
-}
-
-// ── OAuth fetch (only when Redis has no valid token) ───────
-
-async function fetchTokenViaOAuth(): Promise<string> {
-  const now = Date.now();
-  const clientId = Deno.env.get("GUESTY_CLIENT_ID");
-  const clientSecret = Deno.env.get("GUESTY_CLIENT_SECRET");
-
-  if (!clientId || !clientSecret) {
-    if (memToken && now < memExpiresAt) {
-      console.warn("No OAuth credentials — using existing in-memory token");
-      return memToken;
-    }
-    throw new Error("Guesty credentials not configured and no valid cached token");
-  }
-
-  for (let attempt = 0; attempt < 5; attempt++) {
-    if (attempt > 0) await sleep(jitter(2000 * 2 ** attempt));
-
-    let res: Response;
-    try {
-      res = await fetch("https://booking.guesty.com/oauth2/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "client_credentials",
-          scope: "booking_engine:api",
-          client_id: clientId,
-          client_secret: clientSecret,
-        }),
-      });
-    } catch (fetchErr) {
-      console.error(`OAuth network error (attempt ${attempt + 1}):`, fetchErr);
-      continue;
-    }
-
-    if (res.ok) {
-      const d = await res.json();
-      memToken = d.access_token;
-      memExpiresAt = now + (d.expires_in || 3600) * 1000;
-      console.log(`New Guesty token fetched via OAuth (expires_in: ${d.expires_in}s)`);
-      return d.access_token;
-    }
-
-    if (res.status === 429) {
-      const retryAfter = res.headers.get("Retry-After");
-      if (retryAfter) {
-        const w = parseInt(retryAfter, 10);
-        if (!isNaN(w) && w > 0 && w < 180) await sleep(w * 1000);
-      }
-      if (memToken && now < memExpiresAt) return memToken;
-      continue;
-    }
-    if (res.status === 401 || res.status === 403) {
-      throw new Error(`Guesty OAuth: invalid credentials (${res.status})`);
-    }
-    console.error(`OAuth error ${res.status}:`, (await res.text()).slice(0, 200));
-  }
-
-  if (memToken && now < memExpiresAt) return memToken;
-  throw new Error("Guesty API temporarily unavailable after 5 retries");
 }
 
 // ══════════════════════════════════════════════════════════
@@ -369,29 +262,25 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
-      case "rate-plans": {
-        const id = url.searchParams.get("id");
-        if (!id) return Response.json({ error: "Missing id" }, { status: 400, headers: corsHeaders });
-        const { data } = await cachedGuestyFetch(`rp:${id}`, `/listings/${id}/rate-plans`, TTL["rate-plans"]);
-        return Response.json(data, { headers: corsHeaders });
-      }
-
       case "payment-provider": {
         const id = url.searchParams.get("id");
         if (!id) return Response.json({ error: "Missing id" }, { status: 400, headers: corsHeaders });
-        const { data } = await cachedGuestyFetch(`pp:${id}`, `/payments/provider?listingId=${id}`, TTL["payment-provider"]);
+        const { data } = await cachedGuestyFetch(`pp:${id}`, `/listings/${id}/payment-provider`, TTL["payment-provider"]);
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── NEW: upsell fees — shown in Book.tsx before Stripe payment ──
       case "upsell-fees": {
-        const id = url.searchParams.get("id");
-        if (!id) return Response.json({ error: "Missing id" }, { status: 400, headers: corsHeaders });
-        const { data } = await cachedGuestyFetch(`upsell:${id}`, `/listings/${id}/upsell-fees`, TTL["upsell-fees"]);
+        const listingId = url.searchParams.get("id");
+        const inquiryId = url.searchParams.get("inquiryId");
+        if (!listingId) return Response.json({ error: "Missing id" }, { status: 400, headers: corsHeaders });
+        const path = inquiryId
+          ? `/reservations/upsell/${inquiryId}/${listingId}/fee`
+          : `/listings/${listingId}/upsell-fees`;
+        const { data } = await cachedGuestyFetch(`upsell:${listingId}:${inquiryId}`, path, TTL["upsell-fees"]);
         return Response.json(data, { headers: corsHeaders });
       }
 
-      // ── Mutations (uncacheable) ──────────────────────────────────────
+      // ── Zenith Mutations ──────────────────────────────────────────
 
       case "quote": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
@@ -409,6 +298,15 @@ Deno.serve(async (req) => {
         return Response.json(data, { headers: corsHeaders });
       }
 
+      case "quote-coupons": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/coupons`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
         const quoteId = url.searchParams.get("quoteId");
@@ -417,6 +315,47 @@ Deno.serve(async (req) => {
         const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant`, { method: "POST", body: JSON.stringify(body) });
         const data = await res.json();
         return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "inquiry-booking": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/inquiry`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "instant-charge": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const quoteId = url.searchParams.get("quoteId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/quotes/${quoteId}/instant-charge`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "reservation-details": {
+        const resId = url.searchParams.get("reservationId");
+        const res = await guestyFetch(`/reservations/${resId}/details`);
+        const data = await res.json();
+        return Response.json(data, { headers: corsHeaders });
+      }
+
+      case "verify-payment": {
+        if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const resId = url.searchParams.get("reservationId");
+        const body = await req.json();
+        const res = await guestyFetch(`/reservations/${resId}/verify-payment`, { method: "POST", body: JSON.stringify(body) });
+        const data = await res.json();
+        return Response.json(data, { status: res.ok ? 200 : res.status, headers: corsHeaders });
+      }
+
+      case "payouts": {
+        const params = url.searchParams.get("params") || "";
+        const res = await guestyFetch(`/reservations/payouts/list?${params}`);
+        const data = await res.json();
+        return Response.json(data, { headers: corsHeaders });
       }
 
       default:

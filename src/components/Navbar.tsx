@@ -13,7 +13,6 @@ const NAV_LINKS = [
     { label: "Owner Portal", href: "/owners/portal" },
   ]},
   { label: "Properties", href: "/properties" },
-  { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
