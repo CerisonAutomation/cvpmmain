@@ -1,6 +1,9 @@
 /**
  * useAuth — Supabase session + role hook.
  * Single source of truth for auth state across the app.
+ *
+ * FIX: loading is now reset to true on auth state change so AdminGuard
+ * never sees loading=false + role=null simultaneously during role fetch.
  */
 import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
@@ -32,7 +35,7 @@ export function useAuth(): AuthState {
         const r = await getUserRole(u.id);
         if (!cancelled) setRole(r);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
 
     init();
@@ -41,9 +44,23 @@ export function useAuth(): AuthState {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
-        getUserRole(u.id).then((r) => { if (!cancelled) setRole(r); });
+        // Set loading=true so guards wait for the role to resolve —
+        // prevents the window where loading=false and role=null simultaneously.
+        setLoading(true);
+        getUserRole(u.id).then((r) => {
+          if (!cancelled) {
+            setRole(r);
+            setLoading(false);
+          }
+        }).catch(() => {
+          if (!cancelled) {
+            setRole(null);
+            setLoading(false);
+          }
+        });
       } else {
         setRole(null);
+        setLoading(false);
       }
     });
 
