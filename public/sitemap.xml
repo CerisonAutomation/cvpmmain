@@ -73,28 +73,6 @@
     <priority>0.3</priority>
   </url>
 
-  <!-- Blog -->
-  <url>
-    <loc>https://christianopm.com/blog</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://christianopm.com/blog/malta-short-let-guide-2025</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://christianopm.com/blog/valletta-rental-market-2025</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://christianopm.com/blog/airbnb-vs-direct-booking-malta</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
   <!-- Location landing pages -->
   <url>
     <loc>https://christianopm.com/locations/sliema</loc>

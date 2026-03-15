@@ -91,10 +91,6 @@ export function SmartSearch() {
               <Lock size={16} className="mr-2 h-4 w-4" />
               <span>Owner Portal</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => navigate('/blog'))}>
-              <BookOpen size={16} className="mr-2 h-4 w-4" />
-              <span>Blog &amp; Insights</span>
-            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => navigate('/contact'))}>
               <Phone size={16} className="mr-2 h-4 w-4" />
               <span>Contact Us</span>
