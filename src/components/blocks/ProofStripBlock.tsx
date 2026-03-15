@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Shield, BarChart3, Clock, Star } from 'lucide-react';
+import { Shield, BarChart3, Clock, Star, type LucideIcon } from 'lucide-react';
 import type { ProofStripData } from '@/lib/cms/types';
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Shield, BarChart3, Clock, Star,
 };
 

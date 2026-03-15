@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { guestyClient } from './client';
 import { normalizeListingSummary, normalizeListingDetail } from './normalizer';
-import type { QuoteRequest, PropertyType, Amenity, Listing, Quote } from './types';
+import type { QuoteRequest, PropertyType, Amenity, Listing, Quote, GuestyError } from './types';
 
 // ── Cache Configuration ──
 const CACHE = {
@@ -31,17 +31,15 @@ export const useListings = (params: {
     queryKey: ['listings', params],
     queryFn: async () => {
       const raw = await guestyClient.getListings(params);
-      // Guesty BE API returns { results: [...] } or array
-      if (Array.isArray(raw)) return raw;
-      if (raw && typeof raw === 'object' && 'results' in raw) return (raw as any).results || [];
-      if (raw && typeof raw === 'object' && 'listings' in raw) return (raw as any).listings || [];
-      return [];
+      // guestyClient.getListings already handles array/results normalization
+      return Array.isArray(raw) ? raw : [];
     },
     staleTime: CACHE.LISTINGS,
     refetchOnWindowFocus: false,
-    retry: (failureCount, error: any) => {
-      if (error?.error_code === 'UNAUTHORIZED' || error?.message?.includes('401') || error?.message?.includes('403')) return false;
-      if (error?.message?.includes('429') || error?.retryable) return failureCount < 1;
+    retry: (failureCount, error: unknown) => {
+      const err = error as GuestyError;
+      if (err?.error_code === 'UNAUTHORIZED' || err?.message?.includes('401') || err?.message?.includes('403')) return false;
+      if (err?.message?.includes('429') || err?.retryable) return failureCount < 1;
       return failureCount < 1;
     },
     retryDelay: (i) => Math.min(15000 * 2 ** i, 60000),

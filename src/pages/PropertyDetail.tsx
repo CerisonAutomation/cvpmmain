@@ -22,14 +22,14 @@ import type { NormalizedListingDetail } from '@/lib/guesty/normalizer';
 import type { CalendarDay } from '@/lib/guesty/types';
 
 const AMENITY_ICONS: Record<string, React.ReactNode> = {
-  WiFi: <Wifi size={16} />, WIFI: <Wifi size={16} />,
-  Kitchen: <Utensils size={16} />, KITCHEN: <Utensils size={16} />,
-  'Air Conditioning': <Snowflake size={16} />, AIR_CONDITIONING: <Snowflake size={16} />,
-  Parking: <Car size={16} />, FREE_PARKING_ON_PREMISES: <Car size={16} />,
-  TV: <Tv size={16} />, Washer: <Shirt size={16} />, WASHER: <Shirt size={16} />,
-  Heating: <Flame size={16} />, HEATING: <Flame size={16} />,
-  Coffee: <Coffee size={16} />, COFFEE_MAKER: <Coffee size={16} />,
-  POOL: <Waves size={16} />, Pool: <Waves size={16} />,
+  'WiFi': <Wifi size={16} />, 'WIFI': <Wifi size={16} />,
+  'Kitchen': <Utensils size={16} />, 'KITCHEN': <Utensils size={16} />,
+  'Air Conditioning': <Snowflake size={16} />, 'AIR_CONDITIONING': <Snowflake size={16} />,
+  'Parking': <Car size={16} />, 'FREE_PARKING_ON_PREMISES': <Car size={16} />,
+  'TV': <Tv size={16} />, 'Washer': <Shirt size={16} />, 'WASHER': <Shirt size={16} />,
+  'Heating': <Flame size={16} />, 'HEATING': <Flame size={16} />,
+  'Coffee': <Coffee size={16} />, 'COFFEE_MAKER': <Coffee size={16} />,
+  'POOL': <Waves size={16} />, 'Pool': <Waves size={16} />,
 };
 
 /** Generate month grid for calendar display */
@@ -51,8 +51,11 @@ function toLocalDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+import { useWishlist } from '@/hooks/use-wishlist';
+
 export default function PropertyDetail() {
   const { id } = useParams<{ id: string }>();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -196,15 +199,28 @@ export default function PropertyDetail() {
         />
         {images.length > 1 && (
           <>
-            <button onClick={() => setCurrentImageIdx((currentImageIdx - 1 + images.length) % images.length)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2.5 rounded-full hover:bg-background transition-colors">
+            <button
+              onClick={() => setCurrentImageIdx((currentImageIdx - 1 + images.length) % images.length)}
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2.5 rounded-full hover:bg-background transition-colors"
+              aria-label="Previous image"
+            >
               <ChevronLeft size={20} />
             </button>
-            <button onClick={() => setCurrentImageIdx((currentImageIdx + 1) % images.length)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2.5 rounded-full hover:bg-background transition-colors">
+            <button
+              onClick={() => setCurrentImageIdx((currentImageIdx + 1) % images.length)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2.5 rounded-full hover:bg-background transition-colors"
+              aria-label="Next image"
+            >
               <ChevronRight size={20} />
             </button>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
               {images.slice(0, 8).map((_, i) => (
-                <button key={i} onClick={() => setCurrentImageIdx(i)} className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIdx ? 'bg-primary' : 'bg-foreground/30'}`} />
+                <button
+                  key={i}
+                  onClick={() => setCurrentImageIdx(i)}
+                  className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIdx ? 'bg-primary' : 'bg-foreground/30'}`}
+                  aria-label={`Go to image ${i + 1}`}
+                />
               ))}
               {images.length > 8 && <span className="text-[10px] text-foreground/50 ml-1">+{images.length - 8}</span>}
             </div>
@@ -213,11 +229,35 @@ export default function PropertyDetail() {
 
         {/* Image counter & actions */}
         <div className="absolute top-4 right-4 flex gap-2">
+          <button
+            onClick={() => id && toggleWishlist(id)}
+            className="bg-background/80 backdrop-blur-sm p-2 rounded-full hover:bg-background transition-colors"
+            aria-label={id && isInWishlist(id) ? "Remove from wishlist" : "Add to wishlist"}
+          >
+            <Heart size={18} className={id && isInWishlist(id) ? "fill-destructive text-destructive" : "text-foreground"} />
+          </button>
           <span className="bg-background/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-medium">
             {currentImageIdx + 1} / {images.length}
           </span>
         </div>
       </section>
+
+      {/* Mobile Floating Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-t border-border p-4 flex items-center justify-between shadow-2xl">
+        <div>
+          <span className="text-xl font-bold">€{property.basePrice}</span>
+          <span className="text-muted-foreground text-xs block">per night</span>
+        </div>
+        <Button
+          onClick={() => {
+            const sidebar = document.querySelector('.sticky');
+            sidebar?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="px-8"
+        >
+          Check Availability
+        </Button>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 grid lg:grid-cols-3 gap-8">
         {/* Main Content */}
@@ -251,13 +291,21 @@ export default function PropertyDetail() {
             <h2 className="font-serif text-xl font-semibold mb-4">Availability</h2>
             <div className="satin-surface rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <button onClick={() => navigateMonth(-1)} className="p-2 hover:bg-accent rounded-lg transition-colors">
+                <button
+                  onClick={() => navigateMonth(-1)}
+                  className="p-2 hover:bg-accent rounded-lg transition-colors"
+                  aria-label="Previous month"
+                >
                   <ChevronLeft size={18} />
                 </button>
                 <h3 className="font-semibold text-sm">
                   {MONTH_NAMES[calMonth.month]} {calMonth.year}
                 </h3>
-                <button onClick={() => navigateMonth(1)} className="p-2 hover:bg-accent rounded-lg transition-colors">
+                <button
+                  onClick={() => navigateMonth(1)}
+                  className="p-2 hover:bg-accent rounded-lg transition-colors"
+                  aria-label="Next month"
+                >
                   <ChevronRight size={18} />
                 </button>
               </div>
@@ -403,8 +451,9 @@ export default function PropertyDetail() {
                     value={checkIn}
                     min={todayStr}
                     onChange={e => {
-                      setCheckIn(e.target.value);
-                      if (checkOut && e.target.value >= checkOut) setCheckOut('');
+                      const val = e.target.value;
+                      setCheckIn(val);
+                      if (checkOut && checkOut <= val) setCheckOut('');
                     }}
                     className="mt-1"
                   />

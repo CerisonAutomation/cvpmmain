@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Star, BedDouble, Bath, Users } from 'lucide-react';
 import { usePrefetchListing } from '@/lib/guesty/hooks';
 import ProgressiveImage from './ProgressiveImage';
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, memo } from 'react';
 
 interface Props {
   id: string;
@@ -24,7 +24,7 @@ interface Props {
  * - Dense information display
  * - Hover prefetching
  */
-export default function PropertyCard({
+function PropertyCard({
   id, title, city, bedrooms, bathrooms, accommodates,
   rating, basePrice, heroImage, index = 0,
 }: Props) {
@@ -44,6 +44,7 @@ export default function PropertyCard({
       to={`/properties/${id}`}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
+      aria-label={`View details for ${title} in ${city}`}
     >
       <motion.article
         initial={{ opacity: 0, y: 12 }}
@@ -102,3 +103,5 @@ export default function PropertyCard({
     </Link>
   );
 }
+
+export default memo(PropertyCard);

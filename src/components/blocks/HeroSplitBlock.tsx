@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Home, Key } from 'lucide-react';
+import { ArrowRight, Home, Key, type LucideIcon } from 'lucide-react';
 import type { HeroSplitData } from '@/lib/cms/types';
 
-const ICON_MAP: Record<string, any> = { Home, Key, ArrowRight };
+const ICON_MAP: Record<string, LucideIcon> = { Home, Key, ArrowRight };
 
 interface Props {
   data: HeroSplitData;
