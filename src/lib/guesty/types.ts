@@ -233,6 +233,19 @@ export interface PaymentProvider {
   configuration: Record<string, unknown>;
 }
 
+/**
+ * Guest — PII data submitted for reservation creation.
+ * Matches Guesty Booking Engine guest object shape.
+ */
+export interface Guest {
+  firstName: string;
+  lastName: string;
+  email: Email;
+  phone?: PhoneNumber;
+  /** ISO 3166-1 alpha-2 country code, e.g. "MT", "GB" */
+  countryCode?: string;
+}
+
 export interface ReservationResponse {
   _id: string;
   confirmationCode?: string;

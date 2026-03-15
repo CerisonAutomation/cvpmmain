@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type {
   Listing, PropertyType, Amenity, Quote, QuoteRequest,
   City, CalendarDay, PaymentProvider, Review, UpsellFee,
-  GuestyError, ReservationResponse, ErrorCode, RatePlan,
+  GuestyError, ReservationResponse, ErrorCode, RatePlan, Guest,
 } from './types';
 import {
   GuestyListingSchema,
@@ -58,9 +58,6 @@ class GuestyClient {
     const result = schema.safeParse(data);
     if (!result.success) {
       console.error('Guesty API Validation Error:', result.error.format());
-      // In production, we might want to be more tolerant or log to Sentry
-      // For now, we return the data as-is but casted, to avoid breaking everything
-      // while still getting the error in the console.
       return data as T;
     }
     return result.data;
@@ -85,7 +82,6 @@ class GuestyClient {
     });
     const data = await request<unknown>({ action: 'listings', params: qp.toString() });
 
-    // API might return { results: [...] }
     const rawListings = (data && typeof data === 'object' && 'results' in data)
       ? (data as Record<string, unknown>).results
       : data;

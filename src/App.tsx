@@ -119,55 +119,65 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
   );
 }
 
-export default function App() {
+// FIX: AppRoutes is inside BrowserRouter so useListingsRealtime and
+// LoadingScreen have guaranteed router context available.
+function AppRoutes() {
   useListingsRealtime();
   const [loaded, setLoaded] = useState(false);
 
+  return (
+    <>
+      {!loaded && <LoadingScreen onComplete={() => setLoaded(true)} />}
+      <SuspenseWrapper>
+        <SmartSearch />
+        <Routes>
+          {/* CMS-driven pages */}
+          <Route path="/"             element={<CmsPage slug="home" />} />
+          <Route path="/about"        element={<CmsPage slug="about" />} />
+          <Route path="/residential"  element={<CmsPage slug="residential" />} />
+          <Route path="/owners"       element={<CmsPage slug="owners" />} />
+          <Route path="/contact"      element={<CmsPage slug="contact" />} />
+          <Route path="/faq"          element={<CmsPage slug="faq" />} />
+          <Route path="/owners/pricing" element={<CmsPage slug="owners-pricing" />} />
+
+          {/* Application routes */}
+          <Route path="/properties"         element={<Properties />} />
+          <Route path="/properties/:id"     element={<PropertyDetail />} />
+          <Route path="/book"               element={<Book />} />
+
+          {/* Owners sub-pages */}
+          <Route path="/owners/estimate"    element={<OwnersEstimate />} />
+          <Route path="/owners/standards"   element={<OwnersStandards />} />
+          <Route path="/owners/results"     element={<OwnersResults />} />
+          <Route path="/owners/owners-pack" element={<OwnersPack />} />
+          <Route path="/owners/portal"      element={<OwnerPortalPage />} />
+
+          {/* Location pages */}
+          <Route path="/locations/:slug"    element={<LocationPage />} />
+
+          {/* Legal */}
+          <Route path="/privacy"  element={<PrivacyPage />} />
+          <Route path="/cookies"  element={<CookiesPage />} />
+          <Route path="/terms"    element={<TermsPage />} />
+
+          {/* Admin */}
+          <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
+
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </SuspenseWrapper>
+    </>
+  );
+}
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {!loaded && <LoadingScreen onComplete={() => setLoaded(true)} />}
         <BrowserRouter>
-          <SuspenseWrapper>
-            <SmartSearch />
-            <Routes>
-              {/* CMS-driven pages */}
-              <Route path="/"             element={<CmsPage slug="home" />} />
-              <Route path="/about"        element={<CmsPage slug="about" />} />
-              <Route path="/residential"  element={<CmsPage slug="residential" />} />
-              <Route path="/owners"       element={<CmsPage slug="owners" />} />
-              <Route path="/contact"      element={<CmsPage slug="contact" />} />
-              <Route path="/faq"          element={<CmsPage slug="faq" />} />
-              <Route path="/owners/pricing" element={<CmsPage slug="owners-pricing" />} />
-
-              {/* Application routes */}
-              <Route path="/properties"         element={<Properties />} />
-              <Route path="/properties/:id"     element={<PropertyDetail />} />
-              <Route path="/book"               element={<Book />} />
-
-              {/* Owners sub-pages */}
-              <Route path="/owners/estimate"    element={<OwnersEstimate />} />
-              <Route path="/owners/standards"   element={<OwnersStandards />} />
-              <Route path="/owners/results"     element={<OwnersResults />} />
-              <Route path="/owners/owners-pack" element={<OwnersPack />} />
-              <Route path="/owners/portal"      element={<OwnerPortalPage />} />
-
-              {/* Location pages */}
-              <Route path="/locations/:slug"    element={<LocationPage />} />
-
-              {/* Legal */}
-              <Route path="/privacy"  element={<PrivacyPage />} />
-              <Route path="/cookies"  element={<CookiesPage />} />
-              <Route path="/terms"    element={<TermsPage />} />
-
-              {/* Admin */}
-              <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </SuspenseWrapper>
+          <AppRoutes />
         </BrowserRouter>
         <Suspense fallback={null}><AiConcierge /></Suspense>
         <CookieConsentBanner />
