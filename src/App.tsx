@@ -119,8 +119,9 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
   );
 }
 
-// FIX: AppRoutes is inside BrowserRouter so useListingsRealtime and
-// LoadingScreen have guaranteed router context available.
+// AppRoutes is inside BrowserRouter — all children have full router context.
+// AiConcierge and CookieConsentBanner live here (not in App) so they can
+// safely use useLocation / useNavigate in future without crashing.
 function AppRoutes() {
   useListingsRealtime();
   const [loaded, setLoaded] = useState(false);
@@ -132,12 +133,12 @@ function AppRoutes() {
         <SmartSearch />
         <Routes>
           {/* CMS-driven pages */}
-          <Route path="/"             element={<CmsPage slug="home" />} />
-          <Route path="/about"        element={<CmsPage slug="about" />} />
-          <Route path="/residential"  element={<CmsPage slug="residential" />} />
-          <Route path="/owners"       element={<CmsPage slug="owners" />} />
-          <Route path="/contact"      element={<CmsPage slug="contact" />} />
-          <Route path="/faq"          element={<CmsPage slug="faq" />} />
+          <Route path="/"               element={<CmsPage slug="home" />} />
+          <Route path="/about"          element={<CmsPage slug="about" />} />
+          <Route path="/residential"    element={<CmsPage slug="residential" />} />
+          <Route path="/owners"         element={<CmsPage slug="owners" />} />
+          <Route path="/contact"        element={<CmsPage slug="contact" />} />
+          <Route path="/faq"            element={<CmsPage slug="faq" />} />
           <Route path="/owners/pricing" element={<CmsPage slug="owners-pricing" />} />
 
           {/* Application routes */}
@@ -166,6 +167,10 @@ function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SuspenseWrapper>
+
+      {/* Global overlays — inside BrowserRouter so they have full router context */}
+      <Suspense fallback={null}><AiConcierge /></Suspense>
+      <CookieConsentBanner />
     </>
   );
 }
@@ -179,8 +184,6 @@ export default function App() {
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
-        <Suspense fallback={null}><AiConcierge /></Suspense>
-        <CookieConsentBanner />
       </TooltipProvider>
     </QueryClientProvider>
   );
