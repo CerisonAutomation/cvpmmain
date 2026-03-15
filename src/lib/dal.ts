@@ -151,7 +151,8 @@ export async function streamAiChat({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        // FIX: was VITE_SUPABASE_PUBLISHABLE_KEY (undefined) — correct key is ANON_KEY
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({ messages }),
       signal,
