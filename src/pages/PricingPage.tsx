@@ -1,207 +1,147 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { Check, Star, Zap, Shield } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { SEOHead } from '@/components/SEOHead';
 import { SkipLink } from '@/components/ui/accessibility';
 import { FadeInView } from '@/components/PageTransition';
-import WizardModal from '@/components/WizardModal';
-import { Check, X, Zap, Crown, Building2 } from 'lucide-react';
+import LeadModal from '@/components/LeadModal';
 
-const plans = [
+const tiers = [
   {
-    id: 'essential',
-    icon: Zap,
     name: 'Essential',
-    commission: '15%',
-    subtitle: 'Perfect for single-property owners',
-    description: 'Everything you need to get started with managed short-stay in Malta.',
-    features: [
-      { label: 'Full listing management (Airbnb, Booking.com, VRBO)', included: true },
-      { label: 'Professional photography session', included: true },
-      { label: 'Guest communication & check-in coordination', included: true },
-      { label: 'Cleaning & linen service coordination', included: true },
-      { label: 'Monthly owner statements', included: true },
-      { label: 'Dynamic pricing optimisation', included: true },
-      { label: 'Dedicated account manager', included: false },
-      { label: 'Owner portal with live dashboard', included: false },
-      { label: 'Maintenance concierge service', included: false },
-      { label: 'Annual property review & strategy', included: false },
-    ],
+    icon: Star,
+    description: 'Perfect for owners who want reliable management and strong results with a simple, proven approach.',
+    fee: '15%',
+    feeSub: 'of gross revenue',
     cta: 'Get Started',
-    highlighted: false,
+    features: [
+      'Full listing setup on all major OTAs',
+      'Dynamic pricing management',
+      '24/7 guest communication',
+      'Professional cleaning coordination',
+      'Monthly owner statement',
+      'Maintenance coordination',
+      'Dedicated account manager',
+    ],
+    highlight: false,
   },
   {
-    id: 'premium',
-    icon: Crown,
     name: 'Premium',
-    commission: '18%',
-    subtitle: 'Our most popular plan',
-    description: 'The complete management package for owners who want the best results with zero involvement.',
+    icon: Zap,
+    description: 'Our most popular plan — everything in Essential plus active revenue optimisation and a direct booking strategy.',
+    fee: '18%',
+    feeSub: 'of gross revenue',
+    cta: 'Get Premium',
     features: [
-      { label: 'Full listing management (Airbnb, Booking.com, VRBO)', included: true },
-      { label: 'Professional photography session', included: true },
-      { label: 'Guest communication & check-in coordination', included: true },
-      { label: 'Cleaning & linen service coordination', included: true },
-      { label: 'Monthly owner statements', included: true },
-      { label: 'Dynamic pricing optimisation', included: true },
-      { label: 'Dedicated account manager', included: true },
-      { label: 'Owner portal with live dashboard', included: true },
-      { label: 'Maintenance concierge service', included: true },
-      { label: 'Annual property review & strategy', included: false },
+      'Everything in Essential',
+      'Direct booking website presence',
+      'Revenue benchmarking & optimisation',
+      'Professional photography (new listings)',
+      'Priority maintenance response',
+      'Quarterly performance review',
+      'Owner portal dashboard access',
     ],
-    cta: 'Get Started',
-    highlighted: true,
+    highlight: true,
   },
   {
-    id: 'portfolio',
-    icon: Building2,
-    name: 'Portfolio',
-    commission: 'Custom',
-    subtitle: 'For 3+ properties',
-    description: 'Tailored management for owners with multiple properties. Volume discounts and dedicated team.',
+    name: 'Elite',
+    icon: Shield,
+    description: 'Full-service white-glove management for portfolio owners and premium properties where only the best will do.',
+    fee: 'Custom',
+    feeSub: 'portfolio pricing',
+    cta: 'Contact Us',
     features: [
-      { label: 'Full listing management (Airbnb, Booking.com, VRBO)', included: true },
-      { label: 'Professional photography session', included: true },
-      { label: 'Guest communication & check-in coordination', included: true },
-      { label: 'Cleaning & linen service coordination', included: true },
-      { label: 'Monthly owner statements', included: true },
-      { label: 'Dynamic pricing optimisation', included: true },
-      { label: 'Dedicated account manager', included: true },
-      { label: 'Owner portal with live dashboard', included: true },
-      { label: 'Maintenance concierge service', included: true },
-      { label: 'Annual property review & strategy', included: true },
+      'Everything in Premium',
+      'Dedicated portfolio manager',
+      'Professional interior styling consult',
+      'Owner income report with AI narrative',
+      'Multi-property dashboard',
+      'Annual market benchmarking report',
+      'Priority access to new investment listings',
     ],
-    cta: 'Talk to Us',
-    highlighted: false,
+    highlight: false,
   },
-];
-
-const faqs = [
-  { q: 'Are there any setup fees?', a: 'No setup fees. The commission is calculated only on completed, paid bookings. If there are no bookings, there are no fees.' },
-  { q: 'What does the commission cover?', a: 'The commission covers full management including listing, photography, guest communication, cleaning coordination, maintenance oversight, and monthly reporting.' },
-  { q: 'Is there a minimum contract period?', a: 'We offer a 3-month trial period. After that, contracts run month-to-month with 30 days\' notice required to terminate.' },
-  { q: 'Do I keep control of my property?', a: 'Absolutely. You can block dates for personal use at any time via the owner portal. You remain the owner and can exit the management agreement with notice.' },
 ];
 
 export default function PricingPage() {
-  const [wizardOpen, setWizardOpen] = useState(false);
+  const [leadOpen, setLeadOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
       <SkipLink />
       <SEOHead
-        title="Management Pricing — Christiano Vincenti Property Management Malta"
-        description="Transparent, commission-only pricing for Malta property management. No setup fees. No hidden costs. Choose the plan that fits your property."
-        keywords={['Malta property management fees', 'property management commission Malta', 'holiday rental management cost']}
+        title="Pricing — Christiano Vincenti Property Management Malta"
+        description="Transparent, performance-based property management fees. No hidden charges. See our Essential, Premium, and Elite plans."
+        keywords={['Malta property management pricing', 'Airbnb management fee Malta', 'short-stay management cost Malta']}
       />
-      <Navbar onOpenWizard={() => setWizardOpen(true)} />
+      <Navbar onOpenWizard={() => setLeadOpen(true)} />
 
       <main id="main-content">
-        {/* Header */}
         <section className="pt-28 pb-16 border-b border-border/20">
           <div className="section-container text-center">
             <FadeInView>
               <p className="micro-type text-primary mb-4">Pricing</p>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-2xl mx-auto leading-tight mb-4">
-                Transparent, Performance-Based Pricing
-              </h1>
-              <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-                We earn when you earn. Commission-only, no setup fees, no surprises.
-              </p>
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-2xl mx-auto leading-[1.1] mb-4">Transparent, Performance-Based Fees</h1>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">We only earn when you earn. No setup fees, no hidden charges, no surprises.</p>
             </FadeInView>
           </div>
         </section>
 
-        {/* Plans */}
-        <section className="py-20">
+        <section className="py-16">
           <div className="section-container">
-            <div className="grid lg:grid-cols-3 gap-6 items-start">
-              {plans.map((plan, i) => (
-                <FadeInView key={plan.id} delay={i * 0.1}>
-                  <div className={`relative rounded-2xl border p-8 transition-all ${
-                    plan.highlighted
-                      ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
-                      : 'border-border/40 bg-card hover:border-border'
+            <div className="grid lg:grid-cols-3 gap-8">
+              {tiers.map((tier, i) => (
+                <FadeInView key={tier.name} delay={i * 0.1}>
+                  <div className={`relative flex flex-col h-full rounded-2xl border p-8 ${
+                    tier.highlight ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10' : 'border-border/30 bg-card'
                   }`}>
-                    {plan.highlighted && (
+                    {tier.highlight && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
+                        <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Most Popular</span>
                       </div>
                     )}
-                    <plan.icon className={`w-8 h-8 mb-4 ${plan.highlighted ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <h2 className="text-xl font-bold">{plan.name}</h2>
-                    <div className="mt-2 mb-1">
-                      <span className="text-4xl font-bold">{plan.commission}</span>
-                      {plan.commission !== 'Custom' && <span className="text-muted-foreground text-sm ml-1">commission</span>}
+                    <tier.icon className={`w-8 h-8 mb-4 ${tier.highlight ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <h3 className="text-xl font-bold mb-1">{tier.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{tier.description}</p>
+                    <div className="mb-6">
+                      <span className="text-4xl font-bold">{tier.fee}</span>
+                      <span className="text-sm text-muted-foreground ml-2">{tier.feeSub}</span>
                     </div>
-                    <p className="text-sm text-primary font-medium mb-2">{plan.subtitle}</p>
-                    <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{plan.description}</p>
-
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((f) => (
-                        <li key={f.label} className="flex items-start gap-3">
-                          {f.included
-                            ? <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                            : <X className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 mt-0.5" />}
-                          <span className={`text-sm ${f.included ? 'text-foreground' : 'text-muted-foreground/50'}`}>{f.label}</span>
+                    <button onClick={() => setLeadOpen(true)} className={`w-full py-3 rounded-xl text-sm font-semibold transition-all mb-8 ${
+                      tier.highlight ? 'bg-primary text-primary-foreground hover:opacity-90' : 'border border-border hover:border-primary/40 hover:text-primary'
+                    }`}>
+                      {tier.cta}
+                    </button>
+                    <ul className="space-y-3 mt-auto">
+                      {tier.features.map(f => (
+                        <li key={f} className="flex items-start gap-3 text-sm">
+                          <Check size={14} className="text-primary mt-0.5 flex-shrink-0" />
+                          <span className="text-muted-foreground">{f}</span>
                         </li>
                       ))}
                     </ul>
-
-                    <button
-                      onClick={() => setWizardOpen(true)}
-                      className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${
-                        plan.highlighted
-                          ? 'bg-primary text-primary-foreground hover:opacity-90'
-                          : 'border border-border hover:bg-muted/50'
-                      }`}
-                      aria-label={`${plan.cta} with ${plan.name} plan`}
-                    >
-                      {plan.cta}
-                    </button>
                   </div>
                 </FadeInView>
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* FAQ */}
-        <section className="py-16 border-t border-border/20">
-          <div className="section-container">
-            <FadeInView>
-              <h2 className="section-heading mb-10 text-center">Common Questions</h2>
-            </FadeInView>
-            <div className="max-w-2xl mx-auto space-y-6">
-              {faqs.map((faq, i) => (
-                <FadeInView key={faq.q} delay={i * 0.08}>
-                  <div className="border-b border-border/30 pb-6">
-                    <h3 className="font-medium mb-2">{faq.q}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
-                  </div>
-                </FadeInView>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Bottom CTA */}
-        <section className="py-16 bg-primary/5 border-t border-primary/10">
-          <div className="section-container text-center">
-            <FadeInView>
-              <h2 className="text-2xl font-bold mb-3">Not sure which plan is right for you?</h2>
-              <p className="text-muted-foreground mb-8">Get a free income estimate and we&apos;ll recommend the best fit for your property.</p>
-              <button onClick={() => setWizardOpen(true)} className="btn-primary">
-                Get Free Estimate
-              </button>
+            <FadeInView delay={0.3}>
+              <div className="mt-16 p-8 bg-muted/30 border border-border/30 rounded-2xl text-center">
+                <h3 className="font-semibold text-lg mb-2">Not sure which plan is right?</h3>
+                <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">We\'ll recommend the right plan after a free 15-minute call about your property.</p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button onClick={() => setLeadOpen(true)} className="btn-primary">Get a Free Recommendation</button>
+                  <a href="tel:+35679790202" className="btn-secondary">Call +356 7979 0202</a>
+                </div>
+              </div>
             </FadeInView>
           </div>
         </section>
       </main>
 
       <Footer />
-      <WizardModal open={wizardOpen} onClose={() => setWizardOpen(false)} />
+      <LeadModal open={leadOpen} onClose={() => setLeadOpen(false)} context="owner" />
     </div>
   );
 }
