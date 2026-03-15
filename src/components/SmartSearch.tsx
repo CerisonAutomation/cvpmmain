@@ -10,7 +10,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { useListings } from '@/lib/guesty/hooks';
-import { Home, Search, MapPin, Phone, HelpCircle, Star } from 'lucide-react';
+import { Home, Search, MapPin, Phone, HelpCircle, Star, BookOpen, Lock, Building2 } from 'lucide-react';
 import type { Listing } from '@/lib/guesty/types';
 
 /**
@@ -83,6 +83,18 @@ export function SmartSearch() {
               <Home size={16} className="mr-2 h-4 w-4" />
               <span>Home</span>
             </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => navigate('/owners'))}>
+              <MapPin size={16} className="mr-2 h-4 w-4" />
+              <span>Owner Services</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => navigate('/owners/portal'))}>
+              <Lock size={16} className="mr-2 h-4 w-4" />
+              <span>Owner Portal</span>
+            </CommandItem>
+            <CommandItem onSelect={() => runCommand(() => navigate('/blog'))}>
+              <BookOpen size={16} className="mr-2 h-4 w-4" />
+              <span>Blog &amp; Insights</span>
+            </CommandItem>
             <CommandItem onSelect={() => runCommand(() => navigate('/contact'))}>
               <Phone size={16} className="mr-2 h-4 w-4" />
               <span>Contact Us</span>
@@ -91,10 +103,26 @@ export function SmartSearch() {
               <HelpCircle size={16} className="mr-2 h-4 w-4" />
               <span>Frequently Asked Questions</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => navigate('/owners'))}>
-              <MapPin size={16} className="mr-2 h-4 w-4" />
-              <span>Owner Services</span>
-            </CommandItem>
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Locations">
+            {[
+              { label: 'Sliema', slug: 'sliema' },
+              { label: 'Valletta', slug: 'valletta' },
+              { label: "St Julian's", slug: 'st-julians' },
+              { label: 'Gozo', slug: 'gozo' },
+              { label: 'Mellieħa', slug: 'mellieha' },
+            ].map(({ label, slug }) => (
+              <CommandItem
+                key={slug}
+                onSelect={() => runCommand(() => navigate(`/locations/${slug}`))}
+              >
+                <Building2 size={16} className="mr-2 h-4 w-4 text-muted-foreground" />
+                <span>Properties in {label}</span>
+              </CommandItem>
+            ))}
           </CommandGroup>
         </CommandList>
       </CommandDialog>

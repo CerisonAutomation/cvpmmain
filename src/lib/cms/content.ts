@@ -44,9 +44,11 @@ export const SITE_CONFIG: SiteConfig = {
         { label: 'Pricing', href: '/owners/pricing' },
         { label: 'Get Free Estimate', href: '/owners/estimate' },
         { label: 'Our Standards', href: '/owners/standards' },
+        { label: 'Owner Portal', href: '/owners/portal' },
       ],
     },
     { label: 'Properties', href: '/properties' },
+    { label: 'Blog', href: '/blog' },
     { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
   ],
@@ -62,6 +64,14 @@ export const SITE_CONFIG: SiteConfig = {
       { label: 'Pricing', href: '/owners/pricing' },
       { label: 'Free Estimate', href: '/owners/estimate' },
       { label: 'Our Standards', href: '/owners/standards' },
+      { label: 'Owner Portal', href: '/owners/portal' },
+    ],
+    insights: [
+      { label: 'Blog', href: '/blog' },
+      { label: 'Sliema', href: '/locations/sliema' },
+      { label: 'Valletta', href: '/locations/valletta' },
+      { label: "St Julian's", href: '/locations/st-julians' },
+      { label: 'Gozo', href: '/locations/gozo' },
     ],
     company: [
       { label: 'About', href: '/about' },
@@ -1036,6 +1046,17 @@ export const PAGES: Record<string, PageDefinition> = {
     meta: {
       ogTitle: 'Residential Property Management — Malta',
       ogDescription: 'End-to-end residential management from tenant sourcing to maintenance.',
+    },
+  },
+  blog: {
+    slug: '/blog',
+    title: 'Blog — Christiano Property Management',
+    description: 'Expert insights on Malta property management, rental market trends, and owner strategies.',
+    tags: ['blog'],
+    blocks: [],
+    meta: {
+      ogTitle: 'Malta Property Management Blog — Christiano Vincenti',
+      ogDescription: 'Expert guides, market data, and owner strategies from Malta\'s leading property managers.',
     },
   },
 };
