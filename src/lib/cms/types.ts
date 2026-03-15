@@ -1,207 +1,190 @@
-import { z } from 'zod';
+// ══════════════════════════════════════════════════════════
+// CMS TYPE SYSTEM
+// Production-safe, fully typed, Zod-ready
+// ══════════════════════════════════════════════════════════
 
-// ── Per-block data schemas (strongly typed) ──
-
-export const proofStripDataSchema = z.object({
-  items: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
-});
-export type ProofStripData = z.infer<typeof proofStripDataSchema>;
-
-export const statsRowDataSchema = z.object({
-  stats: z.array(z.object({ label: z.string(), value: z.string(), suffix: z.string().optional() })).default([]),
-});
-export type StatsRowData = z.infer<typeof statsRowDataSchema>;
-
-export const processStepsDataSchema = z.object({
-  heading: z.string().default(''),
-  steps: z.array(z.object({ title: z.string(), description: z.string() })).default([]),
-});
-export type ProcessStepsData = z.infer<typeof processStepsDataSchema>;
-
-export const pricingTableDataSchema = z.object({
-  heading: z.string().default(''),
-  tiers: z.array(z.object({
-    name: z.string(),
-    price: z.string(),
-    features: z.array(z.string()).default([]),
-    highlighted: z.boolean().optional(),
-  })).default([]),
-});
-export type PricingTableData = z.infer<typeof pricingTableDataSchema>;
-
-export const faqAccordionDataSchema = z.object({
-  heading: z.string().default(''),
-  items: z.array(z.object({
-    question: z.string(),
-    answer: z.string(),
-    category: z.string().optional(),
-  })).default([]),
-  showFilters: z.boolean().optional(),
-});
-export type FAQAccordionData = z.infer<typeof faqAccordionDataSchema>;
-
-export const ctaBannerDataSchema = z.object({
-  headline: z.string().default(''),
-  body: z.string().optional(),
-  cta: z.object({
-    label: z.string(),
-    href: z.string(),
-  }),
-  variant: z.enum(['default', 'gold', 'outline']).default('default'),
-});
-export type CTABannerData = z.infer<typeof ctaBannerDataSchema>;
-
-export const heroCenteredDataSchema = z.object({
-  tagline: z.string().optional(),
-  headline: z.string().default(''),
-  body: z.string().optional(),
-  backgroundImage: z.string().optional(),
-  cta: z.object({
-    label: z.string(),
-    href: z.string(),
-  }),
-  secondaryCta: z.object({
-    label: z.string(),
-    href: z.string(),
-  }).optional(),
-});
-export type HeroCenteredData = z.infer<typeof heroCenteredDataSchema>;
-
-export const heroSplitDataSchema = z.object({
-  tagline: z.string().optional(),
-  headline: z.string().default(''),
-  body: z.string().optional(),
-  image: z.string().optional(),
-  cta: z.object({
-    label: z.string(),
-    href: z.string(),
-  }),
-  secondaryCta: z.object({
-    label: z.string(),
-    href: z.string(),
-  }).optional(),
-  reversed: z.boolean().optional(),
-});
-export type HeroSplitData = z.infer<typeof heroSplitDataSchema>;
-
-export const featureGridDataSchema = z.object({
-  heading: z.object({
-    tagline: z.string().optional(),
-    headline: z.string(),
-    highlightWord: z.string().optional(),
-    alignment: z.enum(['left', 'center']).default('center'),
-  }).optional(),
-  items: z.array(z.object({
-    icon: z.string().optional(),
-    title: z.string(),
-    description: z.string(),
-  })).default([]),
-  columns: z.number().default(3),
-});
-export type FeatureGridData = z.infer<typeof featureGridDataSchema>;
-
-export const textBlockDataSchema = z.object({
-  heading: z.string().optional(),
-  body: z.string().default(''),
-  alignment: z.enum(['left', 'center', 'right']).optional(),
-});
-export type TextBlockData = z.infer<typeof textBlockDataSchema>;
-
-export const sectionHeadingDataSchema = z.object({
-  tagline: z.string().optional(),
-  headline: z.string().default(''),
-  highlightWord: z.string().optional(),
-  alignment: z.enum(['left', 'center', 'right']).optional(),
-});
-export type SectionHeadingData = z.infer<typeof sectionHeadingDataSchema>;
-
-export const testimonialCarouselDataSchema = z.object({
-  testimonials: z.array(z.object({
-    author: z.string(),
-    role: z.string().optional(),
-    text: z.string(),
-    rating: z.number().min(1).max(5).optional(),
-  })).default([]),
-});
-export type TestimonialCarouselData = z.infer<typeof testimonialCarouselDataSchema>;
-
-export const imageTextDataSchema = z.object({
-  image: z.string().default(''),
-  alt: z.string().default(''),
-  heading: z.string().optional(),
-  body: z.string().default(''),
-  reversed: z.boolean().optional(),
-});
-export type ImageTextData = z.infer<typeof imageTextDataSchema>;
-
-export const logoStripDataSchema = z.object({
-  logos: z.array(z.object({ src: z.string(), alt: z.string() })).default([]),
-});
-export type LogoStripData = z.infer<typeof logoStripDataSchema>;
-
-export const propertyShowcaseDataSchema = z.object({
-  heading: z.string().optional(),
-  propertyIds: z.array(z.string()).optional(),
-  limit: z.number().optional(),
-});
-export type PropertyShowcaseData = z.infer<typeof propertyShowcaseDataSchema>;
-
-export const bookingSearchDataSchema = z.object({
-  variant: z.enum(['hero', 'default']).default('default'),
-});
-export type BookingSearchData = z.infer<typeof bookingSearchDataSchema>;
-
-export const contactFormDataSchema = z.object({
-  heading: z.string().optional(),
-  body: z.string().optional(),
-});
-export type ContactFormData = z.infer<typeof contactFormDataSchema>;
-
-// ── Core CMS types ──
-
-export const BLOCK_TYPES = [
-  { type: 'hero_split',           label: 'Hero Split' },
-  { type: 'hero_centered',        label: 'Hero Centered' },
-  { type: 'text_block',           label: 'Text Block' },
-  { type: 'section_heading',      label: 'Section Heading' },
-  { type: 'feature_grid',         label: 'Feature Grid' },
-  { type: 'proof_strip',          label: 'Proof Strip' },
-  { type: 'stats_row',            label: 'Stats Row' },
-  { type: 'process_steps',        label: 'Process Steps' },
-  { type: 'pricing_table',        label: 'Pricing Table' },
-  { type: 'faq_accordion',        label: 'FAQ Accordion' },
-  { type: 'cta_banner',           label: 'CTA Banner' },
-  { type: 'testimonial_carousel', label: 'Testimonial Carousel' },
-  { type: 'image_text',           label: 'Image + Text' },
-  { type: 'logo_strip',           label: 'Logo Strip' },
-  { type: 'property_showcase',    label: 'Property Showcase' },
-  { type: 'booking_search',       label: 'Booking Search' },
-  { type: 'contact_form',         label: 'Contact Form' },
-] as const;
-
-export type BlockType = typeof BLOCK_TYPES[number]['type'];
-
-export interface ContentBlock<T extends BlockType = BlockType, D = any> {
-  id: string;
-  type: T;
-  data: D;
-  tags?: string[];
+export interface NavItem {
+  label: string;
+  href: string;
+  children?: NavItem[];
 }
 
-export const contentBlockSchema = z.object({
-  id: z.string().min(1),
-  type: z.string().min(1),
-  data: z.record(z.any()),
-  tags: z.array(z.string()).optional(),
-});
+export interface FooterLinkGroup {
+  [section: string]: Array<{ label: string; href: string }>;
+}
 
-export const pageDefinitionSchema = z.object({
-  slug: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().default(''),
-  blocks: z.array(contentBlockSchema).default([]),
-  tags: z.array(z.string()).default([]),
-  meta: z.record(z.any()).default({}),
-});
+export interface SiteConfig {
+  brandName: string;
+  tagline: string;
+  email: string;
+  phone: string;
+  address: string;
+  locale: string;
+  currency: string;
+  timezone: string;
+  navigation: NavItem[];
+  footerLinks: FooterLinkGroup;
+  social: {
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+}
 
-export type PageDefinition = z.infer<typeof pageDefinitionSchema>;
+// ── Block types ──
+
+export type BlockType =
+  | 'hero_centered'
+  | 'hero_split'
+  | 'stats_row'
+  | 'feature_grid'
+  | 'text_block'
+  | 'cta_banner'
+  | 'faq_accordion'
+  | 'property_showcase'
+  | 'proof_strip'
+  | 'process_steps'
+  | 'pricing_table'
+  | 'booking_search'
+  | 'contact_form';
+
+export interface ContentBlock<T extends string = string, D = unknown> {
+  id: string;
+  type: T;
+  tags: string[];
+  data: D;
+}
+
+export interface PageDefinition {
+  slug: string;
+  title: string;
+  description: string;
+  tags: string[];
+  blocks: ContentBlock[];
+  meta?: {
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    noindex?: boolean;
+  };
+}
+
+// ── Data shapes ──
+
+export interface HeroCenteredData {
+  tagline?: string;
+  headline: string;
+  body?: string;
+  cta?: { label: string; href: string };
+  secondaryCta?: { label: string; href: string };
+  backgroundImage?: string;
+}
+
+export interface HeroSplitSide {
+  tagline?: string;
+  headline: string;
+  body?: string;
+  cta: { label: string; action?: 'wizard'; href?: string };
+  proof?: string;
+}
+
+export interface HeroSplitData {
+  left: HeroSplitSide;
+  right: HeroSplitSide;
+}
+
+export interface StatItem {
+  label: string;
+  value: string;
+  suffix?: string;
+}
+
+export interface StatsRowData {
+  stats: StatItem[];
+}
+
+export interface FeatureItem {
+  icon?: string;
+  title: string;
+  description: string;
+}
+
+export interface FeatureGridData {
+  heading: {
+    tagline?: string;
+    headline: string;
+    alignment?: 'left' | 'center' | 'right';
+  };
+  items: FeatureItem[];
+  columns?: 2 | 3 | 4;
+}
+
+export interface TextBlockData {
+  heading?: string;
+  body: string;
+  alignment?: 'left' | 'center' | 'right';
+}
+
+export interface CTABannerData {
+  headline: string;
+  body?: string;
+  cta: { label: string; href: string };
+  secondaryCta?: { label: string; href: string };
+  variant?: 'default' | 'gold' | 'dark';
+}
+
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+export interface FAQAccordionData {
+  heading?: string;
+  items: FAQItem[];
+}
+
+export interface PropertyShowcaseData {
+  heading?: string;
+  limit?: number;
+  ids?: string[];
+}
+
+export interface ProofItem {
+  label: string;
+  value: string;
+  icon?: string;
+}
+
+export interface ProofStripData {
+  items: ProofItem[];
+}
+
+export interface ProcessStep {
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+export interface ProcessStepsData {
+  heading?: string;
+  steps: ProcessStep[];
+}
+
+export interface PricingTier {
+  name: string;
+  price: string;
+  subtitle?: string;
+  features: string[];
+  highlighted?: boolean;
+  cta?: { label: string; href?: string; action?: 'wizard' };
+}
+
+export interface PricingTableData {
+  heading?: string;
+  tiers: PricingTier[];
+}
+
+export interface BookingSearchData {
+  variant?: 'hero' | 'inline' | 'compact';
+}

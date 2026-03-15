@@ -16,21 +16,20 @@ import { SmartSearch } from "@/components/SmartSearch";
 import { CmsPage } from "@/components/CmsPage";
 import { useListingsRealtime } from "@/hooks/use-listings-realtime";
 
-// Lazy-loaded pages
-const Properties       = lazy(() => import("./pages/Properties"));
-const PropertyDetail   = lazy(() => import("./pages/PropertyDetail"));
-const Book             = lazy(() => import("./pages/Book"));
-const OwnersEstimate   = lazy(() => import("./pages/OwnersEstimate"));
-const OwnersStandards  = lazy(() => import("./pages/OwnersStandards"));
-const OwnersResults    = lazy(() => import("./pages/OwnersResults"));
-const OwnersPack       = lazy(() => import("./pages/OwnersPack"));
-const PrivacyPage      = lazy(() => import("./pages/PrivacyPage"));
-const CookiesPage      = lazy(() => import("./pages/CookiesPage"));
-const TermsPage        = lazy(() => import("./pages/TermsPage"));
-const Admin            = lazy(() => import("./pages/Admin"));
-const LocationPage     = lazy(() => import("./pages/LocationPage"));
-const OwnerPortalPage  = lazy(() => import("./pages/OwnerPortalPage"));
-const NotFound         = lazy(() => import("./pages/NotFound"));
+const Properties      = lazy(() => import("./pages/Properties"));
+const PropertyDetail  = lazy(() => import("./pages/PropertyDetail"));
+const Book            = lazy(() => import("./pages/Book"));
+const OwnersEstimate  = lazy(() => import("./pages/OwnersEstimate"));
+const OwnersStandards = lazy(() => import("./pages/OwnersStandards"));
+const OwnersResults   = lazy(() => import("./pages/OwnersResults"));
+const OwnersPack      = lazy(() => import("./pages/OwnersPack"));
+const PrivacyPage     = lazy(() => import("./pages/PrivacyPage"));
+const CookiesPage     = lazy(() => import("./pages/CookiesPage"));
+const TermsPage       = lazy(() => import("./pages/TermsPage"));
+const Admin           = lazy(() => import("./pages/Admin"));
+const LocationPage    = lazy(() => import("./pages/LocationPage"));
+const OwnerPortalPage = lazy(() => import("./pages/OwnerPortalPage"));
+const NotFound        = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,10 +48,7 @@ const queryClient = new QueryClient({
       refetchOnMount: false,
       placeholderData: (prev: unknown) => prev,
     },
-    mutations: {
-      retry: 1,
-      retryDelay: 5000,
-    },
+    mutations: { retry: 1, retryDelay: 5000 },
   },
 });
 
@@ -60,29 +56,29 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const isProd = import.meta.env.PROD;
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
-          <AlertTriangle className="w-8 h-8 text-destructive" />
+      <div className="max-w-md w-full satin-surface p-10 text-center">
+        <div
+          className="w-14 h-14 mx-auto mb-5 flex items-center justify-center"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <AlertTriangle className="w-7 h-7 text-destructive" />
         </div>
-        <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-        <p className="text-muted-foreground mb-6">
-          {isProd ? "We're working on fixing this. Please try again." : (error as Error)?.message}
+        <h2 className="font-serif text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
+        <p className="text-small text-muted-foreground mb-8">
+          {isProd ? "We're working on a fix. Please try again." : (error as Error)?.message}
         </p>
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={resetErrorBoundary}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity"
-          >
-            <RefreshCw className="w-4 h-4" /> Try Again
+          <button onClick={resetErrorBoundary} className="btn-gold btn-gold-glow inline-flex items-center gap-2">
+            <RefreshCw className="w-3.5 h-3.5" /> Try Again
           </button>
-          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-lg font-medium hover:bg-accent transition-colors">
-            <Home className="w-4 h-4" /> Go Home
+          <a href="/" className="btn-outline inline-flex items-center gap-2">
+            <Home className="w-3.5 h-3.5" /> Go Home
           </a>
         </div>
         {!isProd && (error as Error)?.stack && (
-          <details className="mt-6 text-left">
-            <summary className="text-xs text-muted-foreground cursor-pointer">Stack trace</summary>
-            <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-40">{(error as Error).stack}</pre>
+          <details className="mt-8 text-left">
+            <summary className="text-caption text-muted-foreground cursor-pointer">Stack trace</summary>
+            <pre className="mt-2 p-3 bg-muted text-[0.65rem] overflow-auto max-h-40 leading-relaxed">{(error as Error).stack}</pre>
           </details>
         )}
       </div>
@@ -92,10 +88,16 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading…</p>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-5">
+        <div
+          className="w-10 h-10 border-2 rounded-full animate-spin"
+          style={{
+            borderColor: 'rgba(196,163,90,0.2)',
+            borderTopColor: 'var(--gold-300)',
+          }}
+        />
+        <p className="micro-type text-muted-foreground" style={{ fontSize: '0.6rem' }}>Loading</p>
       </div>
     </div>
   );
@@ -108,7 +110,7 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
         FallbackComponent={ErrorFallback}
         onReset={() => queryClient.clear()}
         onError={(error, info) => {
-          if (!import.meta.env.PROD) console.error('ErrorBoundary:', error, info);
+          if (!import.meta.env.PROD) console.error('[ErrorBoundary]', error, info);
         }}
       >
         {children}
@@ -131,47 +133,43 @@ export default function App() {
           <SuspenseWrapper>
             <SmartSearch />
             <Routes>
-              {/* 100% CMS Driven Routes */}
-              <Route path="/"                     element={<CmsPage slug="home" />} />
-              <Route path="/about"                element={<CmsPage slug="about" />} />
-              <Route path="/residential"          element={<CmsPage slug="residential" />} />
-              <Route path="/owners"               element={<CmsPage slug="owners" />} />
-              <Route path="/contact"              element={<CmsPage slug="contact" />} />
+              {/* CMS-driven pages */}
+              <Route path="/"             element={<CmsPage slug="home" />} />
+              <Route path="/about"        element={<CmsPage slug="about" />} />
+              <Route path="/residential"  element={<CmsPage slug="residential" />} />
+              <Route path="/owners"       element={<CmsPage slug="owners" />} />
+              <Route path="/contact"      element={<CmsPage slug="contact" />} />
+              <Route path="/faq"          element={<CmsPage slug="faq" />} />
+              <Route path="/owners/pricing" element={<CmsPage slug="owners-pricing" />} />
 
-              {/* Functional/Application Routes */}
-              <Route path="/properties"           element={<Properties />} />
-              <Route path="/properties/:id"       element={<PropertyDetail />} />
-              <Route path="/book"                 element={<Book />} />
+              {/* Application routes */}
+              <Route path="/properties"         element={<Properties />} />
+              <Route path="/properties/:id"     element={<PropertyDetail />} />
+              <Route path="/book"               element={<Book />} />
 
-              {/* Owners Sub-pages (Logic Heavy) */}
-              <Route path="/owners/estimate"      element={<OwnersEstimate />} />
-              <Route path="/owners/standards"     element={<OwnersStandards />} />
-              <Route path="/owners/results"       element={<OwnersResults />} />
-              <Route path="/owners/owners-pack"   element={<OwnersPack />} />
+              {/* Owners sub-pages */}
+              <Route path="/owners/estimate"    element={<OwnersEstimate />} />
+              <Route path="/owners/standards"   element={<OwnersStandards />} />
+              <Route path="/owners/results"     element={<OwnersResults />} />
+              <Route path="/owners/owners-pack" element={<OwnersPack />} />
+              <Route path="/owners/portal"      element={<OwnerPortalPage />} />
 
-              {/* Legal & Admin */}
-              <Route path="/owners/portal"        element={<OwnerPortalPage />} />
-              <Route path="/pricing"              element={<PricingPage />} />
-              <Route path="/about"                element={<AboutPage />} />
-              <Route path="/faq"                  element={<FAQPage />} />
-              <Route path="/contact"              element={<ContactPage />} />
-              <Route path="/locations/:slug"      element={<LocationPage />} />
-              <Route path="/privacy"              element={<PrivacyPage />} />
-              <Route path="/cookies"              element={<CookiesPage />} />
-              <Route path="/terms"                element={<TermsPage />} />
-              <Route
-                path="/admin"
-                element={
-                  <AdminGuard>
-                    <Admin />
-                  </AdminGuard>
-                }
-              />
+              {/* Location pages */}
+              <Route path="/locations/:slug"    element={<LocationPage />} />
+
+              {/* Legal */}
+              <Route path="/privacy"  element={<PrivacyPage />} />
+              <Route path="/cookies"  element={<CookiesPage />} />
+              <Route path="/terms"    element={<TermsPage />} />
+
+              {/* Admin */}
+              <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SuspenseWrapper>
         </BrowserRouter>
-        <AiConcierge />
+        <Suspense fallback={null}><AiConcierge /></Suspense>
         <CookieConsentBanner />
       </TooltipProvider>
     </QueryClientProvider>

@@ -1,5 +1,2 @@
-/**
- * CMS Public API
- */
-export * from './types';
-export * from './content';
+export { getPage, getBlockById, PAGES, SITE_CONFIG } from './content';
+export type * from './types';
