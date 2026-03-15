@@ -15,9 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   useListing, useQuote, useCreateBooking,
-  normalizeListingDetail,
+  normalizeListingDetail, useUpsellFees,
 } from '@/lib/guesty/hooks';
-import { useUpsellFees } from '@/lib/guesty/hooks';
 import { sanitizeObject } from '@/lib/utils';
 import type { UpsellFee } from '@/lib/guesty/types';
 
@@ -41,24 +40,16 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-[10px] text-destructive mt-0.5">{msg}</p>;
 }
 
-// ── Upsell card ──────────────────────────────────────────────────────────────
+/** Upsell add-on card — uses fee.price (Guesty canonical field) */
 function UpsellCard({
-  fee,
-  selected,
-  onToggle,
-}: {
-  fee: UpsellFee;
-  selected: boolean;
-  onToggle: () => void;
-}) {
+  fee, selected, onToggle,
+}: { fee: UpsellFee; selected: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
       onClick={onToggle}
       className={`w-full text-left border transition-colors p-3 ${
-        selected
-          ? 'border-primary bg-primary/5'
-          : 'border-border/40 hover:border-primary/50'
+        selected ? 'border-primary bg-primary/5' : 'border-border/40 hover:border-primary/50'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -67,16 +58,15 @@ function UpsellCard({
           {fee.description && (
             <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{fee.description}</p>
           )}
+          <p className="text-[9px] text-muted-foreground mt-0.5 capitalize">{fee.type.replace(/_/g, ' ')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-[12px] font-semibold numeric">
-            {fee.amount != null ? `€${fee.amount.toFixed(2)}` : 'Quoted'}
+            {fee.price != null ? `€${fee.price.toFixed(2)}` : 'Quoted'}
           </span>
-          <div
-            className={`w-5 h-5 border flex items-center justify-center transition-colors ${
-              selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50'
-            }`}
-          >
+          <div className={`w-5 h-5 border flex items-center justify-center transition-colors ${
+            selected ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50'
+          }`}>
             {selected ? <Minus size={10} /> : <Plus size={10} />}
           </div>
         </div>
@@ -93,54 +83,37 @@ export default function Book() {
   const guestsCount = Number(searchParams.get('guests') || '2');
   const quoteId     = searchParams.get('quoteId')  || '';
 
-  const { data: rawListing }  = useListing(listingId || undefined);
-  const { data: quote }       = useQuote(quoteId || undefined);
-  const { data: upsellFees = [] } = useUpsellFees(listingId || undefined);
-  const bookingMutation = useCreateBooking();
-
+  const { data: rawListing }           = useListing(listingId || undefined);
+  const { data: quote }                = useQuote(quoteId || undefined);
+  const { data: upsellFees = [] }      = useUpsellFees(listingId || undefined);
+  const bookingMutation                = useCreateBooking();
   const property = rawListing ? normalizeListingDetail(rawListing) : null;
 
-  // Track which upsell fees the guest has selected
   const [selectedUpsells, setSelectedUpsells] = useState<Set<string>>(new Set());
-
   const toggleUpsell = (id: string) =>
-    setSelectedUpsells((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setSelectedUpsells((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
-  const upsellTotal = upsellFees
-    .filter((f: UpsellFee) => selectedUpsells.has(f._id))
-    .reduce((sum: number, f: UpsellFee) => sum + (f.amount ?? 0), 0);
+  // fee.price is the canonical Guesty field
+  const upsellTotal = (upsellFees as UpsellFee[])
+    .filter((f) => selectedUpsells.has(f._id))
+    .reduce((sum, f) => sum + (f.price ?? 0), 0);
 
   const [step, setStep] = useState<'details' | 'confirmed'>('details');
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    getValues,
-  } = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: { firstName: '', lastName: '', email: '', phone: '' },
-  });
+  const { register, handleSubmit, formState: { errors, isSubmitting }, getValues } =
+    useForm<BookingFormData>({
+      resolver: zodResolver(bookingSchema),
+      defaultValues: { firstName: '', lastName: '', email: '', phone: '' },
+    });
 
   const onSubmit = async (data: BookingFormData) => {
     if (!quoteId) return;
-    const sanitizedGuest = sanitizeObject({
-      firstName: data.firstName,
-      lastName:  data.lastName,
-      email:     data.email,
-      phone:     data.phone,
-    });
     bookingMutation.mutate(
-      { quoteId, guest: sanitizedGuest },
+      { quoteId, guest: sanitizeObject({ firstName: data.firstName, lastName: data.lastName, email: data.email, phone: data.phone }) },
       { onSuccess: () => setStep('confirmed') }
     );
   };
 
-  // ── No listing: browse prompt ────────────────────────────────────────────
   if (!listingId) {
     return (
       <Layout>
@@ -162,13 +135,7 @@ export default function Book() {
           <div className="section-container">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {TRUST_ITEMS.map(({ icon: Icon, title, desc }, i) => (
-                <motion.div
-                  key={title}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.04 }}
-                  className="text-center"
-                >
+                <motion.div key={title} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="text-center">
                   <div className="w-9 h-9 border border-border/40 flex items-center justify-center mx-auto mb-2">
                     <Icon size={16} className="text-primary" />
                   </div>
@@ -185,7 +152,6 @@ export default function Book() {
 
   if (!quoteId && listingId) return <Navigate to={`/properties/${listingId}`} replace />;
 
-  // ── Confirmed ────────────────────────────────────────────────────────────
   if (step === 'confirmed') {
     const { firstName, email } = getValues();
     return (
@@ -210,14 +176,10 @@ export default function Book() {
     );
   }
 
-  // ── Main booking page ────────────────────────────────────────────────────
   return (
     <Layout>
       <div className="section-container py-2">
-        <Link
-          to={`/properties/${listingId}`}
-          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <Link to={`/properties/${listingId}`} className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft size={12} /> Back to property
         </Link>
       </div>
@@ -226,13 +188,11 @@ export default function Book() {
         <div className="section-container">
           <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
 
-            {/* ── Left: form + upsells ──────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
               <p className="micro-type text-primary mb-2">Complete Booking</p>
               <h1 className="font-serif text-2xl font-semibold text-foreground mb-6">Guest Details</h1>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Guest fields */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">First Name</Label>
@@ -258,26 +218,14 @@ export default function Book() {
                   <FieldError msg={errors.phone?.message} />
                 </div>
 
-                {/* ── Upsell fees — shown BEFORE submit/Stripe ──────── */}
+                {/* Upsell fees — rendered BEFORE submit/Stripe */}
                 <AnimatePresence>
-                  {upsellFees.length > 0 && (
-                    <motion.div
-                      key="upsells"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                        Optional Add-Ons
-                      </p>
+                  {(upsellFees as UpsellFee[]).length > 0 && (
+                    <motion.div key="upsells" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Optional Add-Ons</p>
                       <div className="space-y-2">
-                        {upsellFees.map((fee: UpsellFee) => (
-                          <UpsellCard
-                            key={fee._id}
-                            fee={fee}
-                            selected={selectedUpsells.has(fee._id)}
-                            onToggle={() => toggleUpsell(fee._id)}
-                          />
+                        {(upsellFees as UpsellFee[]).map((fee) => (
+                          <UpsellCard key={fee._id} fee={fee} selected={selectedUpsells.has(fee._id)} onToggle={() => toggleUpsell(fee._id)} />
                         ))}
                       </div>
                       {upsellTotal > 0 && (
@@ -289,31 +237,22 @@ export default function Book() {
                   )}
                 </AnimatePresence>
 
-                {/* Error */}
                 {bookingMutation.error && (
                   <div className="flex items-start gap-1.5 p-2.5 border border-destructive/30 bg-destructive/5 text-[11px] text-destructive">
                     <AlertCircle size={12} className="shrink-0 mt-0.5" />
-                    {bookingMutation.error instanceof Error
-                      ? bookingMutation.error.message
-                      : 'Booking failed. Please try again.'}
+                    {bookingMutation.error instanceof Error ? bookingMutation.error.message : 'Booking failed. Please try again.'}
                   </div>
                 )}
 
-                {/* Submit — this is where Stripe would render its element */}
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || bookingMutation.isPending}
-                  className="w-full h-10 text-[12px] font-semibold"
-                >
+                {/* Submit button — Stripe element mounts here */}
+                <Button type="submit" disabled={isSubmitting || bookingMutation.isPending} className="w-full h-10 text-[12px] font-semibold">
                   {isSubmitting || bookingMutation.isPending ? (
                     <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Processing...</>
                   ) : (
                     <span className="flex items-center gap-1.5">
                       Confirm Booking
                       {(quote?.priceBreakdown.total != null || upsellTotal > 0) && (
-                        <span className="opacity-70 font-normal">
-                          — €{((quote?.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}
-                        </span>
+                        <span className="opacity-70 font-normal">— €{((quote?.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
                       )}
                       <ChevronRight size={13} />
                     </span>
@@ -328,7 +267,7 @@ export default function Book() {
               </form>
             </motion.div>
 
-            {/* ── Right: booking summary ────────────────────────────── */}
+            {/* Booking summary */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
               <div className="border border-border/50 bg-card p-4 sticky top-20">
                 <h2 className="font-serif text-base font-semibold mb-4">Booking Summary</h2>
@@ -348,15 +287,11 @@ export default function Book() {
                 <div className="space-y-1.5 text-[12px] pb-3 border-b border-border/30">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-in</span>
-                    <span className="font-medium numeric">
-                      {checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
-                    </span>
+                    <span className="font-medium numeric">{checkIn ? new Date(checkIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Check-out</span>
-                    <span className="font-medium numeric">
-                      {checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}
-                    </span>
+                    <span className="font-medium numeric">{checkOut ? new Date(checkOut).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guests</span>
@@ -382,7 +317,6 @@ export default function Book() {
                         <span className="numeric">€{quote.priceBreakdown.taxes}</span>
                       </div>
                     )}
-                    {/* Selected upsells reflected in summary */}
                     {selectedUpsells.size > 0 && upsellTotal > 0 && (
                       <div className="flex justify-between text-muted-foreground">
                         <span>Add-ons ({selectedUpsells.size})</span>
@@ -391,9 +325,7 @@ export default function Book() {
                     )}
                     <div className="flex justify-between font-semibold text-base pt-2">
                       <span>Total</span>
-                      <span className="numeric">
-                        €{((quote.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}
-                      </span>
+                      <span className="numeric">€{((quote.priceBreakdown.total ?? 0) + upsellTotal).toLocaleString()}</span>
                     </div>
                   </div>
                 )}

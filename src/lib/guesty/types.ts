@@ -1,9 +1,8 @@
 /**
- * Guesty API types - Booking Engine API v1
- * Based on https://booking-api-docs.guesty.com/
+ * Guesty Booking Engine API types
+ * Source: https://booking-api-docs.guesty.com/
  */
 
-// ── Core Primitives ──
 export type UUID = string;
 export type Email = string;
 export type PhoneNumber = string;
@@ -21,7 +20,6 @@ export type Amenity =
   | 'DISHWASHER' | 'BBQ_GRILL' | 'IRON' | 'HAIR_DRYER' | 'ESSENTIALS'
   | 'FREE_PARKING_ON_PREMISES' | 'COFFEE_MAKER' | string;
 
-// ── Address ──
 export interface Address {
   full: string;
   country?: string;
@@ -33,7 +31,6 @@ export interface Address {
   lng?: number;
 }
 
-// ── Picture ──
 export interface Picture {
   _id: UUID;
   original: string;
@@ -45,7 +42,6 @@ export interface Picture {
   tags?: string[];
 }
 
-// ── Pricing ──
 export interface Pricing {
   currency: CurrencyCode;
   basePrice: number;
@@ -57,7 +53,6 @@ export interface Pricing {
   maxNights?: number;
 }
 
-// ── Listing ──
 export interface Listing {
   _id: UUID;
   title: string;
@@ -108,11 +103,9 @@ export interface Listing {
   createdAt: ISODateString;
   updatedAt: ISODateString;
   published: boolean;
-  // Raw data passthrough
   [key: string]: unknown;
 }
 
-// ── Calendar ──
 export interface CalendarDay {
   date: string;
   available: boolean;
@@ -125,7 +118,6 @@ export interface CalendarDay {
   note?: string;
 }
 
-// ── City ──
 export interface City {
   _id: string;
   name: string;
@@ -135,7 +127,6 @@ export interface City {
   center?: { lat: number; lng: number };
 }
 
-// ── Review ──
 export interface Review {
   _id: string;
   listingId: string;
@@ -149,7 +140,6 @@ export interface Review {
   public: boolean;
 }
 
-// ── Quote ──
 export interface QuoteRequest {
   listingId: string;
   checkInDateLocalized: string;
@@ -187,7 +177,6 @@ export interface Quote {
   expiresAt: string;
 }
 
-// ── Rate Plan ──
 export interface RatePlan {
   _id: string;
   name: string;
@@ -202,7 +191,6 @@ export interface RatePlan {
   maxNights?: number;
 }
 
-// ── Coupon ──
 export interface Coupon {
   _id: string;
   code: string;
@@ -214,18 +202,23 @@ export interface Coupon {
   active: boolean;
 }
 
-// ── Upsell Fee ──
+/**
+ * UpsellFee — returned by GET /listings/:id/upsell-fees
+ * Field is `price` (NOT `amount`) — matches Guesty API response.
+ */
 export interface UpsellFee {
   _id: string;
   name: string;
   description?: string;
+  /** Monetary value in the listing's currency */
   price: number;
   currency: string;
+  /** Determines how the fee is applied */
   type: 'per_night' | 'per_stay' | 'per_guest';
+  /** If true, fee is always included in the quote */
   required: boolean;
 }
 
-// ── Payment Provider ──
 export interface PaymentProvider {
   name: string;
   supportedCurrencies: string[];
@@ -233,7 +226,6 @@ export interface PaymentProvider {
   configuration: Record<string, unknown>;
 }
 
-// ── Reservation Response ──
 export interface ReservationResponse {
   _id: string;
   confirmationCode: string;
@@ -259,7 +251,6 @@ export interface ReservationResponse {
   updatedAt: string;
 }
 
-// ── Error ──
 export type ErrorCode =
   | 'LISTING_NOT_FOUND' | 'LISTING_CALENDAR_BLOCKED' | 'LISTING_UNAVAILABLE'
   | 'MIN_NIGHT_MISMATCH' | 'MAX_NIGHT_EXCEEDED' | 'ADVANCE_BOOKING_NOTICE' | 'WINDOW_NOT_OPEN'
@@ -276,6 +267,7 @@ export type ErrorCode =
 export interface GuestyError {
   error_code: ErrorCode;
   message: string;
+  retryable?: boolean;
   data?: {
     errors?: string[];
     details?: Record<string, unknown>;
