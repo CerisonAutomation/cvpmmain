@@ -53,7 +53,7 @@ export default function TestimonialCarouselBlock({ data, className = '' }: Props
       onBlur={startAutoplay}
     >
       <div className="section-container">
-        <SectionHeading data={{ heading: '', ...data } as any} className="mb-12" />
+        <SectionHeading data={{ ...data, heading: data.heading || '' }} className="mb-12" />
 
         <div ref={emblaRef} className="overflow-hidden" aria-roledescription="carousel">
           <div className="flex gap-6">

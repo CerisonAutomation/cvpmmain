@@ -13,14 +13,14 @@ import { SEOHead, createOrganizationSchema } from '@/components/SEOHead';
 import { SkipLink } from '@/components/ui/accessibility';
 import { FadeInView } from '@/components/PageTransition';
 import { useListings, normalizeListingSummary } from '@/lib/guesty/hooks';
-import { useCmsPage, getBlockByType } from '@/hooks/use-cms-page';
+import { useCmsPage } from '@/hooks/use-cms-page';
 import type { ContentBlock } from '@/lib/cms/types';
 
 const Index = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
   
   // Use CMS page from database with realtime sync
-  const { page, isLoading: pageLoading } = useCmsPage('home');
+  const { page } = useCmsPage('home');
 
   // Live data from Guesty BE API
   const { data: rawListings, isLoading: listingsLoading, error: listingsError, refetch } = useListings();
@@ -28,13 +28,8 @@ const Index = () => {
   // Normalize listings
   const featured = useMemo(() => {
     const list = Array.isArray(rawListings) ? rawListings : [];
-    return list.slice(0, 3).map((l: any) => normalizeListingSummary(l));
+    return list.slice(0, 3).map((l) => normalizeListingSummary(l));
   }, [rawListings]);
-
-  // Filter blocks by type for custom rendering
-  const renderableBlocks = page?.blocks.filter(
-    (b: ContentBlock) => !['hero_split', 'property_showcase'].includes(b.type)
-  ) || [];
 
   return (
     <div className="min-h-screen bg-background">

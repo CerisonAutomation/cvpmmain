@@ -26,7 +26,7 @@ export default function Properties() {
   // Normalize all listings (hook already returns array)
   const properties: NormalizedListingSummary[] = useMemo(() => {
     const list = Array.isArray(rawListings) ? rawListings : [];
-    return list.map((l: any) => normalizeListingSummary(l));
+    return list.map((l) => normalizeListingSummary(l));
   }, [rawListings]);
 
   // Map locations
