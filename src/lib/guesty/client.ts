@@ -3,6 +3,7 @@ import type {
   Listing, PropertyType, Amenity, Quote, QuoteRequest,
   City, CalendarDay, PaymentProvider, Review, UpsellFee,
   GuestyError, ReservationResponse, ErrorCode, RatePlan, Guest,
+  BookingPolicy, BookingNotes,
 } from './types';
 import {
   GuestyListingSchema,
@@ -54,10 +55,22 @@ async function request<T>(params: Record<string, string>, method: 'GET' | 'POST'
 }
 
 class GuestyClient {
+  /**
+   * Validate API response against a Zod schema.
+   * On failure: logs the error (with structured details in dev) and falls back
+   * to the raw data to avoid breaking the UI. In production, validation errors
+   * are still logged so they appear in Vercel/Supabase runtime logs.
+   */
   private validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
     const result = schema.safeParse(data);
     if (!result.success) {
-      console.error('Guesty API Validation Error:', result.error.format());
+      const formatted = result.error.format();
+      if (import.meta.env.DEV) {
+        console.error('[GuestyClient] Validation error (dev detail):', formatted);
+      } else {
+        // Prod: log a concise summary — surface in runtime logs without exposing raw data
+        console.error('[GuestyClient] Validation error:', result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(' | '));
+      }
       return data as T;
     }
     return result.data;
@@ -130,7 +143,7 @@ class GuestyClient {
     ratePlanId: string;
     ccToken: string;
     guest: Guest;
-    policy?: any;
+    policy?: BookingPolicy;
   }): Promise<ReservationResponse> {
     return request<ReservationResponse>({ action: 'instant-booking', quoteId }, 'POST', params);
   }
@@ -140,7 +153,7 @@ class GuestyClient {
     guest: Guest;
     reservedUntil?: number;
     ccToken?: string;
-    policy?: any;
+    policy?: BookingPolicy;
   }): Promise<ReservationResponse> {
     return request<ReservationResponse>({ action: 'inquiry-booking', quoteId }, 'POST', params);
   }
@@ -152,8 +165,8 @@ class GuestyClient {
     initialPaymentMethodId?: string;
     reservedUntil?: number;
     reuse?: boolean;
-    policy?: any;
-    notes?: any;
+    policy?: BookingPolicy;
+    notes?: BookingNotes;
   }): Promise<ReservationResponse> {
     return request<ReservationResponse>({ action: 'instant-charge', quoteId }, 'POST', params);
   }
@@ -164,7 +177,7 @@ class GuestyClient {
 
   async verifyPayment(reservationId: string, params: {
     paymentId: string;
-    threeDSResult?: any;
+    threeDSResult?: Record<string, unknown>;
   }): Promise<{ status: string }> {
     return request<{ status: string }>({ action: 'verify-payment', reservationId }, 'POST', params);
   }
