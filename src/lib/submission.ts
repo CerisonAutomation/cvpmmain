@@ -4,7 +4,6 @@
  */
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { config } from './env';
 
 export const wizardSchema = z.object({
   status: z.enum(['not_listed', 'already_listed', 'switching']),
@@ -83,10 +82,17 @@ export function saveDraft(data: WizardData) {
   try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch {}
 }
 
-export function loadDraft(): WizardData | null {
+/**
+ * Load wizard draft from localStorage.
+ * Validates with a partial schema to prevent corrupted/tampered data from
+ * entering wizard state — returns null on any parse failure.
+ */
+export function loadDraft(): Partial<WizardData> | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = wizardSchema.partial().safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
   } catch { return null; }
 }
 
@@ -108,8 +114,11 @@ export function computePlan(data: WizardData): string {
  * Submit wizard lead.
  * 1. Zod validation
  * 2. Supabase DB insert (primary — never lost, queryable, auditable)
- * 3. Edge function notification (secondary — for CRM/email triggers)
- * 4. Mailto fallback (last resort only)
+ * 3. Mailto fallback (last resort only)
+ *
+ * NOTE: The previous `create-pending` edge function call has been removed.
+ * That function creates Stripe reservations — it must NOT be called for leads.
+ * Add a dedicated `notify-lead` edge function for CRM/email triggers when ready.
  */
 export async function submitLead(data: WizardData): Promise<{ success: boolean; error?: string }> {
   const validation = wizardSchema.safeParse(data);
@@ -142,20 +151,8 @@ export async function submitLead(data: WizardData): Promise<{ success: boolean; 
 
     if (dbError) {
       console.error('[submitLead] Supabase insert error:', dbError);
-      // Fall through to edge function
+      // Fall through to mailto fallback
     } else {
-      // SECONDARY: Edge function for CRM/email trigger (fire-and-forget, non-blocking)
-      const supabaseUrl = config.VITE_SUPABASE_URL;
-      const anonKey = config.VITE_SUPABASE_ANON_KEY;
-      fetch(`${supabaseUrl}/functions/v1/create-pending`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify(payload),
-      }).catch((err) => console.warn('[submitLead] Edge function notification failed (non-critical):', err));
-
       return { success: true };
     }
   } catch (err) {

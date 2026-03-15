@@ -12,6 +12,8 @@ const envSchema = z.object({
   VITE_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
   // Optional: validated URL prevents (import.meta as any).env escape hatch
   VITE_LEAD_WEBHOOK_URL: z.string().url().optional(),
+  // Used by SEOHead canonical URLs and og:url generation
+  VITE_APP_URL: z.string().url().optional(),
   MODE: z.enum(['development', 'production', 'test']).default('development'),
   DEV: z.boolean().default(false),
   PROD: z.boolean().default(false),
@@ -26,6 +28,7 @@ function getEnv(): EnvConfig {
     VITE_GUESTY_FN_URL: import.meta.env.VITE_GUESTY_FN_URL,
     VITE_STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
     VITE_LEAD_WEBHOOK_URL: import.meta.env.VITE_LEAD_WEBHOOK_URL,
+    VITE_APP_URL: import.meta.env.VITE_APP_URL,
     MODE: import.meta.env.MODE,
     DEV: import.meta.env.DEV,
     PROD: import.meta.env.PROD,
@@ -52,6 +55,7 @@ function getEnv(): EnvConfig {
 
 export const config = getEnv();
 
+/** @deprecated initEnvValidation is superseded by the inline getEnv() call above. Kept for backwards compat. */
 export function initEnvValidation() {
   try {
     envSchema.parse({
@@ -60,6 +64,7 @@ export function initEnvValidation() {
       VITE_GUESTY_FN_URL: import.meta.env.VITE_GUESTY_FN_URL,
       VITE_STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
       VITE_LEAD_WEBHOOK_URL: import.meta.env.VITE_LEAD_WEBHOOK_URL,
+      VITE_APP_URL: import.meta.env.VITE_APP_URL,
       MODE: import.meta.env.MODE,
       DEV: import.meta.env.DEV,
       PROD: import.meta.env.PROD,
