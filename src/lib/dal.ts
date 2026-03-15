@@ -4,6 +4,7 @@
  * Zero raw queries in components — everything goes through here.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { pageDefinitionSchema } from '@/lib/cms/types';
 import type { PageDefinition } from '@/lib/cms/types';
 
 // ── CMS Pages ──
@@ -18,14 +19,19 @@ export async function getCmsPage(slug: string): Promise<PageDefinition | null> {
 
   if (error || !data) return null;
 
-  return {
+  const parsed = pageDefinitionSchema.safeParse({
     slug: data.slug,
     title: data.title,
     description: data.description,
     blocks: (data.blocks as any[]) || [],
     meta: (data.meta as any) || {},
     tags: data.tags || [],
-  };
+  });
+  if (!parsed.success) {
+    console.error('[DAL] getCmsPage parse error', slug, parsed.error.flatten());
+    return null;
+  }
+  return parsed.data;
 }
 
 export async function getAllCmsPages(): Promise<PageDefinition[]> {
@@ -37,14 +43,21 @@ export async function getAllCmsPages(): Promise<PageDefinition[]> {
 
   if (error || !data) return [];
 
-  return data.map((d) => ({
-    slug: d.slug,
-    title: d.title,
-    description: d.description,
-    blocks: (d.blocks as any[]) || [],
-    meta: (d.meta as any) || {},
-    tags: d.tags || [],
-  }));
+  return data.flatMap((d) => {
+    const parsed = pageDefinitionSchema.safeParse({
+      slug: d.slug,
+      title: d.title,
+      description: d.description,
+      blocks: (d.blocks as any[]) || [],
+      meta: (d.meta as any) || {},
+      tags: d.tags || [],
+    });
+    if (!parsed.success) {
+      console.error('[DAL] getAllCmsPages parse error', d.slug, parsed.error.flatten());
+      return [];
+    }
+    return [parsed.data];
+  });
 }
 
 // ── Site Config ──
@@ -80,16 +93,21 @@ export async function getCachedApiResponse<T = unknown>(key: string): Promise<T 
 // ── CMS Admin Operations ──
 
 export async function upsertCmsPage(page: PageDefinition & { published?: boolean }) {
-  const { error } = await supabase.from('cms_pages').upsert({
-    slug: page.slug,
-    title: page.title,
-    description: page.description,
-    blocks: page.blocks as any,
-    meta: page.meta as any,
-    tags: page.tags || [],
-    published: page.published ?? true,
-    updated_at: new Date().toISOString(),
-  });
+  const safePage = pageDefinitionSchema.parse(page);
+
+  const { error } = await supabase.from('cms_pages').upsert(
+    {
+      slug: safePage.slug,
+      title: safePage.title,
+      description: safePage.description,
+      blocks: safePage.blocks as any,
+      meta: safePage.meta as any,
+      tags: safePage.tags || [],
+      published: page.published ?? true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'slug' },
+  );
   if (error) throw error;
 }
 

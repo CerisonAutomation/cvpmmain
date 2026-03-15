@@ -1,76 +1,57 @@
 /**
- * useAuth — Authentication hook with role checking
+ * useAuth — Supabase session + role hook.
+ * Single source of truth for auth state across the app.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { getUserRole } from '@/lib/dal';
 
-interface AuthState {
+export type AuthState = {
   user: User | null;
-  session: Session | null;
-  isAdmin: boolean;
-  isLoading: boolean;
-}
+  role: string | null;
+  loading: boolean;
+};
 
-export function useAuth(): AuthState & {
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
-} {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    session: null,
-    isAdmin: false,
-    isLoading: true,
-  });
-
-  const checkAdmin = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-    return !!data;
-  }, []);
+export function useAuth(): AuthState {
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user ?? null;
-      let isAdmin = false;
-      if (user) {
-        isAdmin = await checkAdmin(user.id);
+    let cancelled = false;
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      const u = session?.user ?? null;
+      setUser(u);
+
+      if (u) {
+        const r = await getUserRole(u.id);
+        if (!cancelled) setRole(r);
       }
-      setState({ user, session, isAdmin, isLoading: false });
+      setLoading(false);
+    }
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        getUserRole(u.id).then((r) => { if (!cancelled) setRole(r); });
+      } else {
+        setRole(null);
+      }
     });
 
-    // THEN check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const user = session?.user ?? null;
-      let isAdmin = false;
-      if (user) {
-        isAdmin = await checkAdmin(user.id);
-      }
-      setState({ user, session, isAdmin, isLoading: false });
-    });
-
-    return () => subscription.unsubscribe();
-  }, [checkAdmin]);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error ? new Error(error.message) : null };
-  }, []);
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-  }, []);
-
-  return { ...state, signIn, signUp, signOut };
+  return { user, role, loading };
 }
