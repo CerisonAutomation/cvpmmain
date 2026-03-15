@@ -1,0 +1,50 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "index.html",
+        "vite.config.ts",
+        "tailwind.config.ts",
+        "tsconfig*.json",
+        ".env*",
+        "components.json"
+      ],
+      "outputs": ["dist/**"],
+      "env": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_STRIPE_PUBLISHABLE_KEY",
+        "VITE_APP_URL",
+        "NODE_ENV"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "inputs": ["src/**/*.{ts,tsx}", "eslint.config.js"],
+      "outputs": []
+    },
+    "typecheck": {
+      "inputs": ["src/**/*.{ts,tsx}", "tsconfig*.json"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": ["src/**/*.{ts,tsx}", "vitest.config.ts"],
+      "outputs": ["coverage/**"],
+      "env": ["CI"]
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "inputs": ["tests/**", "playwright.config.ts"],
+      "outputs": ["playwright-report/**"],
+      "cache": false
+    }
+  }
+}
