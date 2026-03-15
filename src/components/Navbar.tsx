@@ -10,8 +10,10 @@ const NAV_LINKS = [
     { label: "Pricing", href: "/owners/pricing" },
     { label: "Get Free Estimate", href: "/owners/estimate" },
     { label: "Our Standards", href: "/owners/standards" },
+    { label: "Owner Portal", href: "/owners/portal" },
   ]},
   { label: "Properties", href: "/properties" },
+  { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -65,7 +67,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
             <Logo size="sm" />
           </Link>
 
-          {/* Desktop nav - compact */}
+          {/* Desktop nav */}
           <div className="hidden lg:flex items-center gap-0.5">
             {NAV_LINKS.map((link) => (
               link.children ? (
@@ -90,7 +92,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
                         transition={{ duration: 0.12 }}
-                        className="absolute top-full left-0 mt-0.5 w-44 bg-card border border-border/50 overflow-hidden py-1"
+                        className="absolute top-full left-0 mt-0.5 w-48 bg-card border border-border/50 overflow-hidden py-1"
                       >
                         {link.children.map((child) => (
                           <Link
@@ -145,7 +147,7 @@ export default function Navbar({ onOpenWizard }: NavbarProps) {
         </nav>
       </header>
 
-      {/* Mobile drawer - compact */}
+      {/* Mobile drawer */}
       <AnimatePresence>
         {drawerOpen && (
           <>
