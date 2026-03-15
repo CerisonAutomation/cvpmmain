@@ -7,10 +7,9 @@ interface Props {
 }
 
 export default function SectionHeading({ data, className = '' }: Props) {
-  const { tagline, headline, highlightWord, body, alignment = 'center' } = data;
+  const { tagline, headline, highlightWord, alignment = 'center' } = data;
   const align = alignment === 'center' ? 'text-center' : 'text-left';
 
-  // Replace highlight word with gold-text span
   const renderHeadline = () => {
     if (!highlightWord) return headline;
     const parts = headline.split(highlightWord);
@@ -24,17 +23,19 @@ export default function SectionHeading({ data, className = '' }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       className={`${align} ${className}`}
     >
-      <p className="micro-type text-primary mb-3">{tagline}</p>
-      <h2 className="section-heading">{renderHeadline()}</h2>
-      {body && (
-        <p className="text-sm text-muted-foreground mt-3 max-w-md mx-auto leading-relaxed">{body}</p>
+      {tagline && (
+        <p className="micro-type text-primary mb-4 tracking-[0.2em]">{tagline}</p>
       )}
+      <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight tracking-tight">
+        {renderHeadline()}
+      </h2>
+      <div className={`mt-6 h-px w-20 bg-primary/30 ${alignment === 'center' ? 'mx-auto' : ''}`} />
     </motion.div>
   );
 }
