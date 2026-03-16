@@ -16,43 +16,81 @@ env:
   TURBO_TELEMETRY_DISABLED: 1
 
 jobs:
-  # ── Quality gates ─────────────────────────────────────────────────────────
+  # ── Shared install step via cache ───────────────────────────────────────────
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache node_modules
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-
+
+      - name: Install
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: npm install --legacy-peer-deps
+
+  # ── Quality gates ──────────────────────────────────────────────────
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
       - run: npm run typecheck
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
       - run: npm run lint
       - run: npm run format:check
 
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
       - run: npm run test:coverage
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder_anon_key
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -69,18 +107,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
       - run: npm run build
         env:
           NODE_ENV: production
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder_anon_key
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
           retention-days: 1
 
-  # ── E2E (only on PRs to main) ──────────────────────────────────────────────
+  # ── E2E (PRs to main only) ───────────────────────────────────────────
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -91,16 +133,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package.json') }}
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
           CI: true
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder_anon_key
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -108,7 +154,7 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  # ── Bundle size guard ──────────────────────────────────────────────────────
+  # ── Bundle size guard ───────────────────────────────────────────────
   bundle-size:
     name: Bundle Size
     runs-on: ubuntu-latest
@@ -122,7 +168,8 @@ jobs:
       - name: Check bundle sizes
         run: |
           echo "=== JS bundle sizes ==="
-          find dist/assets/js -name '*.js' ! -name '*.map' | sort | while read f; do
+          # Vite outputs to dist/assets (flat) — no /js subfolder
+          find dist/assets -name '*.js' ! -name '*.map' | sort | while read f; do
             size=$(wc -c < "$f")
             kb=$((size / 1024))
             echo "  $f: ${kb}kb"
@@ -130,6 +177,10 @@ jobs:
               echo "::warning::Chunk $f is ${kb}kb (>500kb threshold)"
             fi
           done
-          total=$(find dist/assets/js -name '*.js' ! -name '*.map' -exec wc -c {} + | tail -1 | awk '{print $1}')
+          total=$(find dist/assets -name '*.js' ! -name '*.map' -exec cat {} + | wc -c)
           totalkb=$((total / 1024))
           echo "Total uncompressed JS: ${totalkb}kb"
+          if [ $totalkb -gt 2000 ]; then
+            echo "::error::Total JS bundle ${totalkb}kb exceeds 2MB hard limit"
+            exit 1
+          fi
