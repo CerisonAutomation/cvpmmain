@@ -50,10 +50,29 @@ export type BlockType =
   | 'booking_search'
   | 'contact_form';
 
+/** Ordered list of all CMS block types with human-readable labels.
+ *  Used by the Admin UI dropdown to populate block type selectors.
+ */
+export const BLOCK_TYPES: ReadonlyArray<{ type: BlockType; label: string }> = [
+  { type: 'hero_centered',      label: 'Hero — Centered' },
+  { type: 'hero_split',         label: 'Hero — Split' },
+  { type: 'stats_row',          label: 'Stats Row' },
+  { type: 'feature_grid',       label: 'Feature Grid' },
+  { type: 'text_block',         label: 'Text Block' },
+  { type: 'cta_banner',         label: 'CTA Banner' },
+  { type: 'faq_accordion',      label: 'FAQ Accordion' },
+  { type: 'property_showcase',  label: 'Property Showcase' },
+  { type: 'proof_strip',        label: 'Proof Strip' },
+  { type: 'process_steps',      label: 'Process Steps' },
+  { type: 'pricing_table',      label: 'Pricing Table' },
+  { type: 'booking_search',     label: 'Booking Search' },
+  { type: 'contact_form',       label: 'Contact Form' },
+] as const;
+
 export interface ContentBlock<T extends string = string, D = unknown> {
   id: string;
   type: T;
-  tags: string[];
+  tags?: string[];
   data: D;
 }
 
