@@ -1,25 +1,67 @@
 {
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
+    "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleDetection": "force",
     "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
     "noEmit": true,
-    "noFallthroughCasesInSwitch": false,
-    "noImplicitAny": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "paths": {
-      "@/*": ["./src/*"]
-    },
+    "useDefineForClassFields": true,
+
+    /* ── Strictness — incrementally tighten ── */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+
+    /* ── Quality gates ── */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+
+    /* ── DX ── */
     "skipLibCheck": true,
-    "strict": false,
-    "target": "ES2020",
-    "useDefineForClassFields": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": false,
+
+    /* ── Paths ── */
+    "baseUrl": ".",
+    "paths": {
+      "@/*":           ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*":       ["./src/lib/*"],
+      "@/pages/*":     ["./src/pages/*"],
+      "@/hooks/*":     ["./src/hooks/*"],
+      "@/stores/*":    ["./src/stores/*"],
+      "@/types/*":     ["./src/types/*"],
+      "@/utils/*":     ["./src/utils/*"],
+      "@/services/*":  ["./src/services/*"],
+      "@/constants/*": ["./src/constants/*"],
+      "@/assets/*":    ["./src/assets/*"]
+    }
   },
   "include": ["src"],
-  "exclude": ["vite.config.ts", "vite.config.*.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "vite.config.ts",
+    "vite.config.*.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "eslint.config.js"
+  ]
 }

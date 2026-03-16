@@ -1,0 +1,11 @@
+dist
+coverage
+node_modules
+.turbo
+playwright-report
+test-results
+public
+bun.lockb
+bun.lock
+package-lock.json
+*.md
