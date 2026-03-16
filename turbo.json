@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
+  "daemon": true,
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -28,7 +29,11 @@
       "persistent": true
     },
     "lint": {
-      "inputs": ["src/**/*.{ts,tsx}", "eslint.config.js"],
+      "inputs": ["src/**/*.{ts,tsx}", "eslint.config.js", ".eslintignore"],
+      "outputs": []
+    },
+    "format:check": {
+      "inputs": ["src/**/*.{ts,tsx,css,json}", ".prettierrc"],
       "outputs": []
     },
     "typecheck": {
@@ -36,15 +41,24 @@
       "outputs": []
     },
     "test": {
-      "inputs": ["src/**/*.{ts,tsx}", "vitest.config.ts"],
-      "outputs": ["coverage/**"],
-      "env": ["CI"]
+      "inputs": [
+        "src/**/*.{ts,tsx}",
+        "vitest.config.ts",
+        "src/test/**"
+      ],
+      "outputs": ["coverage/**", "test-results/**"],
+      "env": ["CI"],
+      "cache": true
     },
     "test:e2e": {
       "dependsOn": ["build"],
-      "inputs": ["tests/**", "playwright.config.ts"],
-      "outputs": ["playwright-report/**"],
+      "inputs": ["tests/**", "e2e/**", "playwright.config.ts"],
+      "outputs": ["playwright-report/**", "test-results/**"],
       "cache": false
+    },
+    "ci": {
+      "dependsOn": ["typecheck", "lint", "test", "build"],
+      "outputs": []
     }
   }
 }
