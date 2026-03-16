@@ -4,7 +4,7 @@
   "framework": "vite",
   "buildCommand": "vite build",
   "outputDirectory": "dist",
-  "installCommand": "npm ci",
+  "installCommand": "npm install",
   "devCommand": "vite --port 3000",
   "cleanUrls": true,
   "trailingSlash": false,
