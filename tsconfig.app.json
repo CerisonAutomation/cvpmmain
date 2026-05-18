@@ -31,7 +31,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
     "paths": {
       "@/*": [
         "./src/*"
