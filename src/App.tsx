@@ -30,6 +30,8 @@ const Admin           = lazy(() => import("./pages/Admin"));
 const LocationPage    = lazy(() => import("./pages/LocationPage"));
 const OwnerPortalPage = lazy(() => import("./pages/OwnerPortalPage"));
 const NotFound        = lazy(() => import("./pages/NotFound"));
+// FIX #1: BuilderPage was never imported or routed — editor was completely unreachable
+const BuilderPage     = lazy(() => import("./pages/BuilderPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,9 +121,6 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
   );
 }
 
-// AppRoutes is inside BrowserRouter — all children have full router context.
-// AiConcierge and CookieConsentBanner live here (not in App) so they can
-// safely use useLocation / useNavigate in future without crashing.
 function AppRoutes() {
   useListingsRealtime();
   const [loaded, setLoaded] = useState(false);
@@ -164,11 +163,14 @@ function AppRoutes() {
           {/* Admin */}
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
 
+          {/* FIX #1: Builder routes — were missing, editor was 100% unreachable */}
+          <Route path="/admin/builder"     element={<AdminGuard><BuilderPage /></AdminGuard>} />
+          <Route path="/admin/builder/:id" element={<AdminGuard><BuilderPage /></AdminGuard>} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SuspenseWrapper>
 
-      {/* Global overlays — inside BrowserRouter so they have full router context */}
       <Suspense fallback={null}><AiConcierge /></Suspense>
       <CookieConsentBanner />
     </>
