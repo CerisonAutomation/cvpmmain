@@ -6,7 +6,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { BuilderProvider, useBuilder } from "@/lib/builder/store";
 import { BLOCK_CATEGORIES } from "@/lib/builder/defaults";
 import { RenderBlock } from "@/lib/builder/renderers";
-import { loadPage, saveBlocks, updatePage, listPages, createPage, deletePage, callAi } from "@/lib/builder/api";
+import { loadPage, saveBlocks, listPages, createPage, deletePage, callAi } from "@/lib/builder/api";
 import type { BuilderPage } from "@/lib/builder/types";
 import {
   Loader2, Plus, Trash2, Copy, ArrowUp, ArrowDown,
@@ -335,6 +335,7 @@ function PageList() {
 
   // FIX #12: delete page UI — was exported from api.ts but never wired to any UI
   const onDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();  // prevent Link navigation
     e.preventDefault();
     if (!confirm("Delete this page and all its blocks? This cannot be undone.")) return;
     setDeleting(id);
@@ -382,29 +383,30 @@ function PageList() {
             <div className="p-6 text-center text-sm text-muted-foreground">No pages yet.</div>
           ) : (
             pages.map((p) => (
-              <div key={p.id} className="flex items-center group">
-                <Link to={`/admin/builder/${p.id}`} className="block p-4 hover:bg-muted/40 flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <div className="font-serif text-base">{p.name}</div>
-                      <div className="text-[11px] text-muted-foreground">/{p.slug}</div>
-                    </div>
-                    <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded ${
-                      p.status === "published"
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-muted text-muted-foreground"
-                    }`}>{p.status}</span>
-                  </div>
-                </Link>
+              <Link
+                key={p.id}
+                to={`/admin/builder/${p.id}`}
+                className="flex items-center gap-3 p-4 hover:bg-muted/40 group"
+              >
+                <div className="flex-1">
+                  <div className="font-serif text-base">{p.name}</div>
+                  <div className="text-[11px] text-muted-foreground">/{p.slug}</div>
+                </div>
+                <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded ${
+                  p.status === "published"
+                    ? "bg-emerald-500/10 text-emerald-500"
+                    : "bg-muted text-muted-foreground"
+                }`}>{p.status}</span>
                 <button
                   onClick={(e) => onDelete(p.id, e)}
                   disabled={deleting === p.id}
-                  className="mr-4 p-1.5 opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-destructive disabled:opacity-50"
+                  className="ml-2 p-1.5 opacity-0 group-hover:opacity-100 transition text-muted-foreground hover:text-destructive disabled:opacity-50"
                   title="Delete page"
+                  aria-label={`Delete page "${p.name}"`}
                 >
                   {deleting === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 </button>
-              </div>
+              </Link>
             ))
           )}
         </div>
@@ -415,7 +417,6 @@ function PageList() {
 
 export default function BuilderPage() {
   const { id } = useParams<{ id?: string }>();
-  void updatePage;
   return (
     <BuilderProvider>
       {id ? <Editor pageId={id} /> : <PageList />}

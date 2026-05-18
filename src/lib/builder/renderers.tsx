@@ -4,24 +4,24 @@
 import DOMPurify from "dompurify";
 import type { BuilderBlock } from "./types";
 
-const esc = (v: unknown) => (v == null ? "" : String(v));
+// sanitize strips HTML/JS from free-text fields before they are rendered.
+// Used for any user-supplied value that ends up as a text node or attribute.
+const s = (v: unknown) =>
+  DOMPurify.sanitize(v == null ? "" : String(v), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }) as string;
 
 function Hero({ d }: { d: Record<string, unknown> }) {
-  const heading = esc(d.heading);
-  // FIX #4: was dangerouslySetInnerHTML={{ __html: heading }} — stored XSS via builder_blocks.data
-  // Now sanitized with DOMPurify before injection
-  const sanitized = DOMPurify.sanitize(heading);
+  const heading = s(d.heading);          // sanitised (was raw → sanitised in commit)
   return (
     <section className="px-12 py-20 text-center bg-gradient-to-b from-background to-muted/40">
-      {d.eyebrow ? <div className="text-xs tracking-[0.22em] uppercase text-primary mb-5">{esc(d.eyebrow)}</div> : null}
+      {d.eyebrow ? <div className="text-xs tracking-[0.22em] uppercase text-primary mb-5">{s(d.eyebrow)}</div> : null}
       <h1
         className="font-serif text-5xl md:text-6xl font-light leading-tight"
-        dangerouslySetInnerHTML={{ __html: sanitized }}
+        dangerouslySetInnerHTML={{ __html: heading }}
       />
-      {d.sub ? <p className="mt-4 text-muted-foreground max-w-xl mx-auto">{esc(d.sub)}</p> : null}
+      {d.sub ? <p className="mt-4 text-muted-foreground max-w-xl mx-auto">{s(d.sub)}</p> : null}
       <div className="mt-8 flex gap-3 justify-center flex-wrap">
-        {d.btn1 ? <button className="px-7 py-3 bg-primary text-primary-foreground text-sm rounded-sm">{esc(d.btn1)}</button> : null}
-        {d.btn2 ? <button className="px-7 py-3 border border-border text-sm rounded-sm">{esc(d.btn2)}</button> : null}
+        {d.btn1 ? <button className="px-7 py-3 bg-primary text-primary-foreground text-sm rounded-sm">{s(d.btn1)}</button> : null}
+        {d.btn2 ? <button className="px-7 py-3 border border-border text-sm rounded-sm">{s(d.btn2)}</button> : null}
       </div>
     </section>
   );
@@ -31,9 +31,9 @@ function Text({ d }: { d: Record<string, unknown> }) {
   const align = (d.align as string) ?? "left";
   return (
     <section className="px-12 py-16" style={{ textAlign: align as "left" | "center" | "right" }}>
-      {d.label ? <span className="text-[10px] tracking-[0.2em] uppercase text-primary mb-3 block">{esc(d.label)}</span> : null}
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-5">{esc(d.heading)}</h2> : null}
-      {d.body ? <p className="text-muted-foreground leading-relaxed max-w-2xl">{esc(d.body)}</p> : null}
+      {d.label ? <span className="text-[10px] tracking-[0.2em] uppercase text-primary mb-3 block">{s(d.label)}</span> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-5">{s(d.heading)}</h2> : null}
+      {d.body ? <p className="text-muted-foreground leading-relaxed max-w-2xl">{s(d.body)}</p> : null}
     </section>
   );
 }
@@ -44,10 +44,10 @@ function Stats({ d }: { d: Record<string, unknown> }) {
   return (
     <section className="px-12 py-12 bg-muted/30 border-y border-border">
       <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
-        {items.map((s, i) => (
+        {items.map((st, i) => (
           <div key={i} className="text-center">
-            <div className="font-serif text-5xl font-light text-primary">{esc(s.v)}</div>
-            <div className="text-[10px] tracking-[0.14em] uppercase text-muted-foreground mt-2">{esc(s.l)}</div>
+            <div className="font-serif text-5xl font-light text-primary">{s(st.v)}</div>
+            <div className="text-[10px] tracking-[0.14em] uppercase text-muted-foreground mt-2">{s(st.l)}</div>
           </div>
         ))}
       </div>
@@ -60,13 +60,15 @@ function Features({ d }: { d: Record<string, unknown> }) {
   const cols  = (d.cols as number) ?? 2;
   return (
     <section className="px-12 py-16">
-      {d.label ? <div className="text-[10px] tracking-[0.2em] uppercase text-primary mb-3">{esc(d.label)}</div> : null}
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{esc(d.heading)}</h2> : null}
+      {d.label ? <div className="text-[10px] tracking-[0.2em] uppercase text-primary mb-3">{s(d.label)}</div> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{s(d.heading)}</h2> : null}
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
         {items.map((f, i) => (
           <div key={i} className="p-6 bg-muted/40 border border-border rounded-md">
-            <div className="font-serif text-xl mb-2">{esc(f.title)}</div>
-            <div className="text-sm text-muted-foreground leading-relaxed">{esc(f.body)}</div>
+            {/* icon is a CSS class name — strip any script-like value before use as className */}
+            {f.icon ? <i className={`ti ${s(f.icon)}`} /> : null}
+            <div className="font-serif text-xl mb-2">{s(f.title)}</div>
+            <div className="text-sm text-muted-foreground leading-relaxed">{s(f.body)}</div>
           </div>
         ))}
       </div>
@@ -79,16 +81,16 @@ function Pricing({ d }: { d: Record<string, unknown> }) {
   const cols  = Math.min(plans.length || 2, (d.cols as number) ?? 2);
   return (
     <section className="px-12 py-16">
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-2 text-center">{esc(d.heading)}</h2> : null}
-      {d.note ? <p className="text-center text-muted-foreground mb-8">{esc(d.note)}</p> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-2 text-center">{s(d.heading)}</h2> : null}
+      {d.note ? <p className="text-center text-muted-foreground mb-8">{s(d.note)}</p> : null}
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
         {plans.map((p, i) => (
           <div key={i} className={`p-8 bg-muted/40 border rounded-md relative ${p.pop ? "border-primary" : "border-border"}`}>
             {p.pop ? <div className="absolute top-0 right-6 bg-primary text-primary-foreground text-[9px] tracking-widest uppercase px-3 py-1 rounded-b">Popular</div> : null}
-            <div className="text-[10px] tracking-[0.16em] uppercase text-primary mb-2">{esc(p.name)}</div>
-            <div><span className="font-serif text-5xl font-light">{esc(p.pct)}%</span> <span className="text-muted-foreground">commission</span></div>
-            <p className="text-sm text-muted-foreground my-4">{esc(p.desc)}</p>
-            <ul className="space-y-2 text-sm">{(p.feats ?? []).map((f, j) => <li key={j} className="text-muted-foreground">✓ {esc(f)}</li>)}</ul>
+            <div className="text-[10px] tracking-[0.16em] uppercase text-primary mb-2">{s(p.name)}</div>
+            <div><span className="font-serif text-5xl font-light">{s(p.pct)}%</span> <span className="text-muted-foreground">commission</span></div>
+            <p className="text-sm text-muted-foreground my-4">{s(p.desc)}</p>
+            <ul className="space-y-2 text-sm">{(p.feats ?? []).map((f, j) => <li key={j} className="text-muted-foreground">✓ {s(f)}</li>)}</ul>
           </div>
         ))}
       </div>
@@ -99,9 +101,9 @@ function Pricing({ d }: { d: Record<string, unknown> }) {
 function CTA({ d }: { d: Record<string, unknown> }) {
   return (
     <section className="px-12 py-20 text-center bg-gradient-to-br from-muted/40 to-muted/60 border-y border-border">
-      {d.heading ? <h2 className="font-serif text-5xl font-light mb-3">{esc(d.heading)}</h2> : null}
-      {d.body ? <p className="text-muted-foreground max-w-xl mx-auto mb-8">{esc(d.body)}</p> : null}
-      {d.btn ? <button className="px-10 py-3.5 bg-primary text-primary-foreground text-sm rounded-sm tracking-wider">{esc(d.btn)}</button> : null}
+      {d.heading ? <h2 className="font-serif text-5xl font-light mb-3">{s(d.heading)}</h2> : null}
+      {d.body ? <p className="text-muted-foreground max-w-xl mx-auto mb-8">{s(d.body)}</p> : null}
+      {d.btn ? <button className="px-10 py-3.5 bg-primary text-primary-foreground text-sm rounded-sm tracking-wider">{s(d.btn)}</button> : null}
     </section>
   );
 }
@@ -109,8 +111,8 @@ function CTA({ d }: { d: Record<string, unknown> }) {
 function ImageBlock({ d }: { d: Record<string, unknown> }) {
   return (
     <section className="px-12 py-10">
-      <img src={esc(d.url)} alt={esc(d.alt)} style={{ height: (d.height as number) ?? 360 }} className="w-full object-cover rounded-md" />
-      {d.caption ? <div className="text-xs text-muted-foreground text-center mt-3">{esc(d.caption)}</div> : null}
+      <img src={s(d.url)} alt={s(d.alt)} style={{ height: (d.height as number) ?? 360 }} className="w-full object-cover rounded-md" />
+      {d.caption ? <div className="text-xs text-muted-foreground text-center mt-3">{s(d.caption)}</div> : null}
     </section>
   );
 }
@@ -120,9 +122,9 @@ function Gallery({ d }: { d: Record<string, unknown> }) {
   const cols = (d.cols as number) ?? 3;
   return (
     <section className="px-12 py-16">
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-7">{esc(d.heading)}</h2> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-7">{s(d.heading)}</h2> : null}
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
-        {imgs.map((img, i) => <img key={i} src={img.url} alt={esc(img.alt)} className="w-full h-44 object-cover rounded" />)}
+        {imgs.map((img, i) => <img key={i} src={img.url} alt={s(img.alt)} className="w-full h-44 object-cover rounded" />)}
       </div>
     </section>
   );
@@ -132,8 +134,8 @@ function Quote({ d }: { d: Record<string, unknown> }) {
   return (
     <section className="px-20 py-16 text-center">
       <div className="font-serif text-6xl text-primary opacity-30 leading-none mb-4">&ldquo;</div>
-      <blockquote className="font-serif text-2xl italic font-light">&ldquo;{esc(d.text)}&rdquo;</blockquote>
-      {d.attr ? <cite className="text-xs tracking-widest uppercase text-primary mt-4 block not-italic">— {esc(d.attr)}</cite> : null}
+      <blockquote className="font-serif text-2xl italic font-light">&ldquo;{s(d.text)}&rdquo;</blockquote>
+      {d.attr ? <cite className="text-xs tracking-widest uppercase text-primary mt-4 block not-italic">— {s(d.attr)}</cite> : null}
     </section>
   );
 }
@@ -141,12 +143,12 @@ function Quote({ d }: { d: Record<string, unknown> }) {
 function Contact({ d }: { d: Record<string, unknown> }) {
   return (
     <section className="px-12 py-16">
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{esc(d.heading)}</h2> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{s(d.heading)}</h2> : null}
       <div className="grid grid-cols-2 gap-12">
         <div className="space-y-4 text-sm text-muted-foreground">
-          {d.email   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Email</div>{esc(d.email)}</div>     : null}
-          {d.phone   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Phone</div>{esc(d.phone)}</div>     : null}
-          {d.address ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Location</div>{esc(d.address)}</div> : null}
+          {d.email   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Email</div>{s(d.email)}</div>     : null}
+          {d.phone   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Phone</div>{s(d.phone)}</div>     : null}
+          {d.address ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Location</div>{s(d.address)}</div> : null}
         </div>
         <div className="space-y-2">
           {["Name *", "Email *", "Phone", "Message *"].map((p) => (
@@ -163,12 +165,12 @@ function FAQ({ d }: { d: Record<string, unknown> }) {
   const items = (d.items as { q: string; a: string }[]) ?? [];
   return (
     <section className="px-12 py-16">
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{esc(d.heading)}</h2> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{s(d.heading)}</h2> : null}
       <div className="divide-y divide-border">
         {items.map((f, i) => (
           <div key={i} className="py-5">
-            <div className="font-serif text-lg">{esc(f.q)}</div>
-            <div className="text-sm text-muted-foreground mt-2 leading-relaxed">{esc(f.a)}</div>
+            <div className="font-serif text-lg">{s(f.q)}</div>
+            <div className="text-sm text-muted-foreground mt-2 leading-relaxed">{s(f.a)}</div>
           </div>
         ))}
       </div>
@@ -181,14 +183,14 @@ function Testimonials({ d }: { d: Record<string, unknown> }) {
   const cols  = (d.cols as number) ?? 2;
   return (
     <section className="px-12 py-16 bg-muted/30">
-      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8 text-center">{esc(d.heading)}</h2> : null}
+      {d.heading ? <h2 className="font-serif text-4xl font-light mb-8 text-center">{s(d.heading)}</h2> : null}
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
         {items.map((t, i) => (
           <div key={i} className="p-7 bg-background border border-border rounded-md">
             <div className="text-primary text-sm tracking-widest mb-3">{"★".repeat(Math.min(t.rating ?? 5, 5))}</div>
-            <div className="font-serif italic text-lg text-muted-foreground mb-4">&ldquo;{esc(t.quote)}&rdquo;</div>
-            <div className="text-sm">{esc(t.name)}</div>
-            <div className="text-xs text-muted-foreground mt-1">{esc(t.loc)}</div>
+            <div className="font-serif italic text-lg text-muted-foreground mb-4">&ldquo;{s(t.quote)}&rdquo;</div>
+            <div className="text-sm">{s(t.name)}</div>
+            <div className="text-xs text-muted-foreground mt-1">{s(t.loc)}</div>
           </div>
         ))}
       </div>
