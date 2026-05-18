@@ -1,6 +1,7 @@
 // Builder data access — pages + blocks via Supabase
 import { supabase } from "@/integrations/supabase/client";
 import type { BuilderPage, BuilderBlock, BlockType } from "./types";
+import { BuilderPageSchema, BuilderBlockSchema } from "./schemas";
 
 const TABLE_PAGES  = "builder_pages"  as const;
 const TABLE_BLOCKS = "builder_blocks" as const;
@@ -43,7 +44,7 @@ export async function listPages(): Promise<BuilderPage[]> {
     .select("*")
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((p: DbPage) => toPage(p));
+  return (data ?? []).map((p: DbPage) => BuilderPageSchema.parse(toPage(p)));
 }
 
 export async function loadPage(id: string): Promise<BuilderPage | null> {
@@ -57,7 +58,12 @@ export async function loadPage(id: string): Promise<BuilderPage | null> {
   if (pageRes.error)   throw pageRes.error;
   if (blocksRes.error) throw blocksRes.error;
   if (!pageRes.data)   return null;
-  return toPage(pageRes.data, blocksRes.data ?? []);
+  // Zod boundary validation for page and every block
+  const page  = BuilderPageSchema.parse(toPage(pageRes.data));
+  const blocks = (blocksRes.data ?? []).map((b: DbBlock) =>
+    BuilderBlockSchema.parse({ id: b.id, page_id: b.page_id, type: b.type, data: b.data, position: b.position })
+  );
+  return { ...page, blocks };
 }
 
 export async function createPage(input: { name: string; slug: string }): Promise<BuilderPage> {
@@ -119,13 +125,13 @@ export async function saveBlocks(pageId: string, blocks: BuilderBlock[]) {
     .upsert(rows, { onConflict: "id" });
   if (upsertErr) throw upsertErr;
 
-  // Delete any blocks that were removed since last save
+  // Remove any blocks that were removed since last save (parameterised — no SQL injection)
   const keepIds = rows.map((r) => r.id);
   const { error: deleteErr } = await sb
     .from(TABLE_BLOCKS)
     .delete()
     .eq("page_id", pageId)
-    .not("id", "in", `(${keepIds.map((x) => `'${x}'`).join(",")})`);
+    .not("id", "in", keepIds);  // array passed directly → Supabase uses parameterised bindings
   if (deleteErr) throw deleteErr;
 }
 
