@@ -12,7 +12,9 @@ const QUICK_LINKS = [
 
 const NotFound = () => {
   const location = useLocation();
-  useEffect(() => { console.error('404:', location.pathname); }, [location.pathname]);
+  useEffect(() => {
+    if (import.meta.env.DEV) console.error('404:', location.pathname);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

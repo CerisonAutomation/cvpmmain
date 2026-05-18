@@ -314,6 +314,7 @@ function Editor({ pageId }: { pageId: string }) {
 }
 
 function PageList() {
+  const { setToast } = useBuilder();
   const [pages, setPages]     = useState<BuilderPage[] | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -321,7 +322,9 @@ function PageList() {
   const [slug, setSlug]       = useState("");
   const nav = useNavigate();
 
-  const refresh = () => listPages().then(setPages).catch(() => setPages([]));
+  const refresh = () => listPages()
+    .then(setPages)
+    .catch((e) => { setPages([]); setToast({ msg: e instanceof Error ? e.message : "Failed to load pages", kind: "err" }); });
   useEffect(() => { void refresh(); }, []);
 
   const onCreate = async () => {
