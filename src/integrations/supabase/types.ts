@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      builder_blocks: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          page_id: string
+          position: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          page_id: string
+          position?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          page_id?: string
+          position?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "builder_blocks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "builder_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      builder_pages: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          seo: Json
+          slug: string
+          status: string
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          seo?: Json
+          slug: string
+          status?: string
+          theme?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          seo?: Json
+          slug?: string
+          status?: string
+          theme?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cms_pages: {
         Row: {
           blocks: Json
