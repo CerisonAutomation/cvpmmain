@@ -1,16 +1,23 @@
 // Block renderers — pure presentational components driven by `data`.
 // First pass: hero, text, stats, features, pricing, faq, testimonials,
 // quote, image, gallery, cta, contact, divider, spacer.
+import DOMPurify from "dompurify";
 import type { BuilderBlock } from "./types";
 
 const esc = (v: unknown) => (v == null ? "" : String(v));
 
 function Hero({ d }: { d: Record<string, unknown> }) {
   const heading = esc(d.heading);
+  // FIX #4: was dangerouslySetInnerHTML={{ __html: heading }} — stored XSS via builder_blocks.data
+  // Now sanitized with DOMPurify before injection
+  const sanitized = DOMPurify.sanitize(heading);
   return (
     <section className="px-12 py-20 text-center bg-gradient-to-b from-background to-muted/40">
       {d.eyebrow ? <div className="text-xs tracking-[0.22em] uppercase text-primary mb-5">{esc(d.eyebrow)}</div> : null}
-      <h1 className="font-serif text-5xl md:text-6xl font-light leading-tight" dangerouslySetInnerHTML={{ __html: heading }} />
+      <h1
+        className="font-serif text-5xl md:text-6xl font-light leading-tight"
+        dangerouslySetInnerHTML={{ __html: sanitized }}
+      />
       {d.sub ? <p className="mt-4 text-muted-foreground max-w-xl mx-auto">{esc(d.sub)}</p> : null}
       <div className="mt-8 flex gap-3 justify-center flex-wrap">
         {d.btn1 ? <button className="px-7 py-3 bg-primary text-primary-foreground text-sm rounded-sm">{esc(d.btn1)}</button> : null}
@@ -33,7 +40,7 @@ function Text({ d }: { d: Record<string, unknown> }) {
 
 function Stats({ d }: { d: Record<string, unknown> }) {
   const items = (d.items as { v: string; l: string }[]) ?? [];
-  const cols = (d.cols as number) ?? 4;
+  const cols  = (d.cols as number) ?? 4;
   return (
     <section className="px-12 py-12 bg-muted/30 border-y border-border">
       <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
@@ -50,7 +57,7 @@ function Stats({ d }: { d: Record<string, unknown> }) {
 
 function Features({ d }: { d: Record<string, unknown> }) {
   const items = (d.items as { icon?: string; title: string; body: string }[]) ?? [];
-  const cols = (d.cols as number) ?? 2;
+  const cols  = (d.cols as number) ?? 2;
   return (
     <section className="px-12 py-16">
       {d.label ? <div className="text-[10px] tracking-[0.2em] uppercase text-primary mb-3">{esc(d.label)}</div> : null}
@@ -69,7 +76,7 @@ function Features({ d }: { d: Record<string, unknown> }) {
 
 function Pricing({ d }: { d: Record<string, unknown> }) {
   const plans = (d.plans as { name: string; pct: string; desc: string; feats: string[]; pop?: boolean }[]) ?? [];
-  const cols = Math.min(plans.length || 2, (d.cols as number) ?? 2);
+  const cols  = Math.min(plans.length || 2, (d.cols as number) ?? 2);
   return (
     <section className="px-12 py-16">
       {d.heading ? <h2 className="font-serif text-4xl font-light mb-2 text-center">{esc(d.heading)}</h2> : null}
@@ -137,12 +144,14 @@ function Contact({ d }: { d: Record<string, unknown> }) {
       {d.heading ? <h2 className="font-serif text-4xl font-light mb-8">{esc(d.heading)}</h2> : null}
       <div className="grid grid-cols-2 gap-12">
         <div className="space-y-4 text-sm text-muted-foreground">
-          {d.email ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Email</div>{esc(d.email)}</div> : null}
-          {d.phone ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Phone</div>{esc(d.phone)}</div> : null}
+          {d.email   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Email</div>{esc(d.email)}</div>     : null}
+          {d.phone   ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Phone</div>{esc(d.phone)}</div>     : null}
           {d.address ? <div><div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Location</div>{esc(d.address)}</div> : null}
         </div>
         <div className="space-y-2">
-          {["Name *", "Email *", "Phone", "Message *"].map((p) => <div key={p} className="px-4 py-3 bg-muted/40 border border-border rounded text-xs text-muted-foreground">{p}</div>)}
+          {["Name *", "Email *", "Phone", "Message *"].map((p) => (
+            <div key={p} className="px-4 py-3 bg-muted/40 border border-border rounded text-xs text-muted-foreground">{p}</div>
+          ))}
           <button className="w-full px-6 py-3 bg-primary text-primary-foreground text-xs rounded">Send Message</button>
         </div>
       </div>
@@ -169,7 +178,7 @@ function FAQ({ d }: { d: Record<string, unknown> }) {
 
 function Testimonials({ d }: { d: Record<string, unknown> }) {
   const items = (d.items as { quote: string; name: string; loc: string; rating?: number }[]) ?? [];
-  const cols = (d.cols as number) ?? 2;
+  const cols  = (d.cols as number) ?? 2;
   return (
     <section className="px-12 py-16 bg-muted/30">
       {d.heading ? <h2 className="font-serif text-4xl font-light mb-8 text-center">{esc(d.heading)}</h2> : null}
@@ -202,20 +211,20 @@ function Placeholder({ type }: { type: string }) {
 export function RenderBlock({ block }: { block: BuilderBlock }) {
   const d = block.data ?? {};
   switch (block.type) {
-    case "hero": return <Hero d={d} />;
-    case "text": return <Text d={d} />;
-    case "stats": return <Stats d={d} />;
-    case "features": return <Features d={d} />;
-    case "pricing": return <Pricing d={d} />;
-    case "cta": return <CTA d={d} />;
-    case "image": return <ImageBlock d={d} />;
-    case "gallery": return <Gallery d={d} />;
-    case "quote": return <Quote d={d} />;
-    case "contact": return <Contact d={d} />;
-    case "faq": return <FAQ d={d} />;
+    case "hero":         return <Hero d={d} />;
+    case "text":         return <Text d={d} />;
+    case "stats":        return <Stats d={d} />;
+    case "features":     return <Features d={d} />;
+    case "pricing":      return <Pricing d={d} />;
+    case "cta":          return <CTA d={d} />;
+    case "image":        return <ImageBlock d={d} />;
+    case "gallery":      return <Gallery d={d} />;
+    case "quote":        return <Quote d={d} />;
+    case "contact":      return <Contact d={d} />;
+    case "faq":          return <FAQ d={d} />;
     case "testimonials": return <Testimonials d={d} />;
-    case "divider": return <Divider />;
-    case "spacer": return <Spacer d={d} />;
-    default: return <Placeholder type={block.type} />;
+    case "divider":      return <Divider />;
+    case "spacer":       return <Spacer d={d} />;
+    default:             return <Placeholder type={block.type} />;
   }
 }
