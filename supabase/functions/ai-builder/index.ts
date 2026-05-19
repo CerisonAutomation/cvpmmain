@@ -1,5 +1,7 @@
 // AI Page Builder gateway — generate / critique / suggest copy for blocks.
 // Uses Lovable AI Gateway (LOVABLE_API_KEY).
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -9,6 +11,15 @@ const corsHeaders = {
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
+
+const AiModeSchema = z.enum(["generate", "critique", "rewrite", "seo"]);
+
+const AiRequestSchema = z.object({
+  mode: AiModeSchema.default("generate"),
+  prompt: z.string().min(1).max(5000),
+  context: z.unknown().optional(),
+  model: z.string().optional(),
+});
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   generate:
@@ -21,6 +32,12 @@ const SYSTEM_PROMPTS: Record<string, string> = {
     "Generate SEO meta for the provided page outline. Return JSON: { title, description, keywords:[] } — title<60 chars, description<160.",
 };
 
+const AiResponseSchema = z.object({
+  mode: z.string(),
+  model: z.string(),
+  result: z.unknown(),
+});
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") {
@@ -32,10 +49,15 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const mode: string = body.mode || "generate";
-    const userPrompt: string = body.prompt || "";
-    const context = body.context ?? null;
-    const model: string = body.model || DEFAULT_MODEL;
+    const validated = AiRequestSchema.safeParse(body);
+    if (!validated.success) {
+      return new Response(JSON.stringify({ error: "Invalid request", details: validated.error.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { mode, prompt: userPrompt, context, model = DEFAULT_MODEL } = validated.data;
 
     const system = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.generate;
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -89,7 +111,8 @@ Deno.serve(async (req) => {
       parsed = { raw: text };
     }
 
-    return new Response(JSON.stringify({ mode, model, result: parsed }), {
+    const response = AiResponseSchema.parse({ mode, model, result: parsed });
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
