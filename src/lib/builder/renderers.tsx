@@ -128,7 +128,7 @@ function Gallery({ d }: { d: Record<string, unknown> }) {
     <section className="px-12 py-16">
       {d.heading ? <h2 className="font-serif text-4xl font-light mb-7">{sanitize(d.heading)}</h2> : null}
       <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols},1fr)` }}>
-        {imgs.map((img, i) => <img key={i} src={img.url} alt={sanitize(img.alt)} className="w-full h-44 object-cover rounded" />)}
+        {imgs.map((img, i) => <img key={i} src={sanitize(img.url)} alt={sanitize(img.alt)} className="w-full h-44 object-cover rounded" />)}
       </div>
     </section>
   );
