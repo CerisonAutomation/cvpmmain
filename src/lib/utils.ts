@@ -7,15 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Sanitize string input to prevent XSS.
- * Removes <script> tags and common event handlers.
+ * Uses HTML entity encoding to neutralize all HTML/JS.
  */
 export function sanitizeInput(input: string): string {
   if (typeof input !== 'string') return '';
   return input
-    .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
-    .replace(/\s*on\w+="[^"]*"/gim, "")
-    .replace(/\s*on\w+='[^']*'/gim, "")
-    .replace(/javascript:[^"']*/gim, "")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
     .trim();
 }
 

@@ -217,8 +217,8 @@ function PropsPanel() {
                     onBlur={(e) => {
                       try {
                         dispatch({ type: "PATCH", id: selected.id, data: { [k]: JSON.parse(e.target.value) } });
-                      } catch {
-                        setToast({ msg: "Invalid JSON", kind: "err" });
+                      } catch (err) {
+                        setToast({ msg: `Invalid JSON: ${err instanceof Error ? err.message : String(err)}`, kind: "err" });
                       }
                     }}
                     className="w-full px-2 py-1.5 bg-muted/40 border border-border rounded font-mono text-[10px] min-h-[100px]"

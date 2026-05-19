@@ -20,8 +20,7 @@ function Hero({ d }: { d: Record<string, unknown> }) {
       {d.eyebrow ? <div className="text-xs tracking-[0.22em] uppercase text-primary mb-5">{sanitize(d.eyebrow)}</div> : null}
       <h1
         className="font-serif text-5xl md:text-6xl font-light leading-tight"
-        dangerouslySetInnerHTML={{ __html: heading }}
-      />
+      >{heading}</h1>
       {d.sub ? <p className="mt-4 text-muted-foreground max-w-xl mx-auto">{sanitize(d.sub)}</p> : null}
       <div className="mt-8 flex gap-3 justify-center flex-wrap">
         {d.btn1 ? <button className="px-7 py-3 bg-primary text-primary-foreground text-sm rounded-sm">{sanitize(d.btn1)}</button> : null}
