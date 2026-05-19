@@ -18,7 +18,7 @@ import {
   normalizeListingDetail, useUpsellFees,
 } from '@/lib/guesty/hooks';
 import { sanitizeObject } from '@/lib/utils';
-import { UpsellIcon } from '@/lib/guesty/upsellIcons';
+import { BookingFormSkeleton } from '@/components/ui/skeleton-variants';
 import type { UpsellFee } from '@/lib/guesty/types';
 
 const bookingSchema = z.object({

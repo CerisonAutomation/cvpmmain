@@ -4,7 +4,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { useCmsPage } from '@/hooks/use-cms-page';
 import { For } from 'million/react';
 import BlockRenderer from '@/components/blocks/BlockRenderer';
-import { PropertyCardSkeleton } from '@/components/ui/skeleton-variants';
+import { CmsPageSkeleton } from '@/components/ui/skeleton-variants';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 function BlockErrorFallback({ resetErrorBoundary }: { resetErrorBoundary: () => void }) {
@@ -31,11 +31,7 @@ export function CmsPage({ slug }: { slug: string }) {
         <SEOHead title="Loading…" description="" />
         <section className="py-16">
           <div className="section-container">
-            <div className="grid gap-4">
-              {[0, 1, 2].map((i) => (
-                <PropertyCardSkeleton key={i} />
-              ))}
-            </div>
+            <CmsPageSkeleton blocks={3} />
           </div>
         </section>
       </Layout>

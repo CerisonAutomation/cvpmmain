@@ -182,3 +182,49 @@ export function TextBlockSkeleton({ lines = 4 }: { lines?: number }) {
     </div>
   );
 }
+
+// CMS page skeleton (for blocks)
+export function CmsPageSkeleton({ blocks = 3 }: { blocks?: number }) {
+  return (
+    <div aria-busy="true" className="space-y-12">
+      {[...Array(blocks)].map((_, i) => (
+        <div key={i} className="space-y-4">
+          <Skeleton className="h-6 w-1/3" />
+          <TextBlockSkeleton lines={3} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Admin page skeleton
+export function AdminSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-6">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Location page skeleton
+export function LocationPageSkeleton() {
+  return (
+    <div aria-busy="true" className="space-y-12">
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-20 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
