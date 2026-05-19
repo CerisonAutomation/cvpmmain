@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => {
         // scanner with unsafe-eval in the app bundle itself.
         "Content-Security-Policy":
           "default-src 'self'; " +
-          "script-src 'self' 'unsafe-eval' 'unsafe-inline' https:; " +
-          "style-src 'self' 'unsafe-inline' https:; " +
+          "script-src 'self' 'unsafe-eval' https:; " +
+          "style-src 'self' https:; " +
           "img-src 'self' data: https:; " +
           "font-src 'self' https:; " +
           "connect-src 'self' https: ws: wss:; " +
@@ -49,8 +49,8 @@ export default defineConfig(({ mode }) => {
         "Cache-Control": "no-store",
         "Content-Security-Policy":
           "default-src 'self'; " +
-          "script-src 'self' https:; " +
-          "style-src 'self' 'unsafe-inline' https:; " +
+          "script-src 'self' 'sha256-oGCZ0z/tsNNaJYAViXzO4AEiID9xSgKKgOIxWyFchto=' https:; " +
+          "style-src 'self' https:; " +
           "img-src 'self' data: https:; " +
           "font-src 'self' https:; " +
           "connect-src 'self' https:; " +
