@@ -17,10 +17,13 @@ const CACHE = {
   UPSELL_FEES:      30 * 60 * 1000,
 };
 
+const exponentialBackoffDelay = (i: number) => Math.min(1000 * 2 ** i, 30000);
+
 const retryFn = (failureCount: number, error: unknown) => {
   const err = error as GuestyError;
   if (['UNAUTHORIZED', '401', '403'].some(c => err?.error_code?.includes(c) || err?.message?.includes(c))) return false;
-  return failureCount < 1;
+  if (err?.error_code === 'RATE_LIMIT_EXCEEDED') return failureCount < 2;
+  return failureCount < 2;
 };
 
 /** Fetch all listings with optional filters */
@@ -45,7 +48,7 @@ export const useListings = (params: {
     staleTime: CACHE.LISTINGS,
     refetchOnWindowFocus: false,
     retry: retryFn,
-    retryDelay: (i) => Math.min(15000 * 2 ** i, 60000),
+    retryDelay: exponentialBackoffDelay,
     placeholderData: [],
   });
 

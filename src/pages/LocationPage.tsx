@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { MapPin, ArrowRight } from 'lucide-react';
+import { LocationPageSkeleton } from '@/components/ui/skeleton-variants';
 
 /**
  * LocationPage — SEO landing pages per Malta locality.
@@ -74,6 +75,18 @@ const LOCATIONS: Record<string, {
 export default function LocationPage() {
   const { slug } = useParams<{ slug: string }>();
   const loc = slug ? LOCATIONS[slug] : undefined;
+
+  if (!slug) {
+    return (
+      <>
+        <Navbar />
+        <main id="main" className="pt-20 section-container py-24">
+          <LocationPageSkeleton />
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   if (!loc) {
     return (

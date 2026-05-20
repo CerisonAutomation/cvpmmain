@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import Layout from '@/components/Layout';
 import { SEOHead } from '@/components/SEOHead';
 import { useCmsPages, useCmsPageMutation } from '@/hooks/use-cms-admin';
+import { AdminSkeleton } from '@/components/ui/skeleton-variants';
 import type { ContentBlock, PageDefinition } from '@/lib/cms/types';
 import { BLOCK_TYPES } from '@/lib/cms/types';
 import { Button } from '@/components/ui/button';
@@ -175,6 +176,17 @@ export default function Admin() {
   const { data: pages, isLoading: pagesLoading } = useCmsPages();
   const { upsert, remove } = useCmsPageMutation();
   const { toast } = useToast();
+
+  if (pagesLoading) {
+    return (
+      <Layout>
+        <SEOHead title="CMS Admin" description="" noIndex />
+        <div className="section-container py-8">
+          <AdminSkeleton />
+        </div>
+      </Layout>
+    );
+  }
 
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<PageDefinition | null>(null);

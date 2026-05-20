@@ -1,34 +1,27 @@
 // Builder data access — pages + blocks via Supabase
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { BuilderPage, BuilderBlock, BlockType } from "./types";
-import { BuilderPageSchema, BuilderBlockSchema } from "./schemas";
+import {
+  DbPageSchema,
+  DbBlockSchema,
+  CreatePageInputSchema,
+  UpdatePageInputSchema,
+  AiCallInputSchema,
+  AiResponseSchema,
+  BuilderBlockSchema,
+} from "./schemas";
 
-const TABLE_PAGES  = "builder_pages"  as const;
+const TABLE_PAGES = "builder_pages" as const;
 const TABLE_BLOCKS = "builder_blocks" as const;
 
-type DbPage = {
-  id: string;
-  owner_id: string;
-  name: string;
-  slug: string;
-  status: "draft" | "published";
-  theme: Record<string, unknown>;
-  seo: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-};
-type DbBlock = {
-  id: string;
-  page_id: string;
-  type: string;
-  data: Record<string, unknown>;
-  position: number;
-};
-
-const toPage = (p: DbPage, blocks?: DbBlock[]): BuilderPage => ({
+const toPage = (
+  p: z.infer<typeof DbPageSchema>,
+  blocks?: z.infer<typeof DbBlockSchema>[]
+): BuilderPage => ({
   ...p,
   theme: (p.theme ?? {}) as BuilderPage["theme"],
-  seo:   (p.seo   ?? {}) as BuilderPage["seo"],
+  seo: (p.seo ?? {}) as BuilderPage["seo"],
   blocks: blocks?.map((b) => ({
     id: b.id,
     type: b.type as BlockType,
@@ -44,7 +37,12 @@ export async function listPages(): Promise<BuilderPage[]> {
     .select("*")
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((p: DbPage) => BuilderPageSchema.parse(toPage(p)));
+  const validated = (data ?? []).map((p: unknown) => {
+    const result = DbPageSchema.safeParse(p);
+    if (!result.success) throw new Error(`Invalid page data: ${result.error.message}`);
+    return toPage(result.data);
+  });
+  return validated;
 }
 
 export async function loadPage(id: string): Promise<BuilderPage | null> {
@@ -55,37 +53,47 @@ export async function loadPage(id: string): Promise<BuilderPage | null> {
     sb.from(TABLE_PAGES).select("*").eq("id", id).maybeSingle(),
     sb.from(TABLE_BLOCKS).select("*").eq("page_id", id).order("position", { ascending: true }),
   ]);
-  if (pageRes.error)   throw pageRes.error;
+  if (pageRes.error) throw pageRes.error;
   if (blocksRes.error) throw blocksRes.error;
-  if (!pageRes.data)   return null;
-  // Zod boundary validation for page and every block
-  const page  = BuilderPageSchema.parse(toPage(pageRes.data));
-  const blocks = (blocksRes.data ?? []).map((b: DbBlock) =>
-    BuilderBlockSchema.parse({ id: b.id, page_id: b.page_id, type: b.type, data: b.data, position: b.position })
-  );
-  return { ...page, blocks };
+  if (!pageRes.data) return null;
+
+  const pageResult = DbPageSchema.safeParse(pageRes.data);
+  if (!pageResult.success) throw new Error(`Invalid page data: ${pageResult.error.message}`);
+
+  const blocks = blocksRes.data ?? [];
+  const validatedBlocks = blocks.map((b: unknown) => {
+    const result = DbBlockSchema.safeParse(b);
+    if (!result.success) throw new Error(`Invalid block data: ${result.error.message}`);
+    return result.data;
+  });
+
+  return toPage(pageResult.data, validatedBlocks);
 }
 
 export async function createPage(input: { name: string; slug: string }): Promise<BuilderPage> {
+  const validatedInput = CreatePageInputSchema.parse(input);
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData?.user?.id;
   if (!uid) throw new Error("Not signed in");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from(TABLE_PAGES)
-    .insert({ owner_id: uid, name: input.name, slug: input.slug })
+    .insert({ owner_id: uid, name: validatedInput.name, slug: validatedInput.slug })
     .select("*")
     .single();
   if (error) throw error;
-  return toPage(data);
+  const result = DbPageSchema.safeParse(data);
+  if (!result.success) throw new Error(`Invalid created page data: ${result.error.message}`);
+  return toPage(result.data);
 }
 
 export async function updatePage(
   id: string,
   patch: Partial<Pick<BuilderPage, "name" | "slug" | "status" | "theme" | "seo">>
 ) {
+  const validatedPatch = UpdatePageInputSchema.parse(patch);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from(TABLE_PAGES).update(patch).eq("id", id);
+  const { error } = await (supabase as any).from(TABLE_PAGES).update(validatedPatch).eq("id", id);
   if (error) throw error;
 }
 
@@ -111,27 +119,31 @@ export async function saveBlocks(pageId: string, blocks: BuilderBlock[]) {
     return;
   }
 
-  const rows = blocks.map((b, i) => ({
-    id:      b.id,
-    page_id: pageId,
-    type:    b.type,
-    data:    b.data,
-    position: i,
-  }));
+  const validatedBlocks = blocks.map((b, i) => {
+    const result = BuilderBlockSchema.safeParse(b);
+    if (!result.success) throw new Error(`Invalid block: ${result.error.message}`);
+    return {
+      id: result.data.id,
+      page_id: pageId,
+      type: result.data.type,
+      data: result.data.data,
+      position: i,
+    };
+  });
 
   // Upsert all current blocks — safe if insert fails (existing rows are untouched)
   const { error: upsertErr } = await sb
     .from(TABLE_BLOCKS)
-    .upsert(rows, { onConflict: "id" });
+    .upsert(validatedBlocks, { onConflict: "id" });
   if (upsertErr) throw upsertErr;
 
-  // Remove any blocks that were removed since last save (parameterised — no SQL injection)
-  const keepIds = rows.map((r) => r.id);
+  // Delete any blocks that were removed since last save
+  const keepIds = validatedBlocks.map((r) => r.id);
   const { error: deleteErr } = await sb
     .from(TABLE_BLOCKS)
     .delete()
     .eq("page_id", pageId)
-    .not("id", "in", keepIds);  // array passed directly → Supabase uses parameterised bindings
+    .not("id", "in", `(${keepIds.map((x) => `'${x}'`).join(",")})`);
   if (deleteErr) throw deleteErr;
 }
 
@@ -141,7 +153,10 @@ export async function callAi(payload: {
   context?: unknown;
   model?: string;
 }) {
-  const { data, error } = await supabase.functions.invoke("ai-builder", { body: payload });
+  const validatedPayload = AiCallInputSchema.parse(payload);
+  const { data, error } = await supabase.functions.invoke("ai-builder", { body: validatedPayload });
   if (error) throw error;
-  return data as { mode: string; model: string; result: unknown };
+  const result = AiResponseSchema.safeParse(data);
+  if (!result.success) throw new Error(`Invalid AI response: ${result.error.message}`);
+  return result.data;
 }

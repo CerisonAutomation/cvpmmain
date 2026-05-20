@@ -24,19 +24,6 @@ export default defineConfig(({ mode }) => {
         "X-Frame-Options": "DENY",
         "X-XSS-Protection": "1; mode=block",
         "Referrer-Policy": "strict-origin-when-cross-origin",
-        // Vite dev server HMR uses eval() and new Function() internally
-        // (modules dep-BK3b2jBa.js).  Allow it rather than silencing the
-        // scanner with unsafe-eval in the app bundle itself.
-        "Content-Security-Policy":
-          "default-src 'self'; " +
-          "script-src 'self' 'unsafe-eval' https:; " +
-          "style-src 'self' https:; " +
-          "img-src 'self' data: https:; " +
-          "font-src 'self' https:; " +
-          "connect-src 'self' https: ws: wss:; " +
-          "frame-ancestors 'none'; " +
-          "base-uri 'self'; " +
-          "form-action 'self'",
       },
       cors: false,
     },
@@ -47,16 +34,6 @@ export default defineConfig(({ mode }) => {
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
         "Cache-Control": "no-store",
-        "Content-Security-Policy":
-          "default-src 'self'; " +
-          "script-src 'self' 'sha256-oGCZ0z/tsNNaJYAViXzO4AEiID9xSgKKgOIxWyFchto=' https:; " +
-          "style-src 'self' https:; " +
-          "img-src 'self' data: https:; " +
-          "font-src 'self' https:; " +
-          "connect-src 'self' https:; " +
-          "frame-ancestors 'none'; " +
-          "base-uri 'self'; " +
-          "form-action 'self'",
       },
     },
 
