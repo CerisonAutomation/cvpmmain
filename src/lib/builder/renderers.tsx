@@ -10,7 +10,10 @@ function Hero({ d }: { d: Record<string, unknown> }) {
   const heading = esc(d.heading);
   // FIX #4: was dangerouslySetInnerHTML={{ __html: heading }} — stored XSS via builder_blocks.data
   // Now sanitized with DOMPurify before injection
-  const sanitized = DOMPurify.sanitize(heading);
+  const sanitized = DOMPurify.sanitize(heading, {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'span'],
+    ALLOWED_ATTR: ['class'],
+  });
   return (
     <section className="px-12 py-20 text-center bg-gradient-to-b from-background to-muted/40">
       {d.eyebrow ? <div className="text-xs tracking-[0.22em] uppercase text-primary mb-5">{esc(d.eyebrow)}</div> : null}

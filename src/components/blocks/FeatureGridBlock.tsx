@@ -35,11 +35,11 @@ export default function FeatureGridBlock({ data, className = '' }: Props) {
   }[columns];
 
   return (
-    <section className={`py-20 lg:py-32 ${className}`}>
+    <section className={`py-20 lg:py-32 ${className}`} role="region" aria-labelledby="features-heading">
       <div className="section-container">
         {heading && <SectionHeading data={heading} className="mb-16 lg:mb-24" />}
         
-        <div className={`grid ${gridCols} gap-6 lg:gap-8`}>
+        <div className={`grid ${gridCols} gap-6 lg:gap-8`} role="list">
           {items.map((item, i) => {
             const Icon = getIcon(item.icon || '');
             return (
@@ -50,9 +50,10 @@ export default function FeatureGridBlock({ data, className = '' }: Props) {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
                 className="group satin-surface rounded-sm p-8 hover:border-primary/40 transition-all duration-500"
+                role="listitem"
               >
                 <div className="w-12 h-12 rounded-sm bg-secondary flex items-center justify-center mb-6 group-hover:bg-primary/10 transition-colors duration-500">
-                  <Icon size={20} className="text-primary group-hover:scale-110 transition-transform duration-500" />
+                  <Icon size={20} className="text-primary group-hover:scale-110 transition-transform duration-500" aria-hidden="true" />
                 </div>
                 <h3 className="font-serif text-xl font-semibold text-foreground mb-3 group-hover:text-primary transition-colors duration-500">{item.title}</h3>
                 <p className="text-[13px] text-muted-foreground leading-relaxed font-light">{item.description}</p>
