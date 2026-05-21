@@ -50,6 +50,8 @@ export const useListings = (params: {
     retry: retryFn,
     retryDelay: exponentialBackoffDelay,
     placeholderData: [],
+    refetchInterval: 30 * 60 * 1000,
+    refetchIntervalInBackground: true,
   });
 
 /** Fetch single listing by ID */
@@ -60,6 +62,8 @@ export const useListing = (id: string | undefined) =>
     enabled: !!id,
     staleTime: CACHE.LISTING,
     refetchOnWindowFocus: false,
+    refetchInterval: 15 * 60 * 1000,
+    refetchIntervalInBackground: false,
   });
 
 /** Prefetch a listing on hover */

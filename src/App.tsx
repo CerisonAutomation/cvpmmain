@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,11 +10,14 @@ import type { FallbackProps } from "react-error-boundary";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import LoadingScreen from "@/components/LoadingScreen";
-import AiConcierge from "@/components/AiConcierge";
 import AdminGuard from "@/components/AdminGuard";
 import { SmartSearch } from "@/components/SmartSearch";
 import { CmsPage } from "@/components/CmsPage";
 import { useListingsRealtime } from "@/hooks/use-listings-realtime";
+import { preloadCriticalAssets } from "@/lib/utils";
+
+// Lazy load heavy components
+const AiConcierge = lazy(() => import("@/components/AiConcierge"));
 
 const Properties      = lazy(() => import("./pages/Properties"));
 const PropertyDetail  = lazy(() => import("./pages/PropertyDetail"));
@@ -124,6 +127,13 @@ function SuspenseWrapper({ children }: { children: ReactNode }) {
 function AppRoutes() {
   useListingsRealtime();
   const [loaded, setLoaded] = useState(false);
+
+  // Preload critical assets after initial load
+  useEffect(() => {
+    if (loaded) {
+      preloadCriticalAssets();
+    }
+  }, [loaded]);
 
   return (
     <>
