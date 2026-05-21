@@ -71,6 +71,8 @@ export default defineConfig(({ mode }) => {
                 return "vendor-date";
               if (id.includes("embla-carousel") || id.includes("vaul") || id.includes("cmdk") || id.includes("sonner") || id.includes("input-otp"))
                 return "vendor-ui-extras";
+              if (id.includes("react-markdown") || id.includes("remark-gfm"))
+                return "vendor-markdown";
               return "vendor-misc";
             }
           },

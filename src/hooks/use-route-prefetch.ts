@@ -3,8 +3,9 @@
  * - Intelligent prefetching on link hover/focus
  * - Respects user data-saver preferences
  * - Prevents duplicate prefetches
+ * - Uses intersection observer for viewport-based prefetching
  */
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { guestyClient } from '@/lib/guesty/client';
 
@@ -13,15 +14,15 @@ const prefetchedRoutes = new Set<string>();
 export function useRoutePrefetch() {
   const queryClient = useQueryClient();
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const prefetchProperty = useCallback((id: string) => {
     const key = `property:${id}`;
     if (prefetchedRoutes.has(key)) return;
     
     // Respect data saver mode
-    const nav = navigator as any;
-    if ('connection' in nav) {
-      const conn = nav.connection;
+    if ('connection' in navigator) {
+      const conn = (navigator as any).connection;
       if (conn?.saveData || conn?.effectiveType === 'slow-2g') return;
     }
 
@@ -60,7 +61,37 @@ export function useRoutePrefetch() {
     };
   }, []);
 
-  return { prefetchProperty, prefetchListings, onHover };
+  // Viewport-based prefetching with Intersection Observer
+  const observePrefetch = useCallback((element: HTMLElement | null, callback: () => void) => {
+    if (!element) return;
+    
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+    
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            callback();
+            observerRef.current?.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: '100px' }
+    );
+    
+    observerRef.current.observe(element);
+  }, []);
+
+  // Cleanup observer on unmount
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, []);
+
+  return { prefetchProperty, prefetchListings, onHover, observePrefetch };
 }
 
 // Preload critical images
@@ -83,4 +114,9 @@ export function preloadFont(href: string) {
   link.crossOrigin = 'anonymous';
   link.href = href;
   document.head.appendChild(link);
+}
+
+// Clear prefetch cache for testing/debugging
+export function clearPrefetchCache() {
+  prefetchedRoutes.clear();
 }

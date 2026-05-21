@@ -37,3 +37,35 @@ export function sanitizeObject<T>(obj: T): T {
   }
   return obj;
 }
+
+/**
+ * Preload critical resources for performance.
+ * Fonts, hero images, and critical scripts.
+ */
+export const preloadCriticalAssets = () => {
+  if (typeof window === 'undefined') return;
+
+  // Preload hero images that appear above the fold
+  const heroImages = [
+    '/hero-bg.jpg',
+    '/placeholder.svg',
+  ];
+
+  heroImages.forEach(src => {
+    if (!src) return;
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+  });
+};
+
+/**
+ * Check if user prefers reduced data usage.
+ */
+export const prefersReducedData = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } };
+  return nav.connection?.saveData === true || nav.connection?.effectiveType === 'slow-2g';
+};
