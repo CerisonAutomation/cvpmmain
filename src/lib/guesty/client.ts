@@ -61,7 +61,7 @@ class GuestyClient {
    * to the raw data to avoid breaking the UI. In production, validation errors
    * are still logged so they appear in Vercel/Supabase runtime logs.
    */
-  private validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
+  private validate<T = unknown>(schema: z.ZodSchema<any>, data: unknown): T {
     const result = schema.safeParse(data);
     if (!result.success) {
       const formatted = result.error.format();
@@ -73,7 +73,7 @@ class GuestyClient {
       }
       return data as T;
     }
-    return result.data;
+    return result.data as T;
   }
 
   async getListings(params: {

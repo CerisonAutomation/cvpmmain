@@ -73,7 +73,7 @@ export interface ContentBlock<T extends string = string, D = unknown> {
   id: string;
   type: T;
   tags?: string[];
-  data: D;
+  data?: D;
 }
 
 export interface PageDefinition {
@@ -130,8 +130,9 @@ export interface HeroSplitSide {
   tagline?: string;
   headline: string;
   body?: string;
-  cta: { label: string; action?: 'wizard'; href?: string };
+  cta: { label: string; action?: 'wizard' | 'link'; href?: string };
   proof?: string;
+  backgroundImage?: string;
 }
 
 export interface HeroSplitData {
@@ -190,9 +191,10 @@ export interface FAQAccordionData {
 }
 
 export interface PropertyShowcaseData {
-  heading?: string;
+  heading?: SectionHeadingData | string;
   limit?: number;
   ids?: string[];
+  propertyIds?: string[];
 }
 
 export interface ProofItem {
@@ -209,10 +211,11 @@ export interface ProcessStep {
   title: string;
   description: string;
   icon?: string;
+  step?: string;
 }
 
 export interface ProcessStepsData {
-  heading?: string;
+  heading?: SectionHeadingData;
   steps: ProcessStep[];
 }
 
@@ -220,16 +223,59 @@ export interface PricingTier {
   name: string;
   price: string;
   subtitle?: string;
+  description?: string;
   features: string[];
   highlighted?: boolean;
   cta?: { label: string; href?: string; action?: 'wizard' };
 }
 
+export interface PricingPlan extends PricingTier {
+  cta: { label: string; href: string; action?: 'wizard' };
+}
+
 export interface PricingTableData {
-  heading?: string;
-  tiers: PricingTier[];
+  heading?: SectionHeadingData;
+  tiers?: PricingTier[];
+  plans?: PricingPlan[];
+  footnote?: string;
 }
 
 export interface BookingSearchData {
-  variant?: 'hero' | 'inline' | 'compact';
+  variant?: 'hero' | 'inline' | 'compact' | 'page';
+}
+
+// ── Additional data shapes referenced by block components ──
+
+export interface SectionHeadingData {
+  heading?: string;
+  tagline?: string;
+  headline: string;
+  highlightWord?: string;
+  alignment?: 'left' | 'center' | 'right';
+}
+
+export interface ContactFormData {
+  heading?: string;
+  body?: string;
+}
+
+export interface ImageTextData {
+  heading?: SectionHeadingData | string;
+  body?: string;
+  image?: string;
+  imagePosition?: 'left' | 'right';
+  cta?: { label: string; href: string };
+}
+
+export interface TestimonialItem {
+  text: string;
+  author: string;
+  role?: string;
+  rating?: number;
+}
+
+export interface TestimonialCarouselData {
+  heading?: string;
+  tagline?: string;
+  testimonials?: TestimonialItem[];
 }

@@ -2,12 +2,16 @@ import { motion } from 'framer-motion';
 import type { SectionHeadingData } from '@/lib/cms/types';
 
 interface Props {
-  data: SectionHeadingData;
+  data?: SectionHeadingData | string;
   className?: string;
 }
 
 export default function SectionHeading({ data, className = '' }: Props) {
-  const { tagline, headline, highlightWord, alignment = 'center' } = data;
+  if (!data) return null;
+  const normalized: SectionHeadingData =
+    typeof data === 'string' ? { headline: data } : data;
+  const { tagline, headline, highlightWord, alignment = 'center' } = normalized;
+  if (!headline) return null;
   const align = alignment === 'center' ? 'text-center' : 'text-left';
 
   const renderHeadline = () => {
@@ -26,7 +30,7 @@ export default function SectionHeading({ data, className = '' }: Props) {
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.8 }}
       className={`${align} ${className}`}
     >
       {tagline && (
