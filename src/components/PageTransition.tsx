@@ -12,7 +12,7 @@ interface PageTransitionProps {
   className?: string;
 }
 
-const CINEMATIC_EASE = [0.22, 1, 0.36, 1];
+const CINEMATIC_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 // Detect if user prefers reduced motion
 function usePrefersReducedMotion() {
