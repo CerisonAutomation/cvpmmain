@@ -73,7 +73,7 @@ export interface ContentBlock<T extends string = string, D = unknown> {
   id: string;
   type: T;
   tags?: string[];
-  data: D;
+  data?: D;
 }
 
 export interface PageDefinition {
