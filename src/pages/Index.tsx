@@ -100,14 +100,13 @@ const Index = () => {
                     key={p.id || i}
                     id={p.id}
                     title={p.title}
-                    city={p.city}
-                    bedrooms={p.bedrooms}
-                    bathrooms={p.bathrooms}
-                    accommodates={p.accommodates}
+                    location={p.city}
+                    beds={p.bedrooms}
+                    baths={p.bathrooms}
+                    guests={p.accommodates}
                     rating={p.rating || 4.97}
-                    basePrice={p.basePrice}
-                    heroImage={p.heroImage}
-                    index={i}
+                    price={p.basePrice}
+                    image={p.heroImage}
                   />
                 ))}
               </div>

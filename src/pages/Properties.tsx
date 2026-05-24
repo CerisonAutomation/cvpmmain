@@ -145,14 +145,13 @@ export default function Properties() {
                   key={property.id || i}
                   id={property.id}
                   title={property.title}
-                  city={property.city}
-                  bedrooms={property.bedrooms}
-                  bathrooms={property.bathrooms}
-                  accommodates={property.accommodates}
+                  location={property.city}
+                  beds={property.bedrooms}
+                  baths={property.bathrooms}
+                  guests={property.accommodates}
                   rating={property.rating || 4.97}
-                  basePrice={property.basePrice}
-                  heroImage={property.heroImage}
-                  index={i}
+                  price={property.basePrice}
+                  image={property.heroImage}
                 />
               )}
             </For>

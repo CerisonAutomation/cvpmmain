@@ -20,6 +20,7 @@ import {
 import { sanitizeObject } from '@/lib/utils';
 import { BookingFormSkeleton } from '@/components/ui/skeleton-variants';
 import type { UpsellFee } from '@/lib/guesty/types';
+import { UpsellIcon } from '@/lib/guesty/upsellIcons';
 
 const bookingSchema = z.object({
   firstName: z.string().trim().min(1, 'Required').max(50),
