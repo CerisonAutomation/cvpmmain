@@ -441,7 +441,7 @@ function PageList() {
     setSlugError(null);
     setCreating(true);
     try {
-      const p = await createPage(validation.data);
+      const p = await createPage({ name: validation.data.name!, slug: validation.data.slug! });
       nav(`/admin/builder/${p.id}`);
     } finally {
       setCreating(false);

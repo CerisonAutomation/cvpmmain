@@ -28,7 +28,7 @@ const toPage = (
     data: b.data ?? {},
     position: b.position,
   })),
-});
+} as BuilderPage);
 
 export async function listPages(): Promise<BuilderPage[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

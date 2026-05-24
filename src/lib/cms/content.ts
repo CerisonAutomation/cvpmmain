@@ -168,7 +168,7 @@ const homeProcess: ContentBlock<'process_steps', ProcessStepsData> = {
   type: 'process_steps',
   tags: ['homepage'],
   data: {
-    heading: 'How We Work',
+    heading: { headline: 'How We Work' },
     steps: [
       { title: 'Onboarding',  description: 'Photography, expert listing setup, and MTA licensing handled.' },
       { title: 'Management', description: 'Full-service booking, cleaning, and guest communication.' },
@@ -182,7 +182,7 @@ const homePricing: ContentBlock<'pricing_table', PricingTableData> = {
   type: 'pricing_table',
   tags: ['homepage', 'owners'],
   data: {
-    heading: 'Simple, Transparent Pricing',
+    heading: { headline: 'Simple, Transparent Pricing' },
     tiers: [
       {
         name: 'Essentials',

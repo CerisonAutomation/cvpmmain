@@ -192,14 +192,15 @@ function normalizeBedrooms(raw: Listing): NormalizedBedroom[] {
 
 // ── Normalize policies ──
 function normalizePolicies(raw: Listing): NormalizedPolicy {
-  const pd = (raw as any)?.publicDescription || {};
+  const r = raw as any;
+  const pd = r?.publicDescription || {};
   return {
-    houseRules: str(pd?.houseRules || raw?.houseRules),
-    cancellation: str(raw?.cancellationPolicy || raw?.cancellation?.policyText),
-    checkInTime: str(raw?.defaultCheckInTime || raw?.checkInTime),
-    checkOutTime: str(raw?.defaultCheckOutTime || raw?.checkOutTime),
-    checkInInstructions: str(pd?.access || raw?.checkInInstructions),
-    safetyInfo: str(pd?.notes || raw?.safetyInfo),
+    houseRules: str(pd?.houseRules || r?.houseRules),
+    cancellation: str(r?.cancellationPolicy || r?.cancellation?.policyText),
+    checkInTime: str(r?.defaultCheckInTime || r?.checkInTime),
+    checkOutTime: str(r?.defaultCheckOutTime || r?.checkOutTime),
+    checkInInstructions: str(pd?.access || r?.checkInInstructions),
+    safetyInfo: str(pd?.notes || r?.safetyInfo),
     allowsChildren: pd?.guestControls?.allowsChildren,
     allowsPets: pd?.guestControls?.allowsPets,
     allowsSmoking: pd?.guestControls?.allowsSmoking,
@@ -224,60 +225,62 @@ function normalizeTaxes(raw: Listing): Array<{ name: string; amount: number; typ
 // ══════════════════════════════════════════════════════════════════════
 
 export function normalizeListingSummary(raw: Listing): NormalizedListingSummary {
+  const r = raw as any;
   const images = normalizeImages(raw);
   const addr = normalizeAddress(raw);
   return {
-    id: str(raw?._id || raw?.id),
-    title: str(raw?.title || raw?.name || raw?.publicName || raw?.nickname, 'Untitled Property'),
-    nickname: str(raw?.nickname),
-    propertyType: str(raw?.propertyType, 'APARTMENT'),
-    roomType: str(raw?.roomType, 'Entire home/apt'),
+    id: str(r?._id || r?.id),
+    title: str(r?.title || r?.name || r?.publicName || r?.nickname, 'Untitled Property'),
+    nickname: str(r?.nickname),
+    propertyType: str(r?.propertyType, 'APARTMENT'),
+    roomType: str(r?.roomType, 'Entire home/apt'),
     heroImage: images[0]?.large || images[0]?.original || FALLBACK_IMG,
     city: addr.city || addr.neighborhood || addr.full || 'Malta',
     country: addr.country || 'Malta',
-    accommodates: num(raw?.accommodates || raw?.maxGuests, 2),
-    bedrooms: num(raw?.bedrooms, 1),
-    bathrooms: num(raw?.bathrooms, 1),
-    beds: num(raw?.beds, 1),
-    basePrice: num(raw?.prices?.basePrice || raw?.basePrice),
-    currency: str(raw?.prices?.currency || raw?.currency, 'EUR'),
-    rating: raw?.rating != null ? num(raw.rating) : undefined,
-    reviewsCount: raw?.reviewsCount != null ? num(raw.reviewsCount) : undefined,
-    tags: Array.isArray(raw?.tags) ? raw.tags.map(String) : [],
+    accommodates: num(r?.accommodates || r?.maxGuests, 2),
+    bedrooms: num(r?.bedrooms, 1),
+    bathrooms: num(r?.bathrooms, 1),
+    beds: num(r?.beds, 1),
+    basePrice: num(r?.prices?.basePrice || r?.basePrice),
+    currency: str(r?.prices?.currency || r?.currency, 'EUR'),
+    rating: r?.rating != null ? num(r.rating) : undefined,
+    reviewsCount: r?.reviewsCount != null ? num(r.reviewsCount) : undefined,
+    tags: Array.isArray(r?.tags) ? r.tags.map(String) : [],
     raw,
   };
 }
 
 export function normalizeListingDetail(raw: Listing): NormalizedListingDetail {
+  const r = raw as any;
   const summary = normalizeListingSummary(raw);
   const amenities = normalizeAmenities(raw);
-  const pd = raw?.publicDescription || {};
+  const pd = (r?.publicDescription || {}) as any;
 
   return {
     ...summary,
     images: normalizeImages(raw),
     address: normalizeAddress(raw),
     description: bestDescription(raw),
-    shortDescription: str(raw?.shortDescription || pd?.summary),
-    space: str(pd?.space || raw?.space),
-    neighborhood: str(pd?.neighborhood || raw?.neighborhood),
-    transit: str(pd?.transit || raw?.transit),
+    shortDescription: str(r?.shortDescription || pd?.summary),
+    space: str(pd?.space || r?.space),
+    neighborhood: str(pd?.neighborhood || r?.neighborhood),
+    transit: str(pd?.transit || r?.transit),
     interactionWithGuests: str(pd?.interactionWithGuests),
     amenities,
     amenityLabels: amenities.map(amenityToLabel),
     bedrooms_detail: normalizeBedrooms(raw),
     pricing: {
-      basePrice: num(raw?.prices?.basePrice || raw?.basePrice),
-      currency: str(raw?.prices?.currency || raw?.currency, 'EUR'),
-      cleaningFee: raw?.prices?.cleaningFee != null ? num(raw.prices.cleaningFee) : undefined,
-      extraPersonFee: raw?.prices?.extraPersonFee != null ? num(raw.prices.extraPersonFee) : undefined,
-      weeklyFactor: raw?.prices?.weeklyPriceFactor != null ? num(raw.prices.weeklyPriceFactor) : undefined,
-      monthlyFactor: raw?.prices?.monthlyPriceFactor != null ? num(raw.prices.monthlyPriceFactor) : undefined,
-      petFee: raw?.prices?.petFee != null ? num(raw.prices.petFee) : undefined,
+      basePrice: num(r?.prices?.basePrice || r?.basePrice),
+      currency: str(r?.prices?.currency || r?.currency, 'EUR'),
+      cleaningFee: r?.prices?.cleaningFee != null ? num(r.prices.cleaningFee) : undefined,
+      extraPersonFee: r?.prices?.extraPersonFee != null ? num(r.prices.extraPersonFee) : undefined,
+      weeklyFactor: r?.prices?.weeklyPriceFactor != null ? num(r.prices.weeklyPriceFactor) : undefined,
+      monthlyFactor: r?.prices?.monthlyPriceFactor != null ? num(r.prices.monthlyPriceFactor) : undefined,
+      petFee: r?.prices?.petFee != null ? num(r.prices.petFee) : undefined,
     },
     policies: normalizePolicies(raw),
-    highlights: Array.isArray(raw?.tags) ? raw.tags.map(String) :
-      Array.isArray(raw?.highlights) ? raw.highlights.map(String) : [],
+    highlights: Array.isArray(r?.tags) ? r.tags.map(String) :
+      Array.isArray(r?.highlights) ? r.highlights.map(String) : [],
     taxes: normalizeTaxes(raw),
   };
 }

@@ -125,11 +125,11 @@ export default defineConfig(({ mode }) => {
     },
 
     plugins: [
-      million.vite({ auto: true, mute: true }),
+      (million.vite as any)({ auto: true, mute: true }),
       react(),
       // Brotli + Gzip in production
-      isProd && compression({ algorithm: "brotliCompress", exclude: /\.(png|jpg|webp|avif|gif|svg|ico|woff2?)$/, deleteOriginalAssets: false }),
-      isProd && compression({ algorithm: "gzip", exclude: /\.(png|jpg|webp|avif|gif|svg|ico|woff2?)$/, deleteOriginalAssets: false }),
+      isProd && (compression as any)({ algorithm: "brotliCompress", exclude: /\.(png|jpg|webp|avif|gif|svg|ico|woff2?)$/, deleteOriginalAssets: false }),
+      isProd && (compression as any)({ algorithm: "gzip", exclude: /\.(png|jpg|webp|avif|gif|svg|ico|woff2?)$/, deleteOriginalAssets: false }),
       // Smarter chunk splitting
       isProd && chunkSplitPlugin({ strategy: "unbundle" }),
       // Bundle analysis — only when ANALYZE=true
