@@ -511,6 +511,8 @@ Deno.serve(async (req) => {
       // ── instant-booking (POST) ────────────────────────────────
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const body = await req.json().catch(() => null);
         if (!body) return badRequest("Invalid JSON body");
         const parsed = InstantBookingSchema.safeParse({
@@ -526,6 +528,8 @@ Deno.serve(async (req) => {
       // ── inquiry-booking ───────────────────────────────────────
       case "inquiry-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return badRequest("quoteId required");
         const body = await req.json().catch(() => null);
@@ -537,6 +541,8 @@ Deno.serve(async (req) => {
       // ── instant-charge ────────────────────────────────────────
       case "instant-charge": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return badRequest("quoteId required");
         const body = await req.json().catch(() => null);
