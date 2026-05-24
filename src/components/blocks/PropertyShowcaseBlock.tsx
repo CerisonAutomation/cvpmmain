@@ -38,7 +38,7 @@ export default function PropertyShowcaseBlock({ data, className = '' }: Props) {
             className="text-center mb-16"
           >
             <p className="micro-type text-primary mb-4 tracking-[0.2em]">Our Collection</p>
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">{heading}</h2>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">{typeof heading === 'string' ? heading : heading?.headline}</h2>
             <div className="mt-6 h-px w-20 bg-primary/30 mx-auto" />
           </motion.div>
         )}
