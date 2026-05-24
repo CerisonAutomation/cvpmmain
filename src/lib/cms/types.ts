@@ -130,8 +130,9 @@ export interface HeroSplitSide {
   tagline?: string;
   headline: string;
   body?: string;
-  cta: { label: string; action?: 'wizard'; href?: string };
+  cta: { label: string; action?: 'wizard' | 'link'; href?: string };
   proof?: string;
+  backgroundImage?: string;
 }
 
 export interface HeroSplitData {
