@@ -154,7 +154,7 @@ function BlockEditor({
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Data (JSON)</p>
             <JsonEditor
-              value={block.data}
+              value={block.data as Record<string, unknown>}
               onChange={(data) => onChange({ ...block, data })}
             />
           </div>
@@ -180,7 +180,7 @@ export default function Admin() {
   if (pagesLoading) {
     return (
       <Layout>
-        <SEOHead title="CMS Admin" description="" noIndex />
+        <SEOHead title="CMS Admin" description="" noindex />
         <div className="section-container py-8">
           <AdminSkeleton />
         </div>
@@ -300,7 +300,7 @@ export default function Admin() {
 
   return (
     <Layout>
-      <SEOHead title="CMS Admin" description="" noIndex />
+      <SEOHead title="CMS Admin" description="" noindex />
       <div className="max-w-7xl mx-auto px-4 py-8 grid gap-6 lg:grid-cols-[260px,1fr]">
 
         {/* ── Sidebar ── */}

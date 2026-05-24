@@ -34,8 +34,8 @@ export default function HeroCenteredBlock({ data, className = '' }: Props) {
           className="max-w-4xl mx-auto text-center"
         >
           <motion.p
-            initial={{ opacity: 0, tracking: '0.2em' }}
-            animate={{ opacity: 1, tracking: '0.18em' }}
+            initial={{ opacity: 0, letterSpacing: '0.2em' }}
+            animate={{ opacity: 1, letterSpacing: '0.18em' }}
             transition={{ duration: 1.5, delay: 0.2 }}
             className="micro-type text-primary mb-6"
           >

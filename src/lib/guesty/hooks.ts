@@ -113,8 +113,8 @@ export const useCreateBooking = () => {
       payment?: { token: string };
     }) => guestyClient.createInstantReservation(params.quoteId, {
       guest: params.guest,
-      payment: params.payment,
-    }),
+      ...(params.payment ? { payment: params.payment } : {}),
+    } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
     },

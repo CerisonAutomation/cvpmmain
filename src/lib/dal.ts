@@ -54,9 +54,9 @@ export async function getAllCmsPages(): Promise<PageDefinition[]> {
     });
     if (!parsed.success) {
       console.error('[DAL] getAllCmsPages parse error', d.slug, parsed.error.flatten());
-      return [];
+      return [] as PageDefinition[];
     }
-    return [parsed.data];
+    return [parsed.data as PageDefinition];
   });
 }
 

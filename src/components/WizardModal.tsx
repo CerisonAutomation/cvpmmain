@@ -29,7 +29,7 @@ export default function WizardModal({ open, onClose }: WizardModalProps) {
   useEffect(() => {
     if (open) {
       const draft = loadDraft();
-      if (draft) setData(draft);
+      if (draft) setData({ ...INITIAL_WIZARD_DATA, ...draft } as WizardData);
       setSubmitted(false);
       setSubmitError(null);
       setStep(0);

@@ -138,7 +138,7 @@ export async function submitLead(data: WizardData): Promise<{ success: boolean; 
 
   // PRIMARY: Supabase insert — always attempt first
   try {
-    const { error: dbError } = await supabase
+    const { error: dbError } = await (supabase as any)
       .from('leads')
       .insert({
         name: payload.name,
@@ -147,7 +147,7 @@ export async function submitLead(data: WizardData): Promise<{ success: boolean; 
         source: payload.source,
         meta: payload,
         submitted_at: payload.submitted_at,
-      });
+      } as any);
 
     if (dbError) {
       console.error('[submitLead] Supabase insert error:', dbError);
@@ -182,7 +182,7 @@ export async function submitLeadModal(
   }
 
   try {
-    const { error: dbError } = await supabase
+    const { error: dbError } = await (supabase as any)
       .from('leads')
       .insert({
         name: validation.data.name,
@@ -191,7 +191,7 @@ export async function submitLeadModal(
         source: 'lead_modal',
         meta: validation.data,
         submitted_at: new Date().toISOString(),
-      });
+      } as any);
 
     if (dbError) {
       console.error('[submitLeadModal] Supabase error:', dbError);

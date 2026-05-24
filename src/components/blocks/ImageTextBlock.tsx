@@ -12,6 +12,9 @@ interface Props {
 export default function ImageTextBlock({ data, className = '' }: Props) {
   const { heading, body, image, imagePosition = 'right', cta } = data;
   const isLeft = imagePosition === 'left';
+  const headingObj = typeof heading === 'string'
+    ? { headline: heading, alignment: 'left' as const }
+    : { ...(heading ?? { headline: '' }), alignment: 'left' as const };
 
   return (
     <section className={`py-16 border-t border-border/30 ${className}`}>
@@ -28,7 +31,7 @@ export default function ImageTextBlock({ data, className = '' }: Props) {
             <div className="rounded-2xl overflow-hidden satin-surface">
               <img
                 src={image}
-                alt={heading.headline}
+                alt={headingObj.headline}
                 className="w-full aspect-[4/3] object-cover"
                 loading="lazy"
               />
@@ -43,7 +46,7 @@ export default function ImageTextBlock({ data, className = '' }: Props) {
             transition={{ duration: 0.5, delay: 0.1 }}
             className={`${isLeft ? 'lg:order-2' : 'lg:order-1'}`}
           >
-            <SectionHeading data={{ ...heading, alignment: 'left' }} className="mb-6" />
+            <SectionHeading data={headingObj} className="mb-6" />
             <p className="text-muted-foreground leading-relaxed mb-8">{body}</p>
             {cta && (
               <Link

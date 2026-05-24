@@ -9,7 +9,7 @@ export default function BookingSearchBlock({ data }: Props) {
   return (
     <section className="relative z-10 -mt-4 pb-6">
       <div className="section-container">
-        <BookingSearchBar variant={data.variant} />
+        <BookingSearchBar variant={(data.variant === 'hero' ? 'hero' : 'page')} />
       </div>
     </section>
   );

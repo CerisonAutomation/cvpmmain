@@ -76,8 +76,8 @@ function Step1View({ s1, setS1 }: { s1: Step1Data; setS1: React.Dispatch<React.S
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">I am a…</p>
           <div className="grid grid-cols-2 gap-2">
-            <Chip label="Property owner" selected={s1.intent === 'owner'} onClick={() => setS1(p => ({ ...p, intent: 'owner', situation: '', goal: '' }))} />
-            <Chip label="Guest / traveller" selected={s1.intent === 'guest'} onClick={() => setS1(p => ({ ...p, intent: 'guest', situation: '', goal: '' }))} />
+            <Chip label="Property owner" selected={false} onClick={() => setS1(p => ({ ...p, intent: 'owner', situation: '', goal: '' }))} />
+            <Chip label="Guest / traveller" selected={false} onClick={() => setS1(p => ({ ...p, intent: 'guest', situation: '', goal: '' }))} />
           </div>
         </div>
       )}
