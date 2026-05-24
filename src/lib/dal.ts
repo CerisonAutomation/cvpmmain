@@ -31,7 +31,7 @@ export async function getCmsPage(slug: string): Promise<PageDefinition | null> {
     console.error('[DAL] getCmsPage parse error', slug, parsed.error.flatten());
     return null;
   }
-  return parsed.data;
+  return parsed.data as PageDefinition;
 }
 
 export async function getAllCmsPages(): Promise<PageDefinition[]> {
