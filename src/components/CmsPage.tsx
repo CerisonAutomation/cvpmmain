@@ -45,7 +45,7 @@ export function CmsPage({ slug }: { slug: string }) {
   if (isError || !page) {
     return (
       <Layout>
-        <SEOHead title="Page not found" description="" noIndex />
+        <SEOHead title="Page not found" description="" noindex />
         <section className="py-16">
           <div className="section-container max-w-lg text-center">
             <h1 className="font-serif text-2xl font-semibold mb-3">
