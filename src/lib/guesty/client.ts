@@ -73,7 +73,7 @@ class GuestyClient {
       }
       return data as T;
     }
-    return result.data;
+    return result.data as T;
   }
 
   async getListings(params: {
