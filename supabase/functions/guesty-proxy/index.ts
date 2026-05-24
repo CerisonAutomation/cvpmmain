@@ -49,6 +49,47 @@ function badRequest(details: unknown) {
   );
 }
 
+function unauthorized(msg = "Authentication required") {
+  return Response.json({ error: msg }, { status: 401, headers: corsHeaders });
+}
+
+/**
+ * Verify the caller presents a valid Supabase JWT.
+ * Used to gate mutation endpoints that create/charge Guesty reservations.
+ * Prevents anonymous abuse of /reservations/quotes/{id}/instant which could
+ * create confirmed Guesty bookings bypassing the Stripe payment flow.
+ */
+async function requireAuthenticatedUser(req: Request): Promise<Response | null> {
+  const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return unauthorized("Missing Authorization header");
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) {
+    console.error("[guesty-proxy] Supabase env vars missing for auth check");
+    return unauthorized("Auth backend unavailable");
+  }
+
+  // Reject the anon/service keys themselves — only real user JWTs allowed.
+  if (token === anonKey || token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+    return unauthorized("User session required");
+  }
+
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+    });
+    if (!res.ok) return unauthorized("Invalid or expired token");
+    const user = await res.json();
+    if (!user?.id) return unauthorized("Invalid user session");
+    return null;
+  } catch (err) {
+    console.error("[guesty-proxy] Auth verify failed:", err);
+    return unauthorized("Auth verification failed");
+  }
+}
+
 // ══════════════════════════════════════════════════════════
 // REDIS HELPERS
 // ══════════════════════════════════════════════════════════
@@ -470,6 +511,8 @@ Deno.serve(async (req) => {
       // ── instant-booking (POST) ────────────────────────────────
       case "instant-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const body = await req.json().catch(() => null);
         if (!body) return badRequest("Invalid JSON body");
         const parsed = InstantBookingSchema.safeParse({
@@ -485,6 +528,8 @@ Deno.serve(async (req) => {
       // ── inquiry-booking ───────────────────────────────────────
       case "inquiry-booking": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return badRequest("quoteId required");
         const body = await req.json().catch(() => null);
@@ -496,6 +541,8 @@ Deno.serve(async (req) => {
       // ── instant-charge ────────────────────────────────────────
       case "instant-charge": {
         if (req.method !== "POST") return Response.json({ error: "POST required" }, { status: 405, headers: corsHeaders });
+        const authFail = await requireAuthenticatedUser(req);
+        if (authFail) return authFail;
         const quoteId = url.searchParams.get("quoteId");
         if (!quoteId) return badRequest("quoteId required");
         const body = await req.json().catch(() => null);
