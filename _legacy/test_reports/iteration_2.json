@@ -1,0 +1,76 @@
+{
+  "summary": "Frontend-only iteration verifying PropertyCard Guesty-mirror, PropertiesPage 'Explore Map' CTA, and regression on PropertyDetailPage breakdown/coupon/Leaflet, CheckoutPage breakdown, and Admin page. ALL targeted features verified working end-to-end with 0 page errors. Backend testing skipped per request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "properties_page": {
+      "total_property_cards_rendered": 20,
+      "rating_chips_count": 18,
+      "rating_chip_samples_out_of_5": ["4.60 (13 reviews)", "4.50 (6 reviews)", "5 (10 reviews)", "4.85 (13 reviews)", "4.90 (19 reviews)"],
+      "rating_scale_verified": "/5 (not /10) — auto-converts from Guesty 10-point scale",
+      "cards_without_reviews_skip_chip": true,
+      "card_description_testids_present": 20,
+      "book_now_card_btns_present": 20,
+      "price_block_tokens_verified": ["From (CSS uppercase: FROM)", "€900.00", "Per night", "Additional charges may apply"],
+      "first_card_aria_and_link_ok": true,
+      "explore_map_btn_navigates_to_/map": true,
+      "card_click_navigates_to_/property/{id}": true,
+      "sort_dropdown_present": true,
+      "grid_list_view_toggle_works": true,
+      "filter_more_sheet_opens": true,
+      "page_errors": 0
+    },
+    "property_detail_page": {
+      "url": "/property/69ceb988571e1b00149f3c8b?checkIn=2026-06-15&checkOut=2026-06-18",
+      "leaflet_map_testid_present": true,
+      "leaflet_containers": 1,
+      "google_maps_iframe_count": 0,
+      "quote_breakdown_rendered": true,
+      "quote_total": "€3,668.51 (matches expected)",
+      "toggle_coupon_btn_works": true,
+      "coupon_input_and_apply_btn_present": true,
+      "invalid_coupon_toast_message": "This coupon code is invalid or has expired.",
+      "page_errors": 0
+    },
+    "checkout_page": {
+      "navigation_via_book_now_btn": true,
+      "url_contains_ratePlanId": true,
+      "checkout_breakdown_present": true,
+      "checkout_total": "€3,668.51 (matches hostPayout / property quote-total)",
+      "addon_ui_absent": true,
+      "available_testids": ["booking-summary", "checkout-breakdown", "checkout-page", "checkout-total", "guest-email", "guest-firstname", "guest-lastname", "guest-phone"],
+      "page_errors": 0
+    },
+    "admin_page_regression": {
+      "loads_without_crash": true,
+      "default_admin_key_works": true,
+      "lucide_svg_count": 14,
+      "known_sections_visible": true,
+      "page_errors": 0
+    },
+    "console_observations": {
+      "transient_failed_to_fetch_on_initial_mount": "Observed on calendar/listing/quote first call — caused by the Emergent badge script wrapping window.fetch and draining the response body before client reads it. PropertyDetailPage already has defensive `await res.json().catch(()=>({}))` so user-visible flow is unaffected. quote-breakdown still renders €3,668.51 within 4-6s. Cosmetic console noise only."
+    }
+  },
+  "test_report_links": ["/app/backend/tests/test_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PropertyCard.jsx ratingOutOfFive logic correctly normalises both /5 and /10 source data, then rounds to nearest 0.05 to match Guesty native display.",
+    "PropertyCard.jsx uses semantic <Link> wrapping the entire card; the 'Book now' element is a <span> inside the link — works because the link covers it. If accessibility on a separate book-now action is desired (e.g., a future quick-book modal), convert to a real <button> with event.stopPropagation.",
+    "PropertiesPage Explore Map CTA has data-testid='explore-map-btn' and routes to /map correctly.",
+    "CheckoutPage no longer renders any [data-testid*='addon'] — verified.",
+    "Toast 'This coupon code is invalid or has expired.' surfaces from backend INVALID_COUPON mapping — clean UX."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (per request)", "frontend": "100% (all 7 requested flows verified)"},
+  "test_credentials": "Admin key: cvpm-admin-2026 (verified working as default).",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend mirror of Guesty native flow is feature-complete. PropertyCard exposes data-testid='property-card-{id}', 'rating-chip', 'card-description', 'book-now-card-btn'. PropertiesPage exposes 'explore-map-btn' navigating to /map. PropertyDetailPage 'book-now-btn' navigates to /checkout/{quoteId}?ratePlanId=... CheckoutPage testids: 'checkout-page', 'booking-summary', 'checkout-breakdown', 'checkout-total', plus guest-firstname/lastname/email/phone. The transient 'Failed to fetch' console errors on first render of PropertyDetailPage are caused by the Emergent badge script wrapping window.fetch (badge drains body before client reads). The UI re-fetches and renders correctly; safe to ignore unless reported as a customer-visible bug.",
+  "rca of the issue": "n/a — no bugs found this iteration"
+}

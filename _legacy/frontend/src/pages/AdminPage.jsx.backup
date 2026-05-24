@@ -1,0 +1,878 @@
+import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCMS } from "@/context/CMSContext";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { 
+  Layout, Palette, Eye, EyeOff, Save, LogOut, Plus, Trash2, GripVertical, Sparkles, RefreshCw,
+  Home, Building, Star, ArrowUp, ArrowDown, Copy, Rocket, Undo2, Redo2, Monitor, Tablet, Smartphone,
+  Quote, Award, ChartBar, Minus, MoveVertical, Zap, Instagram, Facebook, Linkedin, Layers,
+  Check, X, Key, TrendingUp, HeartHandshake, Shield, Users, ImageIcon, Type, Wand2, ChevronRight,
+  MessageCircle, ClipboardList, Phone, Mail, MapPin, ArrowRight, MousePointer, Command, Code,
+  RotateCcw, Loader2, ChevronDown, ExternalLink, Settings
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { SCHEMAS, CATEGORIES, PAGE_CONFIGS, THEME } from "@/lib/blocks";
+
+const API = process.env.REACT_APP_BACKEND_URL + "/api";
+
+// Icon mapping
+const ICONS = { TrendingUp, Users, Sparkles, ClipboardList, Shield, ChartBar, HeartHandshake, Award, Check, Star, MessageCircle };
+
+// ============================================
+// INLINE EDITABLE TEXT
+// ============================================
+const InlineText = memo(({ value, onChange, className, style, tag: Tag = "span", multiline = false, placeholder = "Click to edit..." }) => {
+  const ref = useRef(null);
+  const [editing, setEditing] = useState(false);
+  
+  const handleBlur = () => {
+    setEditing(false);
+    if (ref.current && onChange) {
+      const newValue = ref.current.innerText;
+      if (newValue !== value) onChange(newValue);
+    }
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !multiline) { e.preventDefault(); ref.current?.blur(); }
+    if (e.key === "Escape") { ref.current.innerText = value || ""; ref.current?.blur(); }
+  };
+  
+  return (
+    <Tag ref={ref} contentEditable suppressContentEditableWarning onFocus={() => setEditing(true)} onBlur={handleBlur} onKeyDown={handleKeyDown}
+      className={`${className} outline-none cursor-text transition-all duration-150 ${editing ? "ring-2 ring-[#D4AF37] ring-offset-2 ring-offset-black/30 rounded bg-black/30 px-1" : "hover:ring-1 hover:ring-[#D4AF37]/50 hover:bg-black/10 hover:rounded"}`}
+      style={style}
+      data-placeholder={placeholder}>
+      {value || placeholder}
+    </Tag>
+  );
+});
+
+// ============================================
+// LIVE BLOCK RENDERERS - Match Frontend Exactly
+// ============================================
+const LiveHero = memo(({ d, onEdit }) => (
+  <section className="relative min-h-[500px] flex items-center overflow-hidden bg-[#0F0F10]">
+    <div className="absolute inset-0">
+      <img src={d.backgroundImage || "https://images.unsplash.com/photo-1771218830084-fdd272e149a1?w=1920&q=80"} alt="" className="w-full h-full object-cover" />
+    </div>
+    <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F10] via-[#0F0F10]/50 to-transparent" />
+    <div className="absolute inset-0 bg-gradient-to-r from-[#0F0F10]/60 to-transparent" />
+    <div className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-16">
+      <div className="max-w-3xl">
+        <div className="inline-block px-4 py-2 border border-[#D4AF37]/30 bg-[#D4AF37]/5 mb-6">
+          <InlineText value={d.badge} onChange={v => onEdit?.("badge", v)} className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] font-medium" />
+        </div>
+        <h1 className="font-['Playfair_Display'] text-4xl md:text-5xl text-[#F5F5F0] mb-6 leading-[1.05]">
+          <InlineText value={d.headline} onChange={v => onEdit?.("headline", v)} tag="span" />
+          <br />
+          <InlineText value={d.headlineAccent || d.headlineSub} onChange={v => onEdit?.("headlineAccent", v)} tag="span" className="italic" style={{ background: "linear-gradient(135deg, #D4AF37, #E5C158)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }} />
+        </h1>
+        <InlineText value={d.subheadline} onChange={v => onEdit?.("subheadline", v)} tag="p" multiline className="text-lg text-[#A1A1AA] mb-10 max-w-2xl leading-relaxed" />
+        <div className="flex flex-wrap gap-4 mb-12">
+          <Button className="bg-[#D4AF37] text-[#0F0F10] hover:bg-[#E5C158] rounded-none uppercase text-sm tracking-[0.15em] px-8 py-6 font-semibold">
+            <Building className="w-4 h-4 mr-2" />
+            <InlineText value={d.cta1Text || d.cta1} onChange={v => onEdit?.("cta1Text", v)} />
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+          <Button variant="outline" className="border-white/30 text-[#F5F5F0] hover:border-[#D4AF37] rounded-none uppercase text-sm tracking-[0.15em] px-8 py-6">
+            <Home className="w-4 h-4 mr-2" />
+            <InlineText value={d.cta2Text || d.cta2} onChange={v => onEdit?.("cta2Text", v)} />
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-8 md:gap-12">
+          {(d.stats || []).map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <InlineText value={stat.value} onChange={v => { const stats = [...(d.stats || [])]; stats[i] = { ...stats[i], value: v }; onEdit?.("stats", stats); }} tag="span" className="font-['Playfair_Display'] text-3xl text-[#D4AF37]" />
+              <InlineText value={stat.label} onChange={v => { const stats = [...(d.stats || [])]; stats[i] = { ...stats[i], label: v }; onEdit?.("stats", stats); }} tag="span" className="text-sm text-[#A1A1AA] leading-tight" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+));
+
+const LiveOwners = memo(({ d, onEdit }) => (
+  <section className="relative py-24 bg-[#0A0A0B] overflow-hidden">
+    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[#D4AF37]/5 to-transparent pointer-events-none" />
+    <div className="relative max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div>
+          <InlineText value={d.label} onChange={v => onEdit?.("label", v)} tag="span" className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] mb-4 block font-medium" />
+          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0] mb-6 leading-tight">
+            <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="span" />{" "}
+            <InlineText value={d.titleAccent} onChange={v => onEdit?.("titleAccent", v)} tag="span" style={{ background: "linear-gradient(135deg, #D4AF37, #E5C158)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }} />
+          </h2>
+          <InlineText value={d.description} onChange={v => onEdit?.("description", v)} tag="p" multiline className="text-[#A1A1AA] text-lg mb-8 leading-relaxed" />
+          <ul className="space-y-4 mb-8">
+            {(d.benefits || []).map((item, i) => (
+              <li key={i} className="flex items-center gap-3 group">
+                <div className="w-6 h-6 bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0"><Check className="w-4 h-4 text-[#D4AF37]" /></div>
+                <InlineText value={item.text} onChange={v => { const benefits = [...(d.benefits || [])]; benefits[i] = { ...benefits[i], text: v }; onEdit?.("benefits", benefits); }} tag="span" className="text-[#F5F5F0]" />
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-4">
+            <Button className="bg-[#D4AF37] text-[#0F0F10] hover:bg-[#E5C158] rounded-none uppercase text-sm tracking-widest px-8 py-4 font-semibold">
+              <InlineText value={d.cta1Text} onChange={v => onEdit?.("cta1Text", v)} /><ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button variant="outline" className="border-white/20 text-[#F5F5F0] hover:border-[#D4AF37] rounded-none uppercase text-sm tracking-widest px-8 py-4">
+              <InlineText value={d.cta2Text} onChange={v => onEdit?.("cta2Text", v)} />
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {(d.services || []).map((item, i) => {
+            const Icon = ICONS[item.icon] || Star;
+            return (
+              <div key={i} className="bg-[#161618] p-6 border border-white/5 hover:border-[#D4AF37]/20 transition-all">
+                <Icon className="w-8 h-8 text-[#D4AF37] mb-4" />
+                <InlineText value={item.label} onChange={v => { const services = [...(d.services || [])]; services[i] = { ...services[i], label: v }; onEdit?.("services", services); }} tag="p" className="text-[#F5F5F0] font-semibold mb-1" />
+                <InlineText value={item.desc} onChange={v => { const services = [...(d.services || [])]; services[i] = { ...services[i], desc: v }; onEdit?.("services", services); }} tag="p" className="text-[#A1A1AA] text-sm" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </section>
+));
+
+const LiveAbout = memo(({ d, onEdit }) => (
+  <section className="relative py-24 bg-[#0F0F10] overflow-hidden">
+    <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="order-2 lg:order-1">
+          <InlineText value={d.label} onChange={v => onEdit?.("label", v)} tag="span" className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] mb-4 block font-medium" />
+          <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0] mb-8 leading-tight">
+            <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="span" />{" "}
+            <InlineText value={d.titleAccent} onChange={v => onEdit?.("titleAccent", v)} tag="span" className="italic" />
+          </h2>
+          <div className="space-y-6 text-[#A1A1AA] leading-relaxed">
+            {(d.paragraphs || []).map((p, i) => (
+              <InlineText key={i} value={p.text} onChange={v => { const paragraphs = [...(d.paragraphs || [])]; paragraphs[i] = { ...paragraphs[i], text: v }; onEdit?.("paragraphs", paragraphs); }} tag="p" multiline />
+            ))}
+          </div>
+          <div className="flex gap-4 mt-8">
+            <Button variant="outline" className="border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-[#0F0F10] rounded-none uppercase text-sm tracking-widest px-6 py-4">
+              <MessageCircle className="w-4 h-4 mr-2" /><InlineText value={d.ctaText} onChange={v => onEdit?.("ctaText", v)} />
+            </Button>
+          </div>
+        </div>
+        <div className="order-1 lg:order-2 relative">
+          <div className="aspect-[4/3] overflow-hidden bg-[#161618]">
+            <img src={d.image || "https://primary.jwwb.nl/public/i/m/x/temp-jszjykaojetbmrgovpoe/img_7990-standard.jpg"} alt="" className="w-full h-full object-cover" />
+          </div>
+          <div className="absolute -bottom-4 -left-4 w-24 h-24 border-2 border-[#D4AF37]/30 hidden lg:block" />
+        </div>
+      </div>
+    </div>
+  </section>
+));
+
+const LiveProperties = memo(({ d, onEdit }) => (
+  <section className="relative py-24 bg-[#0A0A0B] overflow-hidden">
+    <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+        <div>
+          <InlineText value={d.label} onChange={v => onEdit?.("label", v)} tag="span" className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] mb-4 block font-medium" />
+          <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="h2" className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0] leading-tight" />
+        </div>
+        <Button variant="outline" className="border-white/20 text-[#F5F5F0] hover:border-[#D4AF37] rounded-none uppercase text-sm tracking-widest px-6 py-4 w-fit">
+          <InlineText value={d.ctaText} onChange={v => onEdit?.("ctaText", v)} /><ArrowRight className="w-4 h-4 ml-2" />
+        </Button>
+      </div>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(d.showCount || 6)].map((_, i) => (
+          <div key={i} className="bg-[#161618]">
+            <div className="aspect-[4/3] bg-[#27272A] flex items-center justify-center text-[#A1A1AA]">
+              <MapPin className="w-8 h-8 opacity-30" />
+            </div>
+            <div className="p-6 space-y-2">
+              <div className="h-5 bg-[#27272A] rounded w-3/4" />
+              <div className="h-4 bg-[#27272A] rounded w-1/2" />
+              <div className="h-4 bg-[#27272A] rounded w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-[#A1A1AA] text-sm mt-8">Properties load dynamically from Guesty</p>
+    </div>
+  </section>
+));
+
+const LiveTestimonials = memo(({ d, onEdit }) => (
+  <section className="relative py-24 bg-[#0F0F10] overflow-hidden">
+    <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="text-center mb-16">
+        <InlineText value={d.label} onChange={v => onEdit?.("label", v)} tag="span" className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] mb-4 block font-medium" />
+        <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="h2" className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0]" />
+      </div>
+      <div className="relative bg-[#161618] border border-white/5 p-8 md:p-12">
+        <Quote className="absolute top-8 left-8 w-12 h-12 text-[#D4AF37]/20" />
+        {(d.items || []).slice(0, 1).map((item, i) => (
+          <div key={i} className="relative z-10">
+            <div className="flex gap-1 mb-6 justify-center">
+              {[...Array(5)].map((_, j) => (
+                <Star key={j} className={`w-5 h-5 ${j < (item.rating || 5) ? "text-[#D4AF37] fill-[#D4AF37]" : "text-[#A1A1AA]"}`} />
+              ))}
+            </div>
+            <InlineText value={item.text} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], text: v }; onEdit?.("items", items); }} tag="blockquote" multiline className="text-lg md:text-xl text-[#F5F5F0] text-center mb-8 leading-relaxed max-w-3xl mx-auto" />
+            <div className="text-center">
+              <InlineText value={item.name} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], name: v }; onEdit?.("items", items); }} tag="p" className="text-[#F5F5F0] font-semibold" />
+              <InlineText value={item.date} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], date: v }; onEdit?.("items", items); }} tag="p" className="text-[#A1A1AA] text-sm" />
+            </div>
+          </div>
+        ))}
+        <div className="flex justify-center gap-2 mt-8">
+          {(d.items || []).map((_, i) => (
+            <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === 0 ? "bg-[#D4AF37] w-6" : "bg-white/20"}`} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+));
+
+const LiveCTA = memo(({ d, onEdit }) => (
+  <section className="relative py-24 bg-[#0A0A0B] overflow-hidden">
+    <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle at 2px 2px, #D4AF37 1px, transparent 0)`, backgroundSize: '40px 40px' }} />
+    </div>
+    <div className="relative max-w-4xl mx-auto px-6 md:px-12 lg:px-20 text-center">
+      <HeartHandshake className="w-16 h-16 text-[#D4AF37] mx-auto mb-8" />
+      <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="h2" className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0] mb-6 leading-tight" />
+      <InlineText value={d.subtitle} onChange={v => onEdit?.("subtitle", v)} tag="p" multiline className="text-[#A1A1AA] text-lg mb-10 max-w-2xl mx-auto leading-relaxed" />
+      <div className="flex flex-wrap gap-4 justify-center">
+        <Button className="bg-[#D4AF37] text-[#0F0F10] hover:bg-[#E5C158] rounded-none uppercase text-sm tracking-widest px-8 py-6 font-semibold">
+          <Building className="w-4 h-4 mr-2" /><InlineText value={d.cta1Text} onChange={v => onEdit?.("cta1Text", v)} />
+        </Button>
+        <Button variant="outline" className="border-white/30 text-[#F5F5F0] hover:border-[#D4AF37] rounded-none uppercase text-sm tracking-widest px-8 py-6">
+          <Home className="w-4 h-4 mr-2" /><InlineText value={d.cta2Text} onChange={v => onEdit?.("cta2Text", v)} />
+        </Button>
+      </div>
+      {d.showContact && (
+        <div className="mt-16 pt-8 border-t border-white/5">
+          <p className="text-[#A1A1AA] mb-4">Or reach us directly</p>
+          <div className="flex flex-wrap justify-center gap-6">
+            <span className="flex items-center gap-2 text-[#F5F5F0]"><Phone className="w-4 h-4" />+356 7979 0202</span>
+            <span className="flex items-center gap-2 text-[#F5F5F0]"><Mail className="w-4 h-4" />info@christianopropertymanagement.com</span>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+));
+
+const LiveStats = memo(({ d, onEdit }) => (
+  <section className="py-8 bg-[#0F0F10] border-y border-white/5">
+    <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className={`flex flex-wrap items-center justify-center gap-8 md:gap-16 ${d.style === "grid" ? "grid grid-cols-2 md:grid-cols-4" : ""}`}>
+        {(d.items || []).map((s, i) => (
+          <div key={i} className={`${d.style === "grid" ? "text-center" : "flex items-center gap-3"}`}>
+            <InlineText value={s.value} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], value: v }; onEdit?.("items", items); }} tag="span" className="font-['Playfair_Display'] text-3xl text-[#D4AF37]" />
+            <InlineText value={s.label} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], label: v }; onEdit?.("items", items); }} tag="span" className="text-sm text-[#A1A1AA]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+));
+
+const LiveFeatures = memo(({ d, onEdit }) => (
+  <section className="py-24 bg-[#0F0F10]">
+    <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="text-center mb-12">
+        <InlineText value={d.label} onChange={v => onEdit?.("label", v)} tag="span" className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] mb-4 block font-medium" />
+        <InlineText value={d.title} onChange={v => onEdit?.("title", v)} tag="h2" className="font-['Playfair_Display'] text-3xl md:text-4xl text-[#F5F5F0]" />
+      </div>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {(d.items || []).map((f, i) => {
+          const Icon = ICONS[f.icon] || Star;
+          return (
+            <div key={i} className="bg-[#161618] p-6 border border-white/5 hover:border-[#D4AF37]/20 transition-all">
+              <Icon className="w-10 h-10 text-[#D4AF37] mb-4" />
+              <InlineText value={f.title} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], title: v }; onEdit?.("items", items); }} tag="h3" className="text-[#F5F5F0] font-semibold mb-2" />
+              <InlineText value={f.desc} onChange={v => { const items = [...(d.items || [])]; items[i] = { ...items[i], desc: v }; onEdit?.("items", items); }} tag="p" multiline className="text-[#A1A1AA] text-sm leading-relaxed" />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+));
+
+const LiveSpacer = memo(({ d }) => <div style={{ height: d.height || 80, background: "#0F0F10" }} />);
+const LiveDivider = memo(({ d }) => (
+  <div className="py-4 bg-[#0F0F10]">
+    <div className="max-w-4xl mx-auto" style={d.style === "gradient" ? { background: `linear-gradient(to right, transparent, #D4AF37, transparent)`, height: 1 } : d.style === "dots" ? { backgroundImage: `radial-gradient(circle, #D4AF37 1px, transparent 1px)`, backgroundSize: "8px 8px", height: 4 } : { borderTop: `1px ${d.style || "solid"} rgba(255,255,255,0.1)` }} />
+  </div>
+));
+const LiveText = memo(({ d, onEdit }) => (
+  <div className="py-8 bg-[#0F0F10]">
+    <div className="max-w-4xl mx-auto px-6 md:px-12 lg:px-20" style={{ textAlign: d.align || "left" }}>
+      <InlineText value={d.content} onChange={v => onEdit?.("content", v)} tag="p" multiline className={`text-[#A1A1AA] leading-relaxed ${d.size === "sm" ? "text-sm" : d.size === "lg" ? "text-lg" : d.size === "xl" ? "text-xl" : "text-base"}`} />
+    </div>
+  </div>
+));
+const LiveImage = memo(({ d }) => (
+  <div className="py-8 bg-[#0F0F10]">
+    <div className="max-w-4xl mx-auto px-6 md:px-12 lg:px-20">
+      {d.src ? (
+        <figure>
+          <img src={d.src} alt={d.alt || ""} className={`w-full ${d.aspectRatio === "16:9" ? "aspect-video" : d.aspectRatio === "4:3" ? "aspect-[4/3]" : d.aspectRatio === "1:1" ? "aspect-square" : d.aspectRatio === "3:4" ? "aspect-[3/4]" : ""} object-cover`} />
+          {d.caption && <figcaption className="text-center text-sm text-[#A1A1AA] mt-4">{d.caption}</figcaption>}
+        </figure>
+      ) : (
+        <div className="aspect-video bg-[#161618] flex items-center justify-center text-[#A1A1AA]">
+          <ImageIcon className="w-12 h-12 opacity-30" />
+        </div>
+      )}
+    </div>
+  </div>
+));
+
+const BLOCKS = { hero: LiveHero, owners: LiveOwners, about: LiveAbout, properties: LiveProperties, testimonials: LiveTestimonials, cta: LiveCTA, stats: LiveStats, features: LiveFeatures, spacer: LiveSpacer, divider: LiveDivider, text: LiveText, image: LiveImage };
+
+// ============================================
+// AI ASSISTANT PANEL
+// ============================================
+const AIAssistant = memo(({ block, onApply, isGenerating }) => {
+  const [prompt, setPrompt] = useState("");
+  const [expanded, setExpanded] = useState(false);
+
+  const runAI = async () => {
+    if (!prompt.trim() || !block) return;
+    onApply(prompt);
+    setPrompt("");
+  };
+
+  return (
+    <div className="border-b border-[#1e1e22]">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between p-4 text-sm font-medium text-[#f0ede8] hover:text-[#D4AF37] transition-colors">
+        <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#D4AF37]" />AI Assistant</span>
+        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4 space-y-3">
+          <Textarea
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="e.g. Make the headline more urgent and action-oriented. Keep the luxurious tone."
+            className="bg-[#0a0a0b] border-[#1e1e22] text-[#f0ede8] text-xs min-h-[80px] resize-none focus:border-[#D4AF37]/50"
+          />
+          <div className="grid grid-cols-3 gap-2">
+            {["Shorter", "More Luxury", "Action Words"].map(q => (
+              <button key={q} onClick={() => setPrompt(p => p + (p ? ". " : "") + q)} className="px-2 py-1.5 text-[9px] bg-[#0e0e10] border border-[#1e1e22] rounded text-[#6a6a6e] hover:text-[#D4AF37] hover:border-[#D4AF37]/30">
+                {q}
+              </button>
+            ))}
+          </div>
+          <Button onClick={runAI} disabled={isGenerating || !prompt.trim()} className="w-full bg-[#D4AF37] hover:bg-[#E5C158] text-[#0a0a0b] h-9 text-xs font-semibold">
+            {isGenerating ? <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Generating...</> : <><Wand2 className="w-3.5 h-3.5 mr-2" />Generate Draft</>}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ============================================
+// JSON EDITOR
+// ============================================
+const JSONEditor = memo(({ block, onUpdate }) => {
+  const [draft, setDraft] = useState("");
+  const [valid, setValid] = useState(true);
+
+  useEffect(() => {
+    if (block) setDraft(JSON.stringify(block.data, null, 2));
+  }, [block?.id]);
+
+  const handleChange = (val) => {
+    setDraft(val);
+    try { JSON.parse(val); setValid(true); } catch { setValid(false); }
+  };
+
+  const applyChanges = () => {
+    if (!valid) return;
+    try {
+      const parsed = JSON.parse(draft);
+      Object.keys(parsed).forEach(key => onUpdate(key, parsed[key]));
+      toast.success("JSON changes applied");
+    } catch { toast.error("Invalid JSON"); }
+  };
+
+  const dirty = block && draft !== JSON.stringify(block.data, null, 2);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between p-3 border-b border-[#1e1e22]">
+        <span className="text-[10px] uppercase tracking-wider text-[#5a5a5e] font-medium">Block JSON</span>
+        <span className={`text-[10px] font-medium ${valid ? "text-green-500" : "text-red-400"}`}>{valid ? "Valid" : "Invalid"}</span>
+      </div>
+      <textarea
+        value={draft}
+        onChange={e => handleChange(e.target.value)}
+        spellCheck={false}
+        className={`flex-1 font-mono text-[10px] leading-relaxed bg-[#08080a] p-3 resize-none focus:outline-none ${valid ? "text-[#f0ede8]" : "text-red-300"}`}
+      />
+      <div className="p-3 border-t border-[#1e1e22] flex gap-2">
+        <Button variant="outline" onClick={() => setDraft(JSON.stringify(block?.data, null, 2))} disabled={!dirty} className="flex-1 h-8 text-xs border-[#2a2a2e] text-[#6a6a6e]">
+          <RotateCcw className="w-3 h-3 mr-1" />Reset
+        </Button>
+        <Button onClick={applyChanges} disabled={!valid || !dirty} className="flex-1 h-8 text-xs bg-[#D4AF37] text-[#0a0a0b]">
+          <Check className="w-3 h-3 mr-1" />Apply
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+// ============================================
+// PROPS EDITOR
+// ============================================
+const PropsEditor = memo(({ block, onUpdate, onAI, isGenerating }) => {
+  const schema = SCHEMAS[block?.type];
+  if (!block || !schema) return (
+    <div className="flex flex-col items-center justify-center h-full text-[#5a5a5e] text-xs p-6">
+      <MousePointer className="w-10 h-10 mb-4 opacity-30" />
+      <p className="text-center">Select a block on the canvas to edit</p>
+    </div>
+  );
+
+  const renderField = (key, f, val) => {
+    const common = "h-9 text-xs bg-[#0a0a0b] border-[#1e1e22] text-[#f0ede8] focus:border-[#D4AF37]/50";
+    if (f.type === "array") {
+      const items = val || [];
+      return (
+        <div key={key} className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider text-[#5a5a5e] font-medium">{f.label}</span>
+            <button onClick={() => onUpdate(key, [...items, {}])} className="p-1 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded"><Plus className="w-3.5 h-3.5" /></button>
+          </div>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {items.map((item, i) => (
+              <div key={i} className="p-2.5 bg-[#08080a] border border-[#1e1e22] rounded">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[9px] text-[#4a4a4e]">#{i + 1}</span>
+                  <button onClick={() => onUpdate(key, items.filter((_, idx) => idx !== i))} className="p-0.5 text-red-400/60 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                </div>
+                {(f.itemFields || []).map(sf => (
+                  <Input key={sf} value={item[sf] || ""} onChange={e => { const n = [...items]; n[i] = { ...n[i], [sf]: e.target.value }; onUpdate(key, n); }} placeholder={sf} className={`${common} h-7 text-[10px] mb-1`} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div key={key} className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] uppercase tracking-wider text-[#5a5a5e] font-medium">{f.label}</span>
+          {f.ai && <button onClick={() => onAI(key, f.label)} disabled={isGenerating} className="p-1 text-[#D4AF37]/60 hover:text-[#D4AF37] transition-colors"><Sparkles className="w-3 h-3" /></button>}
+        </div>
+        {f.type === "textarea" ? <Textarea value={val || ""} onChange={e => onUpdate(key, e.target.value)} className={`${common} min-h-[70px] resize-none`} />
+        : f.type === "select" ? <select value={val || f.options?.[0]} onChange={e => onUpdate(key, e.target.value)} className={`${common} w-full rounded-md px-3`}>{(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}</select>
+        : f.type === "number" ? <Input type="number" value={val || 0} onChange={e => onUpdate(key, parseInt(e.target.value) || 0)} className={common} />
+        : f.type === "boolean" ? <input type="checkbox" checked={!!val} onChange={e => onUpdate(key, e.target.checked)} className="w-5 h-5 accent-[#D4AF37]" />
+        : <Input value={val || ""} onChange={e => onUpdate(key, e.target.value)} className={common} />}
+      </div>
+    );
+  };
+
+  const Icon = schema.icon;
+  return (
+    <div>
+      <div className="flex items-center gap-3 p-4 border-b border-[#1e1e22]">
+        <div className="w-9 h-9 rounded bg-[#D4AF37]/15 flex items-center justify-center"><Icon className="w-5 h-5 text-[#D4AF37]" /></div>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-semibold text-[#f0ede8] block truncate">{schema.label}</span>
+          <span className="text-[9px] text-[#4a4a4e]">key: {block.type}</span>
+        </div>
+        <button onClick={() => onAI("_all", "all")} disabled={isGenerating} className="px-2.5 py-1.5 text-[9px] bg-[#D4AF37]/10 text-[#D4AF37] rounded hover:bg-[#D4AF37]/20 font-medium flex items-center gap-1">
+          <Wand2 className="w-3 h-3" />{isGenerating ? "..." : "AI All"}
+        </button>
+      </div>
+      <div className="p-4">{Object.entries(schema.fields).map(([k, f]) => renderField(k, f, block.data[k]))}</div>
+    </div>
+  );
+});
+
+// ============================================
+// MAIN ADMIN COMPONENT
+// ============================================
+export default function AdminPage() {
+  const navigate = useNavigate();
+  const { cms, isAdmin, verifyAdmin, logout, updateSection } = useCMS();
+  
+  const [adminKey, setAdminKey] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState("home");
+  const [leftTab, setLeftTab] = useState("blocks");
+  const [rightTab, setRightTab] = useState("props");
+  const [view, setView] = useState("desktop");
+  const [zoom, setZoom] = useState(75);
+  const [selected, setSelected] = useState(null);
+  const [blocks, setBlocks] = useState([]);
+  const [undo, setUndo] = useState([]);
+  const [redo, setRedo] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [showKeys, setShowKeys] = useState(false);
+
+  // Load blocks for current page
+  useEffect(() => {
+    const pageBlocks = PAGE_CONFIGS[page] || PAGE_CONFIGS.home;
+    const mergedBlocks = pageBlocks.map(block => {
+      if (block.type === "hero" && cms.hero) {
+        const heroData = { ...block.data };
+        if (cms.hero.headlineSub && !cms.hero.headlineAccent) heroData.headlineAccent = cms.hero.headlineSub;
+        if (cms.hero.headline) heroData.headline = cms.hero.headline;
+        if (cms.hero.headlineAccent) heroData.headlineAccent = cms.hero.headlineAccent;
+        if (cms.hero.subheadline) heroData.subheadline = cms.hero.subheadline;
+        if (cms.hero.backgroundImage) heroData.backgroundImage = cms.hero.backgroundImage;
+        return { ...block, data: heroData };
+      }
+      if (block.type === "testimonials" && cms.testimonials) {
+        return { ...block, data: { ...block.data, items: cms.testimonials } };
+      }
+      return block;
+    });
+    setBlocks(mergedBlocks);
+    setSelected(null);
+  }, [cms, page]);
+
+  useEffect(() => {
+    const k = localStorage.getItem("cvpm_admin_key");
+    if (k) verifyAdmin(k).then(v => { setIsLoading(false); if (!v) localStorage.removeItem("cvpm_admin_key"); });
+    else setIsLoading(false);
+  }, [verifyAdmin]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); doUndo(); }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); doRedo(); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") { e.preventDefault(); saveAll(); }
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [blocks, undo, redo]);
+
+  const snapshot = useCallback(() => { setUndo(u => [...u.slice(-29), JSON.stringify(blocks)]); setRedo([]); }, [blocks]);
+  const doUndo = () => { if (!undo.length) return; setRedo(r => [...r, JSON.stringify(blocks)]); setBlocks(JSON.parse(undo.at(-1))); setUndo(u => u.slice(0, -1)); toast.info("Undo"); };
+  const doRedo = () => { if (!redo.length) return; setUndo(u => [...u, JSON.stringify(blocks)]); setBlocks(JSON.parse(redo.at(-1))); setRedo(r => r.slice(0, -1)); toast.info("Redo"); };
+
+  const updateBlock = useCallback((id, field, value) => { snapshot(); setBlocks(b => b.map(x => x.id === id ? { ...x, data: { ...x.data, [field]: value } } : x)); }, [snapshot]);
+  const addBlock = (type) => { snapshot(); const b = { id: `${type}_${Date.now()}`, type, data: { ...SCHEMAS[type].defaults } }; setBlocks(bs => [...bs, b]); setSelected(b.id); toast.success(`Added ${SCHEMAS[type].label}`); };
+  const deleteBlock = (id) => { snapshot(); setBlocks(b => b.filter(x => x.id !== id)); if (selected === id) setSelected(null); };
+  const duplicateBlock = (id) => { snapshot(); const b = blocks.find(x => x.id === id); if (!b) return; const idx = blocks.findIndex(x => x.id === id); const n = { ...b, id: `${b.type}_${Date.now()}`, data: { ...b.data } }; setBlocks(bs => [...bs.slice(0, idx + 1), n, ...bs.slice(idx + 1)]); };
+  const moveBlock = (idx, dir) => { if ((dir === -1 && idx === 0) || (dir === 1 && idx === blocks.length - 1)) return; snapshot(); const items = [...blocks]; [items[idx], items[idx + dir]] = [items[idx + dir], items[idx]]; setBlocks(items); };
+  const onDragEnd = (result) => { if (!result.destination) return; snapshot(); const items = [...blocks]; const [moved] = items.splice(result.source.index, 1); items.splice(result.destination.index, 0, moved); setBlocks(items); };
+  const toggleVisibility = (id) => { snapshot(); setBlocks(b => b.map(x => x.id === id ? { ...x, visible: !x.visible } : x)); };
+
+  const generateAI = async (field, label) => {
+    if (!selected) return;
+    setGenerating(true);
+    try {
+      const block = blocks.find(b => b.id === selected);
+      if (field === "_all") {
+        for (const [k, f] of Object.entries(SCHEMAS[block.type].fields)) {
+          if (f.ai) {
+            const res = await fetch(`${API}/ai/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Generate ${f.label} for ${SCHEMAS[block.type].label}. Luxury Malta property style. Concise.`, section: block.type, field: k }) });
+            const data = await res.json();
+            if (data.content) updateBlock(selected, k, data.content.replace(/^["']|["']$/g, ''));
+          }
+        }
+        toast.success("AI generated all fields!");
+      } else {
+        const res = await fetch(`${API}/ai/generate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: `Generate ${label} for luxury Malta property. Concise.`, section: blocks.find(b => b.id === selected)?.type, field }) });
+        const data = await res.json();
+        if (data.content) { updateBlock(selected, field, data.content.replace(/^["']|["']$/g, '')); toast.success(`Generated ${label}`); }
+      }
+    } catch { toast.error("AI generation failed"); }
+    setGenerating(false);
+  };
+
+  const generateFromPrompt = async (prompt) => {
+    if (!selected) return;
+    setGenerating(true);
+    try {
+      const block = blocks.find(b => b.id === selected);
+      const res = await fetch(`${API}/ai/generate`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          prompt: `Refine the content for a ${SCHEMAS[block.type].label} block. Instructions: ${prompt}. Current content: ${JSON.stringify(block.data)}. Return improved content maintaining the same structure.`,
+          section: block.type, 
+          mode: "refine" 
+        }) 
+      });
+      const data = await res.json();
+      if (data.content) {
+        try {
+          const parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
+          Object.keys(parsed).forEach(k => updateBlock(selected, k, parsed[k]));
+          toast.success("AI draft applied! Review and publish.");
+        } catch {
+          toast.error("Could not parse AI response");
+        }
+      }
+    } catch (e) { toast.error("AI generation failed"); }
+    setGenerating(false);
+  };
+
+  const saveAll = async () => {
+    setSaving(true);
+    try {
+      const adminKey = localStorage.getItem("cvpm_admin_key");
+      
+      // First save each block as draft
+      for (const block of blocks) {
+        await fetch(`${API}/cms/admin/draft/${block.type}`, {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Admin-Key": adminKey
+          },
+          body: JSON.stringify({ data: block.data })
+        });
+      }
+      
+      // Legacy direct update for critical sections (backwards compat)
+      const hero = blocks.find(b => b.type === "hero");
+      const testimonials = blocks.find(b => b.type === "testimonials");
+      if (hero) await updateSection("hero", hero.data);
+      if (testimonials?.data?.items) await updateSection("testimonials", testimonials.data.items);
+      
+      // Publish all changes
+      const publishRes = await fetch(`${API}/cms/admin/publish`, {
+        method: "POST",
+        headers: { "X-Admin-Key": adminKey }
+      });
+      
+      const publishData = await publishRes.json();
+      
+      if (publishRes.ok) {
+        toast.success(
+          <div>
+            <p className="font-semibold">Published! 🎉</p>
+            <p className="text-xs opacity-80 mt-1">Version {publishData.version} saved to database.</p>
+            <p className="text-xs opacity-60 mt-1">Use "Save to Github" in the chat to sync code.</p>
+          </div>
+        );
+      } else {
+        toast.error(publishData.detail || "Publish failed");
+      }
+    } catch (e) { 
+      console.error("Publish error:", e);
+      toast.error("Save failed"); 
+    }
+    setSaving(false);
+  };
+
+  const selectedBlock = blocks.find(b => b.id === selected);
+
+  if (isLoading) return <div className="fixed inset-0 bg-[#0a0a0b] flex items-center justify-center z-[9999]"><div className="animate-spin w-10 h-10 border-2 border-[#D4AF37] border-t-transparent rounded-full" /></div>;
+
+  if (!isAdmin) return (
+    <div className="fixed inset-0 bg-[#0a0a0b] flex items-center justify-center z-[9999]">
+      <form onSubmit={e => { e.preventDefault(); verifyAdmin(adminKey).then(v => { if (v) { localStorage.setItem("cvpm_admin_key", adminKey); toast.success("Welcome!"); } else toast.error("Invalid key"); }); }} className="max-w-sm w-full px-6">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#a08550] flex items-center justify-center shadow-lg"><Sparkles className="w-8 h-8 text-[#0a0a0b]" /></div>
+          <h1 className="text-2xl font-bold text-[#f0ede8] mb-2">Studio Pro</h1>
+          <p className="text-sm text-[#5a5a5e]">Visual CMS Editor</p>
+        </div>
+        <Input type="password" placeholder="Enter admin key" value={adminKey} onChange={e => setAdminKey(e.target.value)} className="bg-[#111318] border-[#1e1e22] text-[#f0ede8] h-12 mb-4 text-center" />
+        <Button type="submit" className="w-full bg-[#D4AF37] hover:bg-[#E5C158] text-[#0a0a0b] h-12 font-semibold">Access Editor</Button>
+        <p className="text-center text-[10px] text-[#3a3a3e] mt-6">Default: cvpm-admin-2026</p>
+      </form>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-[#0a0a0b] flex flex-col z-[9999] overflow-hidden" data-testid="admin-editor">
+      {/* Header */}
+      <header className="h-12 bg-[#0a0a0b] border-b border-[#1a1a1e] flex items-center px-4 gap-2 shrink-0">
+        <div className="flex items-center gap-2 pr-3 border-r border-[#1a1a1e]">
+          <div className="w-7 h-7 bg-gradient-to-br from-[#D4AF37] to-[#a08550] flex items-center justify-center font-bold text-sm rounded text-[#0a0a0b]">C</div>
+          <span className="text-[#f0ede8] text-sm font-semibold hidden sm:block">Studio <em className="text-[#D4AF37] not-italic font-normal">Pro</em></span>
+        </div>
+        
+        {["home", "about", "properties", "owners"].map(p => (
+          <button key={p} onClick={() => setPage(p)} className={`px-2.5 py-1.5 text-[10px] font-medium rounded transition-all ${page === p ? "bg-[#D4AF37]/15 text-[#D4AF37]" : "text-[#6a6a6e] hover:text-[#f0ede8]"}`}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>
+        ))}
+        
+        <div className="flex-1" />
+        
+        <div className="flex items-center gap-1 border-r border-[#1a1a1e] pr-2 mr-2">
+          {[{ m: "desktop", i: Monitor }, { m: "tablet", i: Tablet }, { m: "mobile", i: Smartphone }].map(({ m, i: I }) => (
+            <button key={m} onClick={() => setView(m)} className={`p-1.5 rounded ${view === m ? "bg-[#D4AF37]/15 text-[#D4AF37]" : "text-[#5a5a5e] hover:text-[#f0ede8]"}`}><I className="w-3.5 h-3.5" /></button>
+          ))}
+        </div>
+        
+        <button onClick={doUndo} disabled={!undo.length} className="p-1.5 text-[#6a6a6e] hover:text-[#f0ede8] disabled:opacity-30 rounded hover:bg-[#1a1a1e]" title="Undo"><Undo2 className="w-3.5 h-3.5" /></button>
+        <button onClick={doRedo} disabled={!redo.length} className="p-1.5 text-[#6a6a6e] hover:text-[#f0ede8] disabled:opacity-30 rounded hover:bg-[#1a1a1e]" title="Redo"><Redo2 className="w-3.5 h-3.5" /></button>
+        
+        <div className="w-px h-5 bg-[#1a1a1e] mx-1" />
+        
+        <button onClick={() => window.open("/", "_blank")} className="p-1.5 text-[#6a6a6e] hover:text-[#f0ede8] rounded hover:bg-[#1a1a1e]" title="Preview"><ExternalLink className="w-3.5 h-3.5" /></button>
+        <button onClick={() => setShowKeys(true)} className="p-1.5 text-[#6a6a6e] hover:text-[#f0ede8] rounded hover:bg-[#1a1a1e]" title="API Keys"><Key className="w-3.5 h-3.5" /></button>
+        
+        <button onClick={saveAll} disabled={saving} className="ml-2 px-3 py-1.5 text-[10px] bg-[#D4AF37] text-[#0a0a0b] font-semibold rounded hover:bg-[#E5C158] flex items-center gap-1.5">
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Publish
+        </button>
+        
+        <button onClick={() => { logout(); navigate("/"); }} className="p-1.5 text-[#6a6a6e] hover:text-red-400 rounded hover:bg-red-400/10 ml-1" title="Logout"><LogOut className="w-3.5 h-3.5" /></button>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Blocks Panel */}
+        <aside className="w-56 bg-[#0a0a0b] border-r border-[#1a1a1e] flex flex-col shrink-0">
+          <div className="flex border-b border-[#1a1a1e]">
+            {[{ id: "blocks", icon: Plus, label: "Add" }, { id: "layers", icon: Layers, label: "Layers" }].map(t => (
+              <button key={t.id} onClick={() => setLeftTab(t.id)} className={`flex-1 py-2.5 text-[9px] font-medium flex flex-col items-center gap-1 ${leftTab === t.id ? "text-[#D4AF37] bg-[#D4AF37]/5" : "text-[#5a5a5e] hover:text-[#f0ede8]"}`}>
+                <t.icon className="w-4 h-4" />{t.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            {leftTab === "blocks" && CATEGORIES.map(cat => {
+              const items = Object.entries(SCHEMAS).filter(([_, s]) => s.category === cat.id);
+              if (!items.length) return null;
+              return (
+                <div key={cat.id} className="mb-4">
+                  <p className="text-[8px] uppercase tracking-wider text-[#4a4a4e] mb-2 font-semibold">{cat.name}</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    {items.map(([id, s]) => (
+                      <button key={id} onClick={() => addBlock(id)} className="flex flex-col items-center gap-1 p-2 bg-[#0e0e10] border border-[#1a1a1e] rounded hover:border-[#D4AF37]/40 hover:bg-[#D4AF37]/5 group">
+                        <s.icon className="w-4 h-4 text-[#5a5a5e] group-hover:text-[#D4AF37]" />
+                        <span className="text-[8px] text-[#6a6a6e] group-hover:text-[#f0ede8] font-medium truncate w-full text-center">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {leftTab === "layers" && (
+              <div className="space-y-0.5">
+                <p className="text-[8px] uppercase tracking-wider text-[#4a4a4e] mb-2 font-semibold">Blocks · {page}</p>
+                {blocks.map((block, idx) => {
+                  const schema = SCHEMAS[block.type];
+                  const Icon = schema?.icon || Layout;
+                  const isVisible = block.visible !== false;
+                  return (
+                    <div key={block.id} onClick={() => { setSelected(block.id); setRightTab("props"); }} className={`flex items-center gap-2 p-2 rounded cursor-pointer group transition-all ${selected === block.id ? "bg-[#D4AF37]/15 text-[#D4AF37]" : "hover:bg-[#1a1a1e] text-[#6a6a6e]"}`}>
+                      <GripVertical className="w-3 h-3 opacity-40 cursor-grab" />
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isVisible ? "bg-green-500" : "bg-[#3a3a3e]"}`} />
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1 text-[10px] font-medium truncate">{schema?.label}</span>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={e => { e.stopPropagation(); toggleVisibility(block.id); }} className="p-0.5 hover:text-[#f0ede8]">{isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}</button>
+                        <button onClick={e => { e.stopPropagation(); moveBlock(idx, -1); }} disabled={idx === 0} className="p-0.5 hover:text-[#f0ede8] disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
+                        <button onClick={e => { e.stopPropagation(); deleteBlock(block.id); }} className="p-0.5 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Center: Canvas */}
+        <main className="flex-1 flex flex-col bg-[#141416] overflow-hidden">
+          <div className="h-9 bg-[#0e0e10] border-b border-[#1a1a1e] flex items-center justify-between px-4 shrink-0">
+            <span className="text-[9px] text-[#4a4a4e] font-medium">{blocks.length} blocks · {page}</span>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setZoom(z => Math.max(50, z - 10))} className="p-1 text-[#5a5a5e] hover:text-[#f0ede8]"><Minus className="w-3 h-3" /></button>
+              <span className="text-[9px] text-[#5a5a5e] w-8 text-center">{zoom}%</span>
+              <button onClick={() => setZoom(z => Math.min(100, z + 10))} className="p-1 text-[#5a5a5e] hover:text-[#f0ede8]"><Plus className="w-3 h-3" /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-[#0a0a0b]/50">
+            <div className="mx-auto shadow-2xl transition-all rounded overflow-hidden border border-[#1a1a1e]" style={{ width: view === "desktop" ? "100%" : view === "tablet" ? "820px" : "390px", maxWidth: "100%", transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}>
+              <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="blocks">
+                  {(provided) => (
+                    <div {...provided.droppableProps} ref={provided.innerRef}>
+                      {blocks.filter(b => b.visible !== false).map((block, idx) => {
+                        const Comp = BLOCKS[block.type];
+                        if (!Comp) return null;
+                        return (
+                          <Draggable key={block.id} draggableId={block.id} index={idx}>
+                            {(provided, snapshot) => (
+                              <div ref={provided.innerRef} {...provided.draggableProps} onClick={() => { setSelected(block.id); setRightTab("props"); }}
+                                className={`relative group ${selected === block.id ? "ring-2 ring-[#D4AF37] ring-inset" : "hover:ring-1 hover:ring-[#D4AF37]/30 hover:ring-inset"} ${snapshot.isDragging ? "opacity-90 shadow-2xl" : ""}`}>
+                                <div className={`absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 py-1.5 bg-[#D4AF37] text-[#0a0a0b] text-[9px] font-semibold uppercase tracking-wide ${selected === block.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"} transition-opacity`}>
+                                  <span {...provided.dragHandleProps} className="flex items-center gap-1.5 cursor-grab"><GripVertical className="w-3 h-3" />{SCHEMAS[block.type]?.label}</span>
+                                  <div className="flex gap-1">
+                                    <button onClick={e => { e.stopPropagation(); duplicateBlock(block.id); }} className="p-0.5 hover:bg-black/10 rounded"><Copy className="w-3 h-3" /></button>
+                                    <button onClick={e => { e.stopPropagation(); deleteBlock(block.id); }} className="p-0.5 hover:bg-red-500/20 rounded text-red-700"><Trash2 className="w-3 h-3" /></button>
+                                  </div>
+                                </div>
+                                <Comp d={block.data} onEdit={(field, value) => updateBlock(block.id, field, value)} />
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            </div>
+          </div>
+        </main>
+
+        {/* Right: Editor Panel */}
+        <aside className="w-80 bg-[#0a0a0b] border-l border-[#1a1a1e] flex flex-col shrink-0">
+          <div className="flex border-b border-[#1a1a1e]">
+            {[{ id: "props", label: "Properties" }, { id: "json", label: "JSON" }].map(t => (
+              <button key={t.id} onClick={() => setRightTab(t.id)} className={`flex-1 py-2.5 text-[9px] font-medium uppercase tracking-wide ${rightTab === t.id ? "text-[#D4AF37] bg-[#D4AF37]/5 border-b-2 border-[#D4AF37]" : "text-[#5a5a5e] hover:text-[#f0ede8]"}`}>{t.label}</button>
+            ))}
+          </div>
+          
+          {selectedBlock && <AIAssistant block={selectedBlock} onApply={generateFromPrompt} isGenerating={generating} />}
+          
+          <div className="flex-1 overflow-y-auto">
+            {rightTab === "props" && <PropsEditor block={selectedBlock} onUpdate={(f, v) => updateBlock(selected, f, v)} onAI={generateAI} isGenerating={generating} />}
+            {rightTab === "json" && <JSONEditor block={selectedBlock} onUpdate={(f, v) => updateBlock(selected, f, v)} />}
+          </div>
+        </aside>
+      </div>
+
+      {/* Keyboard hints */}
+      <div className="absolute bottom-3 left-3 text-[8px] text-[#3a3a3e] flex items-center gap-3">
+        <span><Command className="w-3 h-3 inline" />Z Undo</span>
+        <span><Command className="w-3 h-3 inline" />⇧Z Redo</span>
+        <span><Command className="w-3 h-3 inline" />S Save</span>
+      </div>
+
+      {/* API Keys Modal */}
+      {showKeys && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[99999]" onClick={() => setShowKeys(false)}>
+          <div className="bg-[#0a0a0b] border border-[#1a1a1e] p-6 w-full max-w-md rounded-lg" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-[#f0ede8]">API Configuration</h3>
+              <button onClick={() => setShowKeys(false)} className="p-1.5 text-[#5a5a5e] hover:text-[#f0ede8]"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div><p className="text-[11px] text-[#5a5a5e] mb-1">AI (Emergent LLM)</p><span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="w-3 h-3" />Active</span></div>
+              <div><p className="text-[11px] text-[#5a5a5e] mb-1">Guesty API</p><span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="w-3 h-3" />Connected</span></div>
+              <div><p className="text-[11px] text-[#5a5a5e] mb-1">Stripe</p><span className="text-[10px] text-green-500 flex items-center gap-1"><Check className="w-3 h-3" />Configured</span></div>
+            </div>
+            <Button onClick={() => setShowKeys(false)} className="w-full mt-6 bg-[#D4AF37] hover:bg-[#E5C158] text-[#0a0a0b]">Close</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

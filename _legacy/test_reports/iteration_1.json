@@ -1,0 +1,72 @@
+{
+  "summary": "End-to-end verification of 3 critical fixes: (1) AdminPage React crash, (2) Header anchor link navigation, (3) Leaflet/OpenStreetMap on PropertyDetailPage. All fixes verified working. Backend pytest: 13/17 passing (4 quote failures are external Guesty 'LISTING_NOT_AVAILABLE' responses with proper structured 400 errors — acceptable per review spec).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/quotes", "issue": "Returns 400 LISTING_NOT_AVAILABLE for tested listings — external Guesty availability calendar issue, not a code bug. Backend returns structured error correctly. Consider adding a seeded always-available test listing for CI."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "admin_page": {
+      "loads_without_crash": true,
+      "default_key_works": true,
+      "categories_present": ["Global", "Page Sections", "Content", "Data & Business", "Social Proof", "Properties", "Conversion", "AI-Powered", "Media", "Utility"],
+      "lucide_svg_count": 111,
+      "emoji_icons_in_library": 0,
+      "page_errors": 0
+    },
+    "header_desktop": {
+      "for_owners_why_us": "navigates to /property-owners#why-us, getBoundingClientRect().top=80 ✓",
+      "for_owners_pricing": "navigates to /property-owners#pricing, top=80 ✓",
+      "for_owners_services": "navigates to /property-owners#services, top=80 ✓",
+      "for_owners_portfolio": "navigates to /properties ✓"
+    },
+    "header_mobile_390px": {
+      "sheet_opens": true,
+      "all_items_listed": true,
+      "click_closes_menu_and_navigates": true,
+      "why_us_top": 80
+    },
+    "property_detail_map": {
+      "leaflet_container_count": 1,
+      "property_leaflet_map_testid": 1,
+      "google_maps_iframe_count": 0,
+      "tile_count": 9,
+      "marker_count": 1,
+      "zoom_control_count": 1
+    },
+    "booking_widget": {
+      "price_per_night_displayed": "€900 /night",
+      "select_dates_button_present": true,
+      "guest_selector_present": true
+    },
+    "backend_pytest": {
+      "passed": 13,
+      "failed": 4,
+      "failures_breakdown": "All 4 failures (test_create_quote, test_get_quote, test_quote_pricing, test_create_checkout_session) are due to external Guesty BEAPI returning LISTING_NOT_AVAILABLE for tested listings/dates. Backend wraps this correctly as structured 400 error: {code: LISTING_NOT_AVAILABLE}."
+    }
+  },
+  "test_report_links": ["/app/backend/tests/test_api.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Optional: Provide a known-available seeded listing or extend test fixtures to dynamically pick an available listing for quote/checkout regression tests, so the suite is fully green in CI."
+  ],
+  "critical_code_review_comments": [
+    "blocks.js correctly uses lucide-react component references for all 33+ block schema icons — no emoji strings remain in icon fields.",
+    "App.js ScrollToHash component correctly handles location.hash with 80ms timeout and behavior:'smooth'.",
+    "PropertyDetailPage uses react-leaflet MapContainer with OpenStreetMap tile.openstreetmap.org tiles — no Google Maps iframe.",
+    "Header.jsx ownerDropdownItems now point Portfolio to /properties (correct).",
+    "Backend /api/quotes returns proper structured errors (DATES_IN_PAST, LISTING_NOT_AVAILABLE) — recommended pattern."
+  ],
+  "updated_files": ["/app/backend/tests/test_api.py (dynamic dates relative to today to avoid DATES_IN_PAST)"],
+  "success_rate": {"backend": "76% (13/17, 4 failures are external Guesty availability — not code)", "frontend": "100%"},
+  "test_credentials": "Admin key: cvpm-admin-2026 (verified working).",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All three reported fixes (admin crash, header anchors, Leaflet map) are stable end-to-end. Quote API failures in pytest are external Guesty availability behavior, not regressions. If real bookings need to be tested, query /api/listings first and pick a listing whose calendar is open."
+}

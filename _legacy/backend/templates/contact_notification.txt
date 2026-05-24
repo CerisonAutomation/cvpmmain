@@ -1,0 +1,11 @@
+New contact submission — CVPM
+
+Name: {name}
+Email: {email}
+Phone: {phone}
+Subject: {subject}
+
+Message:
+{message}
+
+Submitted: {created_at}

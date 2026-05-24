@@ -1,0 +1,120 @@
+import { Star, Building2, Layers, Play } from "lucide-react";
+import { ai } from "../helpers";
+
+export const HERO_SCHEMAS = {
+  hero: {
+    type:"hero", label:"Hero Section", category:"layout", icon: Star,
+    description:"Full-width hero with headline, subheadline, CTA buttons, and stats bar",
+    aiFields:["eyebrow","title","subtitle"],
+    ai: ai(["content generation"], ["claude-sonnet-4-5"], { generate:"Write a luxury hero headline + subheadline for {{topic}}. Headline uses <em> for the gold-italic emphasis word." }),
+    fields: {
+      eyebrow:{ type:"text", label:"Eyebrow Label" },
+      title:{ type:"richtext", label:"Headline (use <em> for gold italic)" },
+      subtitle:{ type:"textarea", label:"Subheadline" },
+      backgroundImage:{ type:"image", label:"Background Image" },
+      overlayOpacity:{ type:"number", label:"Overlay Opacity (0-100)", min:0, max:100 },
+      cta1:{ type:"text", label:"Primary CTA" },
+      cta1Href:{ type:"text", label:"Primary CTA Link" },
+      cta2:{ type:"text", label:"Secondary CTA" },
+      cta2Href:{ type:"text", label:"Secondary CTA Link" },
+      stats:{ type:"array", label:"Stats Bar", itemFields:["value","label"] },
+      showStats:{ type:"boolean", label:"Show Stats" },
+      height:{ type:"select", label:"Hero Height", options:["auto","full","large","medium"] },
+    },
+    defaults: {
+      eyebrow:"Malta's Premier Property Partner",
+      title:"Maximise your rental income, <em>effortlessly.</em>",
+      subtitle:"Full-service short-let management across Malta & Gozo. We handle everything — you earn more.",
+      backgroundImage:"https://images.unsplash.com/photo-1771218830084-fdd272e149a1?w=1920&q=80",
+      overlayOpacity:55,
+      cta1:"Get Your Free Assessment", cta1Href:"/property-owners",
+      cta2:"Browse Properties", cta2Href:"/properties",
+      showStats:true, height:"full",
+      stats:[
+        { value:"€2.4M+", label:"Revenue Generated" },
+        { value:"45+", label:"Properties Managed" },
+        { value:"4.97★", label:"Average Rating" },
+        { value:"94%", label:"Occupancy Rate" },
+      ],
+    },
+  },
+
+  owners_hero: {
+    type:"owners_hero", label:"Owners Hero", category:"layout", icon: Building2,
+    description:"Property owners hero with badge, title, description, services grid, and benefits",
+    aiFields:["title","subtitle","description"],
+    ai: ai(["content generation"], ["claude-sonnet-4-5"], { generate:"Write a confident owners-page hero with a 'titleAccent' gold word for: {{topic}}" }),
+    fields: {
+      badge:{ type:"text", label:"Badge" },
+      title:{ type:"text", label:"Title" },
+      titleAccent:{ type:"text", label:"Title Accent (gold)" },
+      description:{ type:"textarea", label:"Description" },
+      cta1:{ type:"text", label:"Primary CTA" },
+      cta2:{ type:"text", label:"Secondary CTA" },
+      services:{ type:"array", label:"Services Grid", itemFields:["icon","label","desc"] },
+      benefits:{ type:"array", label:"Benefits List", itemFields:["text"] },
+    },
+    defaults: {
+      badge:"For Property Owners",
+      title:"Maximize Your Property's",
+      titleAccent:"Full Potential",
+      description:"With over 9 years of Superhost experience and a background in international luxury hotel management, we specialize in making your property stand out in Malta's competitive market.",
+      cta1:"Get Started", cta2:"View Pricing Plans",
+      benefits:[{ text:"Tailored Property Management" },{ text:"Expertise You Can Trust" },{ text:"Selective Portfolio Approach" },{ text:"Comprehensive Services" }],
+      services:[
+        { icon:"Users", label:"24/7 Guest Support", desc:"Always available" },
+        { icon:"TrendingUp", label:"Dynamic Pricing", desc:"Maximize revenue" },
+        { icon:"Sparkles", label:"Pro Cleaning", desc:"After every stay" },
+        { icon:"ClipboardList", label:"Monthly Reports", desc:"Full transparency" },
+      ],
+    },
+  },
+
+  carousel_hero: {
+    type:"carousel_hero", label:"Carousel Hero", category:"premium", icon: Layers,
+    description:"Multi-slide carousel hero with autoplay, transitions, and per-slide CTAs",
+    ai: ai(["content generation"], ["claude-sonnet-4-6"], { generate:"Write 3 carousel slides (headline, subheadline, cta) for a luxury Malta property hero. Each slide has a distinct angle." }),
+    fields: {
+      slides:{ type:"array", label:"Slides", itemFields:["image","badge","headline","subheadline","cta1Text","cta1Link","cta2Text","cta2Link"] },
+      autoplay:{ type:"boolean", label:"Autoplay" },
+      interval:{ type:"number", label:"Interval (ms)", min:2000, max:15000 },
+      showDots:{ type:"boolean", label:"Show Navigation Dots" },
+      showArrows:{ type:"boolean", label:"Show Navigation Arrows" },
+      transitionEffect:{ type:"select", label:"Transition", options:["fade","slide","zoom"] },
+    },
+    defaults: {
+      autoplay:true, interval:5000, showDots:true, showArrows:true, transitionEffect:"fade",
+      slides:[
+        { image:"https://images.unsplash.com/photo-1771218830084-fdd272e149a1?w=1920&q=80", badge:"Malta's Premier", headline:"Luxury Property Management", subheadline:"Full-service management across Malta & Gozo", cta1Text:"Get Started", cta1Link:"/owners", cta2Text:"View Properties", cta2Link:"/properties" },
+        { image:"https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1920&q=80", badge:"Superhost Experience", headline:"9+ Years of Excellence", subheadline:"Trusted by property owners across Malta", cta1Text:"Learn More", cta1Link:"/owners", cta2Text:"Contact Us", cta2Link:"#contact" },
+      ],
+    },
+  },
+
+  video_hero: {
+    type:"video_hero", label:"Video Hero", category:"premium", icon: Play,
+    description:"Full-screen hero with background video, headline, overlay, and CTAs",
+    ai: ai(["content generation"], ["claude-sonnet-4-6"], { generate:"Write a video hero overlay headline + subheadline + CTA for: {{topic}}" }),
+    fields: {
+      videoUrl:{ type:"text", label:"Video URL" },
+      posterImage:{ type:"image", label:"Poster Image (fallback)" },
+      headline:{ type:"text", label:"Headline" },
+      subheadline:{ type:"textarea", label:"Subheadline" },
+      overlayOpacity:{ type:"number", label:"Overlay Opacity (0-100)", min:0, max:100 },
+      cta1Text:{ type:"text", label:"Primary CTA" },
+      cta1Link:{ type:"text", label:"Primary CTA Link" },
+      cta2Text:{ type:"text", label:"Secondary CTA" },
+      cta2Link:{ type:"text", label:"Secondary CTA Link" },
+      autoplay:{ type:"boolean", label:"Autoplay" },
+      loop:{ type:"boolean", label:"Loop" },
+      muted:{ type:"boolean", label:"Muted" },
+    },
+    defaults: {
+      videoUrl:"https://player.vimeo.com/video/example",
+      posterImage:"https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920",
+      headline:"Experience Malta", subheadline:"Luxury living in the Mediterranean",
+      overlayOpacity:50, cta1Text:"Explore Now", cta1Link:"/properties",
+      autoplay:true, loop:true, muted:true,
+    },
+  },
+};
