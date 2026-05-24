@@ -246,6 +246,7 @@ export interface BookingSearchData {
 // ── Additional data shapes referenced by block components ──
 
 export interface SectionHeadingData {
+  heading?: string;
   tagline?: string;
   headline: string;
   highlightWord?: string;
